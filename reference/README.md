@@ -13,7 +13,7 @@ uv run --project reference --locked python reference/assets.py download
 uv run --project reference --locked python reference/convert.py
 uv run --project reference --locked python reference/oracle.py --write
 uv run --project reference --locked python reference/oracle.py --verify
-uv run --project reference --locked python -m unittest discover -s reference/tests
+(cd reference && uv run --project . --offline --no-sync --locked python -m unittest discover -s tests)
 ```
 
 `assets.py verify` checks file sizes and SHA-256 before conversion or inference. The converter accepts only the pinned checkpoint/config/voice, requires the expected checkpoint modules and `af_heart` tensor shape, and writes `models/kokoro-v1_0-af_heart.kpack`. Re-running conversion writes the same pack bytes for the same lock and inputs.
