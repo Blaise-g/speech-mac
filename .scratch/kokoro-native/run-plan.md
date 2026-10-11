@@ -15,7 +15,7 @@ Status: approved by the Coordinator on 2026-10-11.
 - Dependency graph: the ticket edges below express true prerequisites; ticket 05 only depends on 03, not 04. Execution schedule: all 14 tickets still run strictly one after another because the repository rule forbids parallel work within one repository, so ticket 05 will be scheduled after 04.
 - Consumer census: none required. No ticket removes, renames, or deprecates an existing consumer-facing surface; there are no UI consumers.
 
-The architecture boundaries below follow the official [Kokoro-82M model card](https://huggingface.co/hexgrad/Kokoro-82M), its [model config](https://huggingface.co/hexgrad/Kokoro-82M/blob/main/config.json), and the official [inference path](https://github.com/hexgrad/kokoro/blob/main/kokoro/model.py), [model modules](https://github.com/hexgrad/kokoro/blob/main/kokoro/modules.py), and [ISTFTNet decoder](https://github.com/hexgrad/kokoro/blob/main/kokoro/istftnet.py). The reference ticket pins immutable model, code, voice, and tool revisions before fixture generation. The model path is phoneme IDs plus a voice style through the contextual encoder, duration alignment, pitch/noise prediction, text encoder, and ISTFTNet to a 24 kHz waveform. The upstream project is used only for reference and conversion; shipped inference remains C.
+The architecture boundaries below follow the official [Kokoro-82M model card](https://huggingface.co/hexgrad/Kokoro-82M), its [model config](https://huggingface.co/hexgrad/Kokoro-82M/blob/main/config.json), and the official [inference path](https://github.com/hexgrad/kokoro/blob/main/kokoro/model.py), [model modules](https://github.com/hexgrad/kokoro/blob/main/kokoro/modules.py), and [ISTFTNet decoder](https://github.com/hexgrad/kokoro/blob/main/kokoro/istftnet.py). The reference ticket pins immutable model, code, voice, and tool revisions before fixture generation. The model path is phoneme IDs plus a voice style through the contextual encoder, duration alignment, pitch/noise prediction, text encoder, and ISTFTNet to a 24 kHz waveform. Tickets 10–11 expose the resident engine through a small macOS CLI: WAV output when requested, otherwise playback of the completed WAV; incremental streaming and daemon mode remain deferred. The upstream project is used only for reference and conversion; shipped inference remains C.
 
 ## Ticket breakdown
 
@@ -111,22 +111,22 @@ All entries are in dependency order. Each ticket's context will cite `.scratch/k
 - **Rollout:** no.
 - **Worker Profile:** `implement-lite · xhigh · gpt-6-luna (override)`.
 
-### 10 — `10-resident-engine-phoneme-cli`: Reuse loaded weights and write phoneme-input WAVs
+### 10 — `10-resident-engine-phoneme-cli`: Reuse loaded weights and provide the native `say` CLI
 
 - **Blocked by:** `09-phoneme-to-audio-correctness`.
-- **What it delivers:** a reusable C engine keeps model weights resident across requests, and the CLI can turn prepared phonemes into a valid WAV.
-- **Acceptance checks:** Load model/voice once into an engine, synthesize repeated requests through that instance, and write mono 24 kHz WAV files with correct headers and sample counts. Document the model and voice artifact arguments.
-- **Tests:** Call the engine repeatedly and compare outputs to the direct inference seam; exercise the CLI end to end with prepared phonemes; validate WAV fields and output length; check clear errors for missing or incompatible model artifacts.
+- **What it delivers:** a reusable C engine keeps model weights resident; `kokoro say --ipa` handles prepared phonemes and provides voice/speed selection, WAV output, and default macOS playback.
+- **Acceptance checks:** Reuse one loaded engine; support the initial `af_heart` voice and requested English `am_adam` artifact; list installed supported voices; validate finite speed in the documented 0.5–2 range; write mono 24 kHz WAV with `-o` or play the completed temporary WAV with `afplay` by default. Keep process invocation shell-free and document model/voice inputs.
+- **Tests:** Exercise repeated engine requests, phoneme CLI output, WAV metadata, voice/speed selection, help/version/listing, invalid artifacts/options, and safe playback invocation/temp cleanup through a stub player.
 - **Ticket Key:** `10-resident-engine-phoneme-cli`.
 - **Rollout:** no.
 - **Worker Profile:** `implement-lite · xhigh · gpt-6-luna (override)`.
 
-### 11 — `11-english-espeak-frontend`: Synthesize ordinary English through eSpeak NG
+### 11 — `11-english-espeak-frontend`: Synthesize English text, files, or standard input through eSpeak NG
 
 - **Blocked by:** `10-resident-engine-phoneme-cli`.
-- **What it delivers:** ordinary English text is converted by the agreed eSpeak NG frontend and synthesized by the resident native engine through the CLI.
-- **Acceptance checks:** Support the initial English path with documented eSpeak-to-Kokoro symbol mapping, while accepting prepared phonemes as the reference path. Reject empty/unmappable output clearly; document that pronunciation can differ from Misaki.
-- **Tests:** Check representative English inputs against expected frontend tokens/IDs; run a text-to-WAV CLI check with eSpeak NG; verify output through the same WAV and audio checks. Keep eSpeak and Python out of C model inference itself.
+- **What it delivers:** English text, UTF-8 text files, and standard input are converted by eSpeak NG and synthesized by the resident native engine; `--ipa` bypasses eSpeak.
+- **Acceptance checks:** Accept exactly one source (positional text, `-f/--file PATH`, or stdin); reject invalid UTF-8, empty/conflicting sources, and unmappable symbols. Preserve prepared phonemes; process long input completely in bounded sentence-aware chunks and combine the audio in order. Record eSpeak version/settings and document pronunciation differences from Misaki.
+- **Tests:** Check representative token/ID outputs, all source modes and conflict/error cases, `--ipa` bypass, and a long multi-sentence case crossing chunk boundaries without truncation; verify final WAV fields/audio. Keep eSpeak and Python out of C model inference.
 - **Ticket Key:** `11-english-espeak-frontend`.
 - **Rollout:** no.
 - **Worker Profile:** `implement-lite · xhigh · gpt-6-luna (override)`.
@@ -164,7 +164,7 @@ All entries are in dependency order. Each ticket's context will cite `.scratch/k
 ## Approved implementation decisions (appended to the Requirement Source)
 
 - Implement the inference graph in readable C17, using Accelerate behind narrow numerical-operation seams when it serves the accepted Apple Silicon target. Do not embed a model runtime; Python remains development-only for reference, fixture, and weight conversion work.
-- Use the official Kokoro-82M v1.0 config and checkpoint as the model contract. Pin immutable revisions and hashes in the reference/conversion work before producing fixtures. Start with one English voice (`af_heart` proposed) and prepared phonemes; keep eSpeak NG in the English frontend boundary.
+- Use the official Kokoro-82M v1.0 config and checkpoint as the model contract. Pin immutable revisions and hashes in the reference/conversion work before producing fixtures. Use `af_heart` for the initial reference and add the requested `am_adam` as an English voice artifact in ticket 10; keep eSpeak NG in the English frontend boundary.
 - Treat the module boundaries in tickets 02–08 as the stable backend seams. Use a versioned C-readable weight pack produced from official weights, stored outside Git, and load it into a resident engine that accepts prepared phonemes, voice style, and speed and returns mono 24 kHz audio.
 - Add no Metal path or abstraction in advance. A separate ticket can be proposed only if the measured profile demonstrates a suitable bottleneck and likely benefit.
 
@@ -173,7 +173,7 @@ All entries are in dependency order. Each ticket's context will cite `.scratch/k
 - Use the official Python inference implementation as a development-time oracle, with deterministic prepared phoneme IDs, voice style, and captured excitation inputs. Keep compact checked-in fixtures for each module boundary and final audio; do not commit full checkpoint/voice weights.
 - Before C inference implementation, set per-stage and final-audio numerical budgets from repeated-reference behavior and documented float-precision rationale. Test each C module at its stable input/output seam against oracle fixtures using those fixed budgets; a miss triggers diagnosis and a fix, with budget changes requiring independent evidence and written rationale. Test shape, masking, alignment, length, error, and finite-value invariants separately where exact numeric equality is not the right assertion.
 - Test the assembled engine using the highest available seam: direct phoneme-to-waveform reference comparison, controlled excitation for reproducibility, repeat requests against one resident engine, and CLI WAV inspection. Ticket 09 records audition artifacts; ticket 14 holds final human listening acceptance so pending listening does not block technical follow-on tickets.
-- Run `make format` followed by `make check` and an independent review before each commit. The English frontend gets token/ID tests and a CLI smoke test; benchmark and optimization tickets record the exact Mac/workload and use repeated paired measurements. Set any performance acceptance bound from observed baseline variation, never from an assumed number.
+- Run `make format` followed by `make check` and an independent review before each commit. The English frontend gets token/ID tests and CLI checks for positional text, UTF-8 file, standard input, IPA bypass, voice selection, and long input across sentence-aware chunks; benchmark and optimization tickets record the exact Mac/workload and use repeated paired measurements. Set any performance acceptance bound from observed baseline variation, never from an assumed number.
 
 ## Open items
 
