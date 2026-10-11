@@ -31,6 +31,36 @@ def export_context_features() -> None:
     (FIXTURES / "contextual_features.f32le").write_bytes(raw)
 
 
+def export_duration_fixtures() -> None:
+    specs = {
+        "duration_features": ("<f4", (1, 8, 640)),
+        "duration_rnn": ("<f4", (1, 8, 512)),
+        "duration_logits": ("<f4", (1, 8, 50)),
+        "duration_values": ("<f4", (1, 8)),
+        "durations": ("<i8", (8,)),
+        "alignment": ("<f4", (1, 8, 55)),
+    }
+    for speed_tag in ("0_5", "2_0"):
+        specs[f"duration_values_speed_{speed_tag}"] = ("<f4", (1, 8))
+        specs[f"durations_speed_{speed_tag}"] = ("<i8", (8,))
+        specs[f"alignment_speed_{speed_tag}"] = ("<f4", (1, 8, None))
+
+    manifest = json.loads((FIXTURES / "manifest.json").read_text(encoding="utf-8"))
+    with np.load(FIXTURES / "af_heart_hello.npz", allow_pickle=False) as fixture:
+        for name, (dtype, shape) in specs.items():
+            array = np.ascontiguousarray(fixture[name], dtype=dtype)
+            shape_matches = array.shape == shape
+            if shape[-1] is None:
+                shape_matches = array.ndim == 3 and array.shape[:2] == shape[:2] and array.shape[2] > 0
+            if not shape_matches:
+                raise ValueError(f"unexpected {name} fixture shape: {array.shape}")
+            raw = array.tobytes(order="C")
+            if hashlib.sha256(raw).hexdigest() != manifest["arrays"][name]["sha256"]:
+                raise ValueError(f"raw {name} fixture does not match its manifest digest")
+            suffix = "i64le" if dtype == "<i8" else "f32le"
+            (FIXTURES / f"{name}.{suffix}").write_bytes(raw)
+
+
 def export_minimal_pack() -> None:
     metadata = {
         "model": HF_REPOSITORY,
@@ -55,5 +85,6 @@ def export_minimal_pack() -> None:
 
 if __name__ == "__main__":
     export_context_features()
+    export_duration_fixtures()
     export_minimal_pack()
     print("Exported contextual feature and minimal pack fixtures for the C tests.")

@@ -18,6 +18,24 @@
         55
       ]
     },
+    "alignment_speed_0_5": {
+      "dtype": "float32",
+      "sha256": "5dd593a4c1c7b45034900d6883f265f11f6cb7e0b6d04be95dce11099d929d57",
+      "shape": [
+        1,
+        8,
+        110
+      ]
+    },
+    "alignment_speed_2_0": {
+      "dtype": "float32",
+      "sha256": "e16ff50a705ce2f1804cf50feca3c28cc7447e47428d99556ad34f8ec1de4b3d",
+      "shape": [
+        1,
+        8,
+        27
+      ]
+    },
     "attention_mask": {
       "dtype": "int32",
       "sha256": "1645dafaadd8b1075dbb65a6a961a05d28e40d93da92293ce602dca244e85d6b",
@@ -88,9 +106,39 @@
         8
       ]
     },
+    "duration_values_speed_0_5": {
+      "dtype": "float32",
+      "sha256": "a7c3bec6760cb8342948374009115e2ae3a352d32fa56cbc98fed4eb9e8e4309",
+      "shape": [
+        1,
+        8
+      ]
+    },
+    "duration_values_speed_2_0": {
+      "dtype": "float32",
+      "sha256": "0f8ac4f3a6e5aa29e12e421070d97ee7c11ba0c1b471df1f430a1cba90dcfa02",
+      "shape": [
+        1,
+        8
+      ]
+    },
     "durations": {
       "dtype": "int64",
       "sha256": "7714153e9bc3a4abccfc10f6f6fc7d81a3f2b023fa6b168706e0782921397c20",
+      "shape": [
+        8
+      ]
+    },
+    "durations_speed_0_5": {
+      "dtype": "int64",
+      "sha256": "a7a915242e38b19b0ee7986979729b609be6348951409b719f79774ecb9ac099",
+      "shape": [
+        8
+      ]
+    },
+    "durations_speed_2_0": {
+      "dtype": "int64",
+      "sha256": "a173477a224a9a368a975a41bb424e817fbdd52f144f9d8dad611a6fcdce05e9",
       "shape": [
         8
       ]
@@ -198,12 +246,12 @@
   },
   "budgets": {
     "path": "../budgets.json",
-    "sha256": "15ef79e25e89b06a8f1a45edd3eb72f74b78fef0814bf5b45bfe934f13c12088"
+    "sha256": "21c29ae71cd3691c3a7449f813d2ac2cba3c1589a5bc680ec7af3f270d2301de"
   },
   "fixture": {
     "path": "af_heart_hello.npz",
-    "sha256": "26e48e5a578534e8ec298fac2bcb45488a1f1eb81472e90b9eae9b52d8412442",
-    "size_bytes": 1223943
+    "sha256": "808bc995a7c7651e99d53623f3944fdc2b19d6660387ff0da186fbd8d3859921",
+    "size_bytes": 1225406
   },
   "inference_source": {
     "files": {
@@ -277,6 +325,18 @@
         "normalized_rmse": 0.0,
         "rmse": 0.0
       },
+      "alignment_speed_0_5": {
+        "bitwise_equal": true,
+        "max_abs_difference": 0.0,
+        "normalized_rmse": 0.0,
+        "rmse": 0.0
+      },
+      "alignment_speed_2_0": {
+        "bitwise_equal": true,
+        "max_abs_difference": 0.0,
+        "normalized_rmse": 0.0,
+        "rmse": 0.0
+      },
       "attention_mask": {
         "bitwise_equal": true,
         "max_abs_difference": 0.0,
@@ -325,7 +385,31 @@
         "normalized_rmse": 0.0,
         "rmse": 0.0
       },
+      "duration_values_speed_0_5": {
+        "bitwise_equal": true,
+        "max_abs_difference": 0.0,
+        "normalized_rmse": 0.0,
+        "rmse": 0.0
+      },
+      "duration_values_speed_2_0": {
+        "bitwise_equal": true,
+        "max_abs_difference": 0.0,
+        "normalized_rmse": 0.0,
+        "rmse": 0.0
+      },
       "durations": {
+        "bitwise_equal": true,
+        "max_abs_difference": 0.0,
+        "normalized_rmse": 0.0,
+        "rmse": 0.0
+      },
+      "durations_speed_0_5": {
+        "bitwise_equal": true,
+        "max_abs_difference": 0.0,
+        "normalized_rmse": 0.0,
+        "rmse": 0.0
+      },
+      "durations_speed_2_0": {
         "bitwise_equal": true,
         "max_abs_difference": 0.0,
         "normalized_rmse": 0.0,

@@ -147,6 +147,19 @@ def _capture(model: KModel, input_data: dict[str, Any], voice_table: torch.Tenso
     traces["duration_values"] = _copy_tensor(duration_values)
     traces["durations"] = _copy_tensor(durations)
     traces["alignment"] = _copy_tensor(alignment.unsqueeze(0))
+
+    for speed_tag, speed in (("0_5", 0.5), ("2_0", 2.0)):
+        # The pinned forward path applies speed after the shared duration projection, so these
+        # endpoint cases reuse its captured, speed-independent logits without rerunning the decoder.
+        speed_values = torch.sigmoid(torch.from_numpy(traces["duration_logits"])).sum(axis=-1) / speed
+        speed_durations = torch.round(speed_values).clamp(min=1).long().reshape(-1)
+        speed_indices = torch.repeat_interleave(torch.arange(input_ids.shape[1]), speed_durations)
+        speed_alignment = torch.zeros((input_ids.shape[1], speed_indices.shape[0]), dtype=torch.float32)
+        speed_alignment[speed_indices, torch.arange(speed_indices.shape[0])] = 1.0
+        traces[f"duration_values_speed_{speed_tag}"] = _copy_tensor(speed_values)
+        traces[f"durations_speed_{speed_tag}"] = _copy_tensor(speed_durations)
+        traces[f"alignment_speed_{speed_tag}"] = _copy_tensor(speed_alignment.unsqueeze(0))
+
     traces["waveform"] = _copy_tensor(waveform)
     return traces
 
