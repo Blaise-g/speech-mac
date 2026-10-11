@@ -1,0 +1,43 @@
+{
+  "model": {
+    "repository": "https://huggingface.co/hexgrad/Kokoro-82M",
+    "revision": "f3ff3571791e39611d31c381e3a41a3af07b4987",
+    "release": "v1.0",
+    "checkpoint": {
+      "path": "kokoro-v1_0.pth",
+      "size_bytes": 327212226,
+      "sha256": "496dba118d1a58f5f3db2efc88dbdc216e0483fc89fe6e47ee1f2c53f18ad1e4"
+    },
+    "config": {
+      "path": "config.json",
+      "size_bytes": 2351,
+      "git_blob_sha1": "14a726edd3718279eac426630879ff743955b16a",
+      "sha256": "5abb01e2403b072bf03d04fde160443e209d7a0dad49a423be15196b9b43c17f"
+    },
+    "voice": {
+      "name": "af_heart",
+      "path": "voices/af_heart.pt",
+      "size_bytes": 523425,
+      "sha256": "0ab5709b8ffab19bfd849cd11d98f75b60af7733253ad0d67b12382a102cb4ff"
+    }
+  },
+  "inference_source": {
+    "repository": "https://github.com/hexgrad/kokoro",
+    "revision": "dfb907a02bba8152ca444717ca5d78747ccb4bec",
+    "package_version": "0.9.4",
+    "files": {
+      "kokoro/model.py": "301c55350a068c4ed3b4cbd1209d2afb848bebca72db5657405e47e9dfb604db",
+      "kokoro/modules.py": "6e14dadc706efc9a8d90e8b4919d45d57342555b242c642cd26f26c65eedc085",
+      "kokoro/istftnet.py": "66515cb3369d1c0bbb2015ad7293d019fb1f80fefcb2d56e70e73b6b146af11c",
+      "kokoro/custom_stft.py": "94fed3f9ac22bba31135bf8c4ea795762c7ab3ff44f1984d11e7babf27462d69"
+    }
+  },
+  "tools": {
+    "uv": "0.9.5",
+    "python": "3.12.12",
+    "torch": "2.6.0",
+    "numpy": "1.26.4",
+    "transformers": "4.48.3",
+    "huggingface-hub": "0.36.2"
+  }
+}
