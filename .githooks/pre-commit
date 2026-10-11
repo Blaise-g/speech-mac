@@ -1,0 +1,13 @@
+#!/bin/bash
+set -euo pipefail
+
+repo_root=$(git rev-parse --show-toplevel)
+temp_root=$(mktemp -d "${TMPDIR:-/tmp}/kokoro-pre-commit.XXXXXX")
+trap 'rm -rf "$temp_root"' EXIT
+
+snapshot="$temp_root/staged"
+mkdir -p "$snapshot"
+git -C "$repo_root" checkout-index --all --prefix="$snapshot/"
+
+cd "$snapshot"
+make check-fast
