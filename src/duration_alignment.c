@@ -1,6 +1,8 @@
 #include "duration_alignment.h"
 
 #include "kokoro_internal.h"
+#include "lstm.h"
+#include "tensor_utils.h"
 
 #define ACCELERATE_NEW_LAPACK 1
 #define ACCELERATE_LAPACK_ILP64 1
@@ -24,18 +26,7 @@
 #define DURATION_MAX_RAW_VALUE ((float)KOKORO_DURATION_LOGIT_CHANNELS)
 
 typedef struct {
-    const float *weight_ih;
-    const float *weight_hh;
-    const float *bias_ih;
-    const float *bias_hh;
-    const float *weight_ih_reverse;
-    const float *weight_hh_reverse;
-    const float *bias_ih_reverse;
-    const float *bias_hh_reverse;
-} BidirectionalLstmWeights;
-
-typedef struct {
-    BidirectionalLstmWeights lstm;
+    KokoroBiLstmWeights lstm;
     const float *norm_weight;
     const float *norm_bias;
 } DurationLayerWeights;
@@ -44,77 +35,10 @@ struct KokoroDurationPredictor {
     const float *voice_styles;
     size_t voice_style_count;
     DurationLayerWeights layers[DURATION_LAYER_COUNT];
-    BidirectionalLstmWeights projection_lstm;
+    KokoroBiLstmWeights projection_lstm;
     const float *duration_projection_weight;
     const float *duration_projection_bias;
 };
-
-static KokoroStatus bind_f32(const KokoroPack *pack, const char *name, unsigned int rank,
-                             const uint64_t *shape, const float **destination, KokoroError *error) {
-    KokoroTensorView view;
-    KokoroStatus status = kokoro_pack_tensor(pack, name, &view, error);
-    if (status != KOKORO_OK) {
-        return status;
-    }
-    if (view.type != KOKORO_TENSOR_F32 || view.rank != rank) {
-        kokoro_error_set(error, KOKORO_INCOMPATIBLE_PACK,
-                         "tensor has an incompatible type or rank: %s", name);
-        return KOKORO_INCOMPATIBLE_PACK;
-    }
-    size_t element_count = 1;
-    for (unsigned int dimension = 0; dimension < rank; dimension++) {
-        if (view.shape[dimension] != shape[dimension] ||
-            shape[dimension] > SIZE_MAX / element_count) {
-            kokoro_error_set(error, KOKORO_INCOMPATIBLE_PACK,
-                             "tensor has an incompatible shape: %s", name);
-            return KOKORO_INCOMPATIBLE_PACK;
-        }
-        element_count *= (size_t)shape[dimension];
-    }
-    const float *values = view.data;
-    for (size_t index = 0; index < element_count; index++) {
-        if (!isfinite(values[index])) {
-            kokoro_error_set(error, KOKORO_INCOMPATIBLE_PACK,
-                             "tensor contains a non-finite value: %s", name);
-            return KOKORO_INCOMPATIBLE_PACK;
-        }
-    }
-    *destination = values;
-    return KOKORO_OK;
-}
-
-static KokoroStatus bind_lstm(const KokoroPack *pack, const char *prefix, size_t input_width,
-                              BidirectionalLstmWeights *weights, KokoroError *error) {
-    static const char *const suffixes[] = {
-        "weight_ih_l0",         "weight_hh_l0",         "bias_ih_l0",         "bias_hh_l0",
-        "weight_ih_l0_reverse", "weight_hh_l0_reverse", "bias_ih_l0_reverse", "bias_hh_l0_reverse",
-    };
-    const float **destinations[] = {
-        &weights->weight_ih,       &weights->weight_hh,         &weights->bias_ih,
-        &weights->bias_hh,         &weights->weight_ih_reverse, &weights->weight_hh_reverse,
-        &weights->bias_ih_reverse, &weights->bias_hh_reverse,
-    };
-    const uint64_t shapes[8][2] = {
-        {DURATION_LSTM_GATE_SIZE, input_width}, {DURATION_LSTM_GATE_SIZE, DURATION_LSTM_WIDTH},
-        {DURATION_LSTM_GATE_SIZE, 0},           {DURATION_LSTM_GATE_SIZE, 0},
-        {DURATION_LSTM_GATE_SIZE, input_width}, {DURATION_LSTM_GATE_SIZE, DURATION_LSTM_WIDTH},
-        {DURATION_LSTM_GATE_SIZE, 0},           {DURATION_LSTM_GATE_SIZE, 0},
-    };
-    char name[160];
-    for (size_t index = 0; index < sizeof(suffixes) / sizeof(suffixes[0]); index++) {
-        int length = snprintf(name, sizeof(name), "%s.%s", prefix, suffixes[index]);
-        if (length < 0 || (size_t)length >= sizeof(name)) {
-            kokoro_error_set(error, KOKORO_INCOMPATIBLE_PACK, "predictor tensor name is too long");
-            return KOKORO_INCOMPATIBLE_PACK;
-        }
-        unsigned int rank = index == 0 || index == 1 || index == 4 || index == 5 ? 2U : 1U;
-        KokoroStatus status = bind_f32(pack, name, rank, shapes[index], destinations[index], error);
-        if (status != KOKORO_OK) {
-            return status;
-        }
-    }
-    return KOKORO_OK;
-}
 
 static KokoroStatus bind_norm(const KokoroPack *pack, const char *prefix,
                               DurationLayerWeights *weights, KokoroError *error) {
@@ -126,7 +50,8 @@ static KokoroStatus bind_norm(const KokoroPack *pack, const char *prefix,
         kokoro_error_set(error, KOKORO_INCOMPATIBLE_PACK, "predictor tensor name is too long");
         return KOKORO_INCOMPATIBLE_PACK;
     }
-    KokoroStatus status = bind_f32(pack, name, 2, matrix_shape, &weights->norm_weight, error);
+    KokoroStatus status =
+        kokoro_tensor_bind_f32(pack, name, 2, matrix_shape, &weights->norm_weight, error);
     if (status != KOKORO_OK) {
         return status;
     }
@@ -135,7 +60,7 @@ static KokoroStatus bind_norm(const KokoroPack *pack, const char *prefix,
         kokoro_error_set(error, KOKORO_INCOMPATIBLE_PACK, "predictor tensor name is too long");
         return KOKORO_INCOMPATIBLE_PACK;
     }
-    return bind_f32(pack, name, 1, vector_shape, &weights->norm_bias, error);
+    return kokoro_tensor_bind_f32(pack, name, 1, vector_shape, &weights->norm_bias, error);
 }
 
 KokoroStatus kokoro_duration_predictor_create(const KokoroPack *pack,
@@ -195,8 +120,8 @@ KokoroStatus kokoro_duration_predictor_create(const KokoroPack *pack,
             free(predictor);
             return KOKORO_INCOMPATIBLE_PACK;
         }
-        status = bind_lstm(pack, prefix, KOKORO_DURATION_FEATURES, &predictor->layers[layer].lstm,
-                           error);
+        status = kokoro_bilstm_bind(pack, prefix, KOKORO_DURATION_FEATURES, DURATION_LSTM_WIDTH,
+                                    &predictor->layers[layer].lstm, error);
         if (status != KOKORO_OK) {
             free(predictor);
             return status;
@@ -215,8 +140,8 @@ KokoroStatus kokoro_duration_predictor_create(const KokoroPack *pack,
         }
     }
 
-    status = bind_lstm(pack, "predictor.module.lstm", KOKORO_DURATION_FEATURES,
-                       &predictor->projection_lstm, error);
+    status = kokoro_bilstm_bind(pack, "predictor.module.lstm", KOKORO_DURATION_FEATURES,
+                                DURATION_LSTM_WIDTH, &predictor->projection_lstm, error);
     if (status != KOKORO_OK) {
         free(predictor);
         return status;
@@ -224,11 +149,13 @@ KokoroStatus kokoro_duration_predictor_create(const KokoroPack *pack,
     const uint64_t projection_shape[2] = {KOKORO_DURATION_LOGIT_CHANNELS,
                                           KOKORO_DURATION_RNN_FEATURES};
     const uint64_t projection_bias_shape[1] = {KOKORO_DURATION_LOGIT_CHANNELS};
-    status = bind_f32(pack, "predictor.module.duration_proj.linear_layer.weight", 2,
-                      projection_shape, &predictor->duration_projection_weight, error);
+    status =
+        kokoro_tensor_bind_f32(pack, "predictor.module.duration_proj.linear_layer.weight", 2,
+                               projection_shape, &predictor->duration_projection_weight, error);
     if (status == KOKORO_OK) {
-        status = bind_f32(pack, "predictor.module.duration_proj.linear_layer.bias", 1,
-                          projection_bias_shape, &predictor->duration_projection_bias, error);
+        status = kokoro_tensor_bind_f32(pack, "predictor.module.duration_proj.linear_layer.bias", 1,
+                                        projection_bias_shape, &predictor->duration_projection_bias,
+                                        error);
     }
     if (status != KOKORO_OK) {
         free(predictor);
@@ -264,65 +191,6 @@ static void linear(const float *input, const float *weight, const float *bias, s
 }
 
 static float sigmoid(float value) { return 1.0f / (1.0f + expf(-value)); }
-
-static void activate_lstm_gates(const float *gates, float *hidden, float *cell) {
-    for (size_t unit = 0; unit < DURATION_LSTM_WIDTH; unit++) {
-        float input_gate = sigmoid(gates[unit]);
-        float forget_gate = sigmoid(gates[DURATION_LSTM_WIDTH + unit]);
-        float candidate = tanhf(gates[2 * DURATION_LSTM_WIDTH + unit]);
-        float output_gate = sigmoid(gates[3 * DURATION_LSTM_WIDTH + unit]);
-        cell[unit] = forget_gate * cell[unit] + input_gate * candidate;
-        hidden[unit] = output_gate * tanhf(cell[unit]);
-    }
-}
-
-static KokoroStatus run_lstm_direction(const float *input, size_t token_count, size_t input_width,
-                                       const float *weight_ih, const float *weight_hh,
-                                       const float *bias_ih, const float *bias_hh, bool reverse,
-                                       float *output, KokoroError *error) {
-    size_t gate_count = token_count * DURATION_LSTM_GATE_SIZE;
-    float *input_gates = NULL;
-    if (!allocate_floats(gate_count, &input_gates)) {
-        kokoro_error_set(error, KOKORO_OUT_OF_MEMORY, "cannot allocate duration LSTM workspace");
-        return KOKORO_OUT_OF_MEMORY;
-    }
-    float combined_bias[DURATION_LSTM_GATE_SIZE];
-    for (size_t gate = 0; gate < DURATION_LSTM_GATE_SIZE; gate++) {
-        combined_bias[gate] = bias_ih[gate] + bias_hh[gate];
-    }
-    linear(input, weight_ih, combined_bias, token_count, input_width, DURATION_LSTM_GATE_SIZE,
-           input_gates);
-
-    float hidden[DURATION_LSTM_WIDTH] = {0};
-    float cell[DURATION_LSTM_WIDTH] = {0};
-    for (size_t step = 0; step < token_count; step++) {
-        size_t token = reverse ? token_count - 1 - step : step;
-        float *gates = input_gates + token * DURATION_LSTM_GATE_SIZE;
-        cblas_sgemv(CblasRowMajor, CblasNoTrans, (int)DURATION_LSTM_GATE_SIZE,
-                    (int)DURATION_LSTM_WIDTH, 1.0f, weight_hh, (int)DURATION_LSTM_WIDTH, hidden, 1,
-                    1.0f, gates, 1);
-        activate_lstm_gates(gates, hidden, cell);
-        float *token_output = output + token * KOKORO_DURATION_RNN_FEATURES;
-        size_t offset = reverse ? DURATION_LSTM_WIDTH : 0;
-        memcpy(token_output + offset, hidden, sizeof(hidden));
-    }
-    free(input_gates);
-    return KOKORO_OK;
-}
-
-static KokoroStatus run_bilstm(const float *input, size_t token_count, size_t input_width,
-                               const BidirectionalLstmWeights *weights, float *output,
-                               KokoroError *error) {
-    KokoroStatus status =
-        run_lstm_direction(input, token_count, input_width, weights->weight_ih, weights->weight_hh,
-                           weights->bias_ih, weights->bias_hh, false, output, error);
-    if (status != KOKORO_OK) {
-        return status;
-    }
-    return run_lstm_direction(input, token_count, input_width, weights->weight_ih_reverse,
-                              weights->weight_hh_reverse, weights->bias_ih_reverse,
-                              weights->bias_hh_reverse, true, output, error);
-}
 
 static void apply_adaptive_layer_norm(const DurationLayerWeights *weights, const float *input,
                                       const float *style, size_t token_count, float *output) {
@@ -386,8 +254,9 @@ static KokoroStatus run_duration_encoder(const KokoroDurationPredictor *predicto
                              "cannot allocate duration encoder layer workspace");
             return KOKORO_OUT_OF_MEMORY;
         }
-        KokoroStatus status = run_bilstm(current, token_count, KOKORO_DURATION_FEATURES,
-                                         &predictor->layers[layer].lstm, recurrent, error);
+        KokoroStatus status =
+            kokoro_bilstm_run(&predictor->layers[layer].lstm, current, token_count,
+                              KOKORO_DURATION_FEATURES, DURATION_LSTM_WIDTH, recurrent, error);
         if (status != KOKORO_OK) {
             free(current);
             free(recurrent);
@@ -558,8 +427,9 @@ KokoroStatus kokoro_duration_predict(const KokoroDurationPredictor *predictor,
                          "cannot allocate duration projection workspace");
         return KOKORO_OUT_OF_MEMORY;
     }
-    status = run_bilstm(result.duration_features, token_count, KOKORO_DURATION_FEATURES,
-                        &predictor->projection_lstm, result.duration_rnn, error);
+    status = kokoro_bilstm_run(&predictor->projection_lstm, result.duration_features, token_count,
+                               KOKORO_DURATION_FEATURES, DURATION_LSTM_WIDTH, result.duration_rnn,
+                               error);
     if (status != KOKORO_OK) {
         kokoro_duration_output_free(&result);
         return status;
