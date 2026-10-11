@@ -88,6 +88,7 @@ def write_pack(path: str | Path, tensors: dict[str, tuple[str, tuple[int, ...], 
         expected_size = _element_count(shape) * element_size
         if len(data) != expected_size:
             raise PackError(f"tensor byte size does not match shape: {name}")
+        payload.extend(b"\0" * (-len(payload) % element_size))
         name_data = name.encode("utf-8")
         if not name_data or len(name_data) > MAX_NAME_BYTES:
             raise PackError(f"invalid tensor name length: {name!r}")
@@ -104,6 +105,8 @@ def write_pack(path: str | Path, tensors: dict[str, tuple[str, tuple[int, ...], 
     full_metadata["tensor_count"] = len(tensors)
     full_metadata["payload_sha256"] = hashlib.sha256(payload).hexdigest()
     metadata_data = json.dumps(full_metadata, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    payload_start = HEADER.size + len(index) + len(metadata_data)
+    metadata_data += b" " * (-payload_start % 8)
     header = HEADER.pack(MAGIC, VERSION, len(tensors), len(index), len(metadata_data), len(payload), 0)
     target = Path(path)
     target.parent.mkdir(parents=True, exist_ok=True)
@@ -133,6 +136,8 @@ def read_pack(path: str | Path) -> TensorPack:
     metadata_start = index_start + index_size
     payload_start = metadata_start + metadata_size
     payload_end = payload_start + payload_size
+    if payload_start % 8:
+        raise PackError("tensor payload is not 8-byte aligned")
     if payload_end > len(data):
         raise PackError("truncated pack body")
     if payload_end < len(data):
@@ -180,6 +185,8 @@ def read_pack(path: str | Path) -> TensorPack:
             raise PackError(f"tensor byte size does not match shape: {name}")
         if offset > payload_size or size > payload_size - offset:
             raise PackError(f"tensor data outside payload: {name}")
+        if offset % element_size:
+            raise PackError(f"tensor payload is not naturally aligned: {name}")
         ranges.append((offset, offset + size))
         tensors[name] = Tensor(name, dtype, shape, data[payload_start + offset : payload_start + offset + size])
 

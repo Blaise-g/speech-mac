@@ -22,6 +22,8 @@ The current checked-in fixture set covers one hello-only input. The fixed prepar
 
 The checked-in [fixture](fixtures/af_heart_hello.npz) contains fixed IDs and compact outputs at each planned seam: contextual encoder, duration predictor and alignment, F0/noise, text encoder and alignment, decoder input, generator excitation and spectrum, and the final 24 kHz waveform. [Its manifest](fixtures/manifest.json) records provenance, each array's shape, dtype, and SHA-256, plus measured repeatability.
 
+The native C tests compare the context encoder with the raw little-endian export in `fixtures/contextual_features.f32le`; its digest matches the `contextual_features` array in the fixture manifest. Regenerate that export and the small structural pack used by the loader tests with `(cd reference && UV_CACHE_DIR=/private/tmp/kokoro-uv-cache uv run --project . --offline --no-sync --locked python export_c_test_fixtures.py)`.
+
 ## C-readable tensor pack, version 1
 
 All integers and tensor elements use little-endian encoding. The pack starts with a 40-byte header:
@@ -36,9 +38,9 @@ All integers and tensor elements use little-endian encoding. The pack starts wit
 | 24 | `u64` | tensor payload byte length |
 | 32 | `u64` | reserved, must be zero |
 
-The index immediately follows the header. Each sorted tensor entry is `u16 name_length`, `u8 dtype_code`, `u8 rank`, `u32 reserved`, `rank` `u64` dimensions, `u64 payload_offset`, `u64 payload_size`, and `name_length` UTF-8 bytes. Dtype code 1 is float32; code 2 is int64. Tensor offsets are relative to the payload start. The JSON metadata and then the contiguous payload follow the index. The payload is ordered by tensor name and its SHA-256 is in the metadata. V1 supports at most 4096 tensors, rank 8, and 1024-byte names. Only `bert.*`, `bert_encoder.*`, `predictor.*`, `text_encoder.*`, `decoder.*`, and `voice.af_heart.style` names are accepted.
+The index immediately follows the header. Each sorted tensor entry is `u16 name_length`, `u8 dtype_code`, `u8 rank`, `u32 reserved`, `rank` `u64` dimensions, `u64 payload_offset`, `u64 payload_size`, and `name_length` UTF-8 bytes. Dtype code 1 is float32; code 2 is int64. Tensor offsets are relative to the payload start and aligned to the dtype's element size. The JSON metadata and then the payload follow the index; the metadata may end in JSON whitespace so the payload begins on an 8-byte boundary. The payload is ordered by tensor name, with zero padding between entries where needed for dtype alignment, and its SHA-256 is in the metadata. V1 supports at most 4096 tensors, rank 8, and 1024-byte names. Only `bert.*`, `bert_encoder.*`, `predictor.*`, `text_encoder.*`, `decoder.*`, and `voice.af_heart.style` names are accepted.
 
-The reference reader validates magic/version, metadata compatibility and hashes, tensor names and uniqueness, rank/shape/byte-size agreement, offset bounds and overlap, required model and voice tensors, truncation, and trailing bytes. The C-side implementation in later tickets can parse the fixed header and index without a Python runtime or JSON dependency; JSON metadata is skippable by its recorded length.
+The reference reader validates magic/version, metadata compatibility and hashes, tensor names and uniqueness, rank/shape/byte-size agreement, offset bounds and overlap, required model and voice tensors, truncation, and trailing bytes. The native C loader applies the same structural checks and alignment requirements without a Python runtime or JSON library; it parses the required provenance fields from the recorded metadata bytes.
 
 ## Numerical budgets
 

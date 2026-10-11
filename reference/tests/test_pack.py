@@ -48,6 +48,36 @@ class TensorPackTests(unittest.TestCase):
         )
         self.assertEqual(pack.metadata["voice"], "af_heart")
 
+    def test_writer_aligns_payload_and_tensor_data(self):
+        tensors = complete_model_tensors()
+        tensors["predictor.aaa"] = ("i64", (1,), struct.pack("<q", 7))
+
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "aligned.kokoro"
+            write_pack(path, tensors, METADATA)
+            raw = path.read_bytes()
+            _, _, _, index_size, metadata_size, _, _ = struct.unpack_from("<8sIIIIQQ", raw)
+            payload_start = 40 + index_size + metadata_size
+            pack = read_pack(path)
+
+        self.assertEqual(payload_start % 8, 0)
+        self.assertEqual(pack.tensors["predictor.aaa"].data, struct.pack("<q", 7))
+
+    def test_reader_rejects_misaligned_payload(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "misaligned.kokoro"
+            write_pack(path, complete_model_tensors(), METADATA)
+            raw = bytearray(path.read_bytes())
+            index_size = struct.unpack_from("<I", raw, 16)[0]
+            metadata_size = struct.unpack_from("<I", raw, 20)[0]
+            payload_start = 40 + index_size + metadata_size
+            raw[payload_start:payload_start] = b" "
+            struct.pack_into("<I", raw, 20, metadata_size + 1)
+            path.write_bytes(raw)
+
+            with self.assertRaisesRegex(PackError, "8-byte aligned"):
+                read_pack(path)
+
     def test_rejects_truncated_pack(self):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "truncated.kokoro"
@@ -72,15 +102,28 @@ class TensorPackTests(unittest.TestCase):
             raw = bytearray(path.read_bytes())
             index_size = struct.unpack_from("<I", raw, 16)[0]
             index = raw[40 : 40 + index_size]
-            tail = raw[40 + index_size :]
-            struct.pack_into("<I", raw, 12, 2)
-            struct.pack_into("<I", raw, 16, index_size * 2)
-            raw = raw[:40] + index + index + tail
-            metadata_start = 40 + index_size * 2
+            metadata_start = 40 + index_size
             metadata_size = struct.unpack_from("<I", raw, 20)[0]
-            metadata = raw[metadata_start : metadata_start + metadata_size]
-            raw[metadata_start : metadata_start + metadata_size] = metadata.replace(
-                b'"tensor_count":1', b'"tensor_count":2'
+            payload_start = metadata_start + metadata_size
+            metadata = bytes(raw[metadata_start:payload_start]).rstrip(b" ")
+            metadata = metadata.replace(b'"tensor_count":1', b'"tensor_count":2')
+            metadata += b" " * (-(40 + index_size * 2 + len(metadata)) % 8)
+            payload = raw[payload_start:]
+            raw = bytearray(
+                struct.pack(
+                    "<8sIIIIQQ",
+                    b"KOKORO1\0",
+                    1,
+                    2,
+                    index_size * 2,
+                    len(metadata),
+                    len(payload),
+                    0,
+                )
+                + index
+                + index
+                + metadata
+                + payload
             )
             path.write_bytes(raw)
 
