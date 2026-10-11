@@ -14,13 +14,17 @@ Contextual phoneme features and predictor voice style produce per-token duration
 
 ## Acceptance criteria
 
-- [ ] Implement the v1.0 duration encoder, recurrent projection, speed scaling, rounding, and minimum-duration clamp.
-- [ ] Expand durations into a monotonic alignment where each output frame maps to exactly one input token.
-- [ ] Durations are positive and the alignment's output length equals the sum of durations.
-- [ ] Predictor features, durations, and alignment match reference fixtures within the budget established in ticket 01.
+- [x] Implement the v1.0 duration encoder, recurrent projection, speed scaling, rounding, and minimum-duration clamp.
+- [x] Expand durations into a monotonic alignment where each output frame maps to exactly one input token.
+- [x] Durations are positive and the alignment's output length equals the sum of durations.
+- [x] Predictor features, durations, and alignment match reference fixtures within the budget established in ticket 01.
 
 ## Blocked by
 
 - `02-phoneme-context-encoder` — contextual phoneme features.
 
-**Status:** ready-for-agent
+**Status:** done
+
+## Verification — 2026-10-11
+
+Commit `51661e817ec17575099e800e25d2495b70dbbcda`. Coordinator verified clean tree/Ticket trailer and reran `make check` with actual model weights: native contextual/duration stage parity passed fixed budgets; durations/alignments match exactly, including 0.5 and 2.0 speed endpoints; one-token and invalid-input checks passed. Worker locked uv suite: 17 tests passed. Independent review applied helper simplification, reused captured logits for endpoint fixtures, and added token-length coverage. No open ticket blockers.
