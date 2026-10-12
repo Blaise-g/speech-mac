@@ -972,8 +972,9 @@ KokoroStatus kokoro_pack_voice_style(const KokoroPack *pack, const KokoroTensorV
         *view = *override_style;
     }
     if (view->type != KOKORO_TENSOR_F32 || view->rank != 3 || view->shape[0] == 0 ||
-        view->shape[1] != 1 || view->shape[2] != 256 || view->shape[0] > SIZE_MAX / 256 ||
-        view->data == NULL || view->byte_count != (size_t)view->shape[0] * 256 * sizeof(float)) {
+        view->shape[1] != 1 || view->shape[2] != 256 ||
+        view->shape[0] > SIZE_MAX / (256 * sizeof(float)) || view->data == NULL ||
+        view->byte_count != (size_t)view->shape[0] * 256 * sizeof(float)) {
         kokoro_error_set(error, KOKORO_INCOMPATIBLE_PACK,
                          "voice style tensor must have shape [rows, 1, 256]");
         return KOKORO_INCOMPATIBLE_PACK;

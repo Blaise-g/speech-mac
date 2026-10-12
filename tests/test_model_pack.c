@@ -109,6 +109,42 @@ static int rejected_pack(const unsigned char *data, size_t size, KokoroStatus ex
     return 1;
 }
 
+static int test_voice_style_validation(const KokoroPack *pack) {
+    KokoroError error = {0};
+    KokoroTensorView validated_style;
+    KokoroStatus status = kokoro_pack_voice_style(pack, NULL, &validated_style, &error);
+    if (!check(status == KOKORO_OK && validated_style.shape[0] == 1 &&
+                   validated_style.byte_count == 256 * sizeof(float),
+               "embedded voice style was rejected")) {
+        return 0;
+    }
+
+    float override_data[256] = {0};
+    KokoroTensorView valid_override = {.type = KOKORO_TENSOR_F32,
+                                       .rank = 3,
+                                       .shape = {1, 1, 256},
+                                       .data = override_data,
+                                       .byte_count = sizeof(override_data)};
+    status = kokoro_pack_voice_style(pack, &valid_override, &validated_style, &error);
+    if (!check(status == KOKORO_OK && validated_style.data == override_data &&
+                   validated_style.byte_count == sizeof(override_data),
+               "valid override voice style was rejected")) {
+        return 0;
+    }
+
+    unsigned char crafted_data[1024] = {0};
+    KokoroTensorView oversized_override = {
+        .type = KOKORO_TENSOR_F32,
+        .rank = 3,
+        .shape = {(UINT64_C(1) << 54) + UINT64_C(1), 1, 256},
+        .data = crafted_data,
+        .byte_count = sizeof(crafted_data),
+    };
+    status = kokoro_pack_voice_style(NULL, &oversized_override, &validated_style, &error);
+    return check(status == KOKORO_INCOMPATIBLE_PACK,
+                 "oversized override voice style was accepted by validation");
+}
+
 int main(void) {
     size_t pack_size = 0;
     unsigned char *original = read_file(PACK_PATH, &pack_size);
@@ -138,6 +174,11 @@ int main(void) {
     }
     if (!check((uintptr_t)tensor.data % _Alignof(float) == 0,
                "float tensor view is not naturally aligned")) {
+        kokoro_pack_close(pack);
+        free(original);
+        return 1;
+    }
+    if (!test_voice_style_validation(pack)) {
         kokoro_pack_close(pack);
         free(original);
         return 1;
