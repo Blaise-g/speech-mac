@@ -125,3 +125,13 @@ The user also confirmed further Apple Silicon optimization after streaming. Keep
 | T16-C03 | Callback timing overstated audio consumption/rendering. | applied | Name reclamation separately; render/acoustic timing unavailable without independent evidence. | `715a19e`; static design review. |
 
 No remaining accepted per-ticket findings. Ticket15 benchmark is verified; ticket16 design is verified. Original13 optimization and14 listening remain open. Streaming runtime code and device acceptance are not implemented by the design ticket.
+
+## Final follow-up integration review — 2026-10-12
+
+Review covered `602cd584675f8fccb7fd81523538342d5c0271bc` through `15bfa9a2e1d4f4dbce4b12e0f6f066059f2960a5`, with whole-branch context from the earlier base963ce48 review and separately verified voice-size overflow fix. All six lenses were applied. Unchanged graph/fixture coverage was carried forward; new benchmark producers, selected structured records, report claims and cross-ticket CLI/frontend/resident-engine boundaries were examined. Large raw JSON, binary fixtures/model payloads and unchanged generated lock records were not visually read in full; coordinator recomputed the report/outcomes, sample counts and original-capture hash. `git remote -v` has no remotes, so no forge overlap query applies.
+
+| Id | Finding | Applied / rejected / deferred | Reason | Verified by |
+| --- | --- | --- | --- | --- |
+| F-R1 | Startup exception/interruption could bypass owned-daemon cleanup. | applied | Capture the guarded launcher through interruption; recover only explicit PID evidence and signal the verified owned PID directly. Report unknown ownership or failed stop rather than touching foreign processes. | `0ec22215643a9407c67f0bdd2db818cc55a714ae`; coordinator 30 focused tests passed, independent fix review clear, unchanged historical artifacts verified. |
+
+One applied integration finding, no remaining accepted findings. Earlier nine follow-up per-ticket findings remain applied as recorded above. The installed CLI's startup/cleanup lifecycle was smoke-tested; one task-owned hung process required coordinator force termination after exact executable/start-time verification. Final escalated status is stopped and its matching stale metadata is removed. No installation, model assets or persistent launch settings were changed. These lifecycle checks do not alter the benchmark results or establish hardware energy efficiency.

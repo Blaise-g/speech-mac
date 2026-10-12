@@ -1,5 +1,21 @@
 # Native Kokoro delivery report
 
+
+The CoreML comparison and native streaming design are verified. The run now has 14 verified tickets out of 16; original tickets 13 (additional optimization) and 14 (final human listening) remain open. Streaming runtime code is future work. The antirez C architecture standard and measured Apple Silicon optimization sequence are recorded in [CODING_STANDARDS.md](../../CODING_STANDARDS.md) and [the streaming plan](../../docs/streaming-plan.md).
+
+On the same M5 with af_heart at speed 1, fresh hello completes in 0.492 s native versus 4.229 s installed CoreML 0.11.2; resident waveform availability is 0.263 s versus 0.296 s. Fresh paragraph is 1.729 s versus 5.419 s; resident paragraph latency favors CoreML at 1.406 s versus native at 1.500 s. Audio durations differ and paragraph resident throughput ranges overlap, so no overall winner or total energy-efficiency claim is made. Fresh hello direct-process CPU is 0.470 s versus 4.010 s and median peak RSS is 0.569 GiB versus 1.569 GiB. CoreML model assets are smaller. See [the comparison](../../artifacts/15-coreml-comparison-20261012T113654Z/report.md) for all scopes, repetitions, raw records, provenance and rerun commands.
+
+| Ticket Key | Resolved Worker Profile | Status | PR | Commits | Checks | Review summary | Open escalations or blockers |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| 15-coreml-comparison-baseline | implement-lite · xhigh · gpt-6-luna (override) | verified | local; not authorized | `fc8f34e5ea5651ea0727a0f27e4f1ab33b6e0ffd`, `0ec22215643a9407c67f0bdd2db818cc55a714ae` | Coordinator reran 30 comparison tests, report/raw/hash/count recomputation passed; full native check executed with real assets. Guarded startup/PID lifecycle smoke; original stopped state restored. | Six per-ticket findings plus one integration finding applied; no remaining accepted findings. | None. SIGTERM can fail; automation reports it explicitly. |
+| 16-streaming-design | implement-lite · xhigh · gpt-6-luna (override) | verified, design only | local; not authorized | `715a19e6bab1d693b70d3a07e15af49df4474f03` | Document links/symbols/format checks and snapshot hook passed; no runtime change. | Three static design findings applied; no remaining findings. | Implementation and device/listening acceptance are future work. |
+
+Final integration review has one applied finding and no remaining accepted findings; no configured forge overlap. The authoritative [triage](spec.md#final-follow-up-integration-review--2026-10-12) records scope and omissions. Snapshot hooks skip ignored model assets explicitly; coordinator's full working-tree check executed real-model parity tests. Historical captures, including the original pre-CPU-unit-correction snapshot and failed normalization note, are unchanged by the final fix.
+
+The smoke's hung task-owned daemon required coordinator force termination after executable/arguments/start-time verification. Its matching stale metadata was removed; final escalated CLI status is `Daemon is not running`. Sandbox liveness probes were unreliable for that process, so they were not used as final cleanup evidence. No active task daemon, unresolved automatic-approval rejection, installation change or persistent launch change remains.
+
+The first-release snapshot below remains as its original record; its workload and timing scope differ from the follow-up comparison. All work stays local on `feat/kokoro-native`; main is unchanged and no push, merge or deployment was performed.
+
 The local native C implementation supports English text, UTF-8 text files, stdin and IPA input. It has resident model handles, af_heart and am_adam voices, speed control from 0.5 to 2, mono 24 kHz WAV output and default macOS playback. Python is development-only and uses locked uv environments.
 
 The measured M5 baseline produces about 7.9 audio seconds per native synthesis second. Short English input has a 421 ms median cold CLI completion and 223 ms median warm full-waveform availability. See [the baseline](../../artifacts/12-performance-baseline.md) for measurements, variation, build/model provenance and timing definitions. The report is a measured baseline, not a guarantee on other hardware.
