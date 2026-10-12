@@ -14,12 +14,16 @@ Prepared phonemes, one voice style, and speed synthesize complete Kokoro audio t
 
 ## Acceptance criteria
 
-- [ ] The assembled inference path runs directly in C on Apple Silicon and matches the pinned official reference within ticket 01's pre-established numerical budgets.
-- [ ] Produce and retain a representative WAV audition artifact with recorded model, voice, and input provenance.
-- [ ] The native runtime inference path does not require Python.
+- [x] The assembled inference path runs directly in C on Apple Silicon and matches the pinned official reference within ticket 01's pre-established numerical budgets.
+- [x] Produce and retain a representative WAV audition artifact with recorded model, voice, and input provenance.
+- [x] The native runtime inference path does not require Python.
 
 ## Blocked by
 
 - `08-istft-waveform` — all inference stages through waveform reconstruction.
 
-**Status:** ready-for-agent
+**Status:** done
+
+## Verification — 2026-10-12
+
+Commit `0e654ce9a2e2711ddcb726b3d9700921e2a8c47c`. Coordinator verified clean tree/trailer and reran assembled inference focused test: controlled-conditioning waveform NRMSE 1.67710831e-05/maxabs 8.2552433e-06 within fixed limits; ordinary native synthesis passes finite/shape/same-seed checks. Controlled source-STFT injection isolates reference FFT phase branch, not free-running sample parity. Worker full real-pack checks and independent review passed after error/lifetime/input/test fixes. Artifacts/provenance retained in artifacts/. User listened to native af_heart hello WAV and said "sounds clear"; final longer/optimized listening remains14. Per-call stage construction deferred10.
