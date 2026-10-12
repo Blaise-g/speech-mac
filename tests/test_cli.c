@@ -19,6 +19,21 @@
 #define VOICES_DIR "models/voices"
 #define OUTPUT_PATH ".build/test-cli-output with spaces.wav"
 
+typedef struct {
+    float *samples;
+    size_t sample_count;
+    size_t sample_capacity;
+    size_t open_count;
+    size_t start_count;
+    size_t drain_count;
+    size_t wake_count;
+    size_t abort_count;
+    size_t close_count;
+} CliStreamPlayback;
+
+static int append_float_samples(float **samples, size_t *count, size_t *capacity,
+                                const float *chunk, size_t chunk_count);
+
 static int fail(const char *message) {
     fprintf(stderr, "test_cli: %s\n", message);
     return 0;
@@ -63,7 +78,8 @@ static int test_help_and_argument_errors(const KokoroCliConfig *config) {
     char *help_args[] = {"kokoro", "say", "--help"};
     if (!call_cli(3, help_args, config, &exit_code, out, err) || exit_code != 0 ||
         strstr(out, "--file PATH") == NULL || strstr(out, "--ipa") == NULL ||
-        strstr(out, "af_heart (default)") == NULL || strstr(out, "afplay") == NULL) {
+        strstr(out, "af_heart (default)") == NULL || strstr(out, "afplay") == NULL ||
+        strstr(out, "--stream") == NULL) {
         return fail("say help omitted source selection or default details");
     }
     char *version_args[] = {"kokoro", "--version"};
@@ -93,6 +109,14 @@ static int test_help_and_argument_errors(const KokoroCliConfig *config) {
     if (!call_cli(5, unknown_option_args, config, &exit_code, out, err) || exit_code != 2 ||
         strstr(err, "unknown option") == NULL) {
         return fail("unknown option was not rejected");
+    }
+    char *stream_output_args[] = {"kokoro",   "say", "--ipa",    "həˈloʊ",
+                                  "--stream", "-o",  OUTPUT_PATH};
+    (void)remove(OUTPUT_PATH);
+    if (!call_cli(7, stream_output_args, config, &exit_code, out, err) || exit_code != 2 ||
+        strstr(err, "--stream cannot be combined with --output") == NULL ||
+        access(OUTPUT_PATH, F_OK) == 0) {
+        return fail("streaming output was not rejected before creating a WAV");
     }
     return 1;
 }
@@ -501,6 +525,132 @@ static int append_float_samples(float **samples, size_t *count, size_t *capacity
     return 1;
 }
 
+static KokoroStatus cli_stream_open(void *context, void **playback, KokoroError *error) {
+    (void)error;
+    CliStreamPlayback *fake = context;
+    fake->open_count++;
+    *playback = fake;
+    return KOKORO_OK;
+}
+
+static KokoroStatus cli_stream_submit(void *handle, const float *samples, size_t sample_count,
+                                      KokoroError *error) {
+    CliStreamPlayback *fake = handle;
+    if (!append_float_samples(&fake->samples, &fake->sample_count, &fake->sample_capacity, samples,
+                              sample_count)) {
+        if (error != NULL) {
+            error->code = KOKORO_OUT_OF_MEMORY;
+            (void)snprintf(error->message, sizeof(error->message),
+                           "cannot retain fake streamed samples");
+        }
+        return KOKORO_OUT_OF_MEMORY;
+    }
+    return KOKORO_OK;
+}
+
+static KokoroStatus cli_stream_start(void *handle, KokoroError *error) {
+    (void)error;
+    CliStreamPlayback *fake = handle;
+    fake->start_count++;
+    return KOKORO_OK;
+}
+
+static KokoroStatus cli_stream_drain(void *handle, KokoroError *error) {
+    (void)error;
+    CliStreamPlayback *fake = handle;
+    fake->drain_count++;
+    return KOKORO_OK;
+}
+
+static void cli_stream_wake(void *handle) {
+    CliStreamPlayback *fake = handle;
+    fake->wake_count++;
+}
+
+static void cli_stream_abort(void *handle) {
+    CliStreamPlayback *fake = handle;
+    fake->abort_count++;
+}
+
+static KokoroStatus cli_stream_close(void *handle, KokoroError *error) {
+    (void)error;
+    CliStreamPlayback *fake = handle;
+    fake->close_count++;
+    return KOKORO_OK;
+}
+
+static const KokoroStreamPlaybackOps cli_stream_ops = {
+    .open = cli_stream_open,
+    .submit = cli_stream_submit,
+    .start = cli_stream_start,
+    .drain = cli_stream_drain,
+    .wake = cli_stream_wake,
+    .abort = cli_stream_abort,
+    .close = cli_stream_close,
+};
+
+static int test_stream_cli(const KokoroCliConfig *base) {
+    const char *phonemes = "həlˈoʊ";
+    KokoroIpaChunks chunks = {0};
+    KokoroError error = {0};
+    KokoroStatus status = kokoro_ipa_encode_chunks(phonemes, false, &chunks, &error);
+    if (status != KOKORO_OK) {
+        kokoro_ipa_chunks_free(&chunks);
+        return fail("could not tokenize IPA for streaming CLI parity");
+    }
+    KokoroEngine *engine = NULL;
+    status = kokoro_engine_create(base->model_pack_path, "af_heart", NULL, &engine, &error);
+    float *expected = NULL;
+    size_t expected_count = 0;
+    size_t expected_capacity = 0;
+    if (status == KOKORO_OK) {
+        for (size_t index = 0; index < chunks.count; index++) {
+            KokoroSynthesisOptions options = {
+                .voice_style_index = chunks.items[index].token_count - 3,
+                .speed = 1.25f,
+                .random_seed = base->random_seed + (uint64_t)index,
+            };
+            KokoroSynthesisOutput output = {0};
+            status = kokoro_engine_synthesize(engine, chunks.items[index].token_ids,
+                                              chunks.items[index].token_count, &options, &output,
+                                              &error);
+            if (status == KOKORO_OK &&
+                !append_float_samples(&expected, &expected_count, &expected_capacity,
+                                      output.samples, output.sample_count)) {
+                status = KOKORO_OUT_OF_MEMORY;
+            }
+            kokoro_synthesis_output_free(&output);
+            if (status != KOKORO_OK) {
+                break;
+            }
+        }
+    }
+    kokoro_engine_free(engine);
+    kokoro_ipa_chunks_free(&chunks);
+    if (status != KOKORO_OK || expected_count == 0) {
+        free(expected);
+        return fail("could not synthesize expected stream CLI samples");
+    }
+
+    CliStreamPlayback playback = {0};
+    KokoroCliConfig config = *base;
+    config.stream_playback_ops = &cli_stream_ops;
+    config.stream_playback_context = &playback;
+    char *args[] = {"kokoro", "say", "--ipa", "həlˈoʊ", "--speed", "1.25", "--stream"};
+    char out[4096];
+    char err[4096];
+    int exit_code;
+    int passed = call_cli(7, args, &config, &exit_code, out, err) && exit_code == 0 &&
+                 out[0] == '\0' && err[0] == '\0' && playback.open_count == 1 &&
+                 playback.start_count == 1 && playback.drain_count == 1 &&
+                 playback.wake_count == 0 && playback.abort_count == 0 &&
+                 playback.close_count == 1 && playback.sample_count == expected_count &&
+                 memcmp(playback.samples, expected, expected_count * sizeof(*expected)) == 0;
+    free(playback.samples);
+    free(expected);
+    return passed ? 1 : fail("--stream did not deliver exact native float audio through playback");
+}
+
 static int test_text_sources_and_ipa_bypass(const KokoroCliConfig *base) {
     char espeak_path[64];
     char input_log[64];
@@ -838,6 +988,9 @@ int main(void) {
         return 1;
     }
     if (!test_synthesis_and_playback(&config)) {
+        return 1;
+    }
+    if (!test_stream_cli(&config)) {
         return 1;
     }
     if (!test_text_sources_and_ipa_bypass(&config)) {

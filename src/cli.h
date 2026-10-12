@@ -4,6 +4,8 @@
 #include <stdint.h>
 #include <stdio.h>
 
+#include "stream_playback.h"
+
 typedef struct {
     const char *model_pack_path;
     const char *voices_directory;
@@ -13,6 +15,9 @@ typedef struct {
     FILE *stdin_stream;
     FILE *stdout_stream;
     FILE *stderr_stream;
+    /* Optional host/test playback seam; NULL selects macOS AudioQueue. */
+    const KokoroStreamPlaybackOps *stream_playback_ops;
+    void *stream_playback_context;
 } KokoroCliConfig;
 
 int kokoro_cli_run(int argc, char **argv, const KokoroCliConfig *config);

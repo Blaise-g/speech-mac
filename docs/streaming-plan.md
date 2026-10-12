@@ -1,6 +1,6 @@
 # Native streaming playback plan
 
-Status: design only · 2026-10-12
+Status: playback implemented; timing measurements pending · 2026-10-12
 
 ## Decision and evidence
 
@@ -48,7 +48,7 @@ Measure from a monotonic timestamp captured at CLI entry:
 
 Report medians and observed ranges for these four events on the ticket 15 short and paragraph inputs, both at `af_heart`, speed `1.0`; repeat for `am_adam` as an option-coverage check. Do not claim a TTFA target from existing data or infer acoustic onset from an API event or callback. For a multi-chunk request, the fake backend must consume and reclaim first-chunk PCM while the test deliberately blocks synthesis of the final chunk; recording an early submit or `AudioQueueStart` call alone does not pass. The single-chunk `hello from the terminal` workload validates timing and parity but cannot demonstrate overlap or reduce time within that model request. Compare complete stream samples with current batch output under the existing fixed numerical budget.
 
-Add future defect-revealing tests for:
+Implemented defect-revealing tests cover:
 
 - chunk order, completeness, and no duplicate or missing samples;
 - streamed versus combined batch output within the existing numerical budget;
@@ -62,7 +62,7 @@ Add future defect-revealing tests for:
 
 ## Delivery stages and later work
 
-1. **Minimal delivery:** add the bounded AudioQueue adapter and one producer for the existing prepared chunk list; add opt-in `--stream` playback and the tests above. Keep completed WAV playback as the default and reject `--stream -o`.
+1. **Completed minimal delivery:** the bounded AudioQueue adapter and producer use the existing prepared chunk list; opt-in `--stream` playback keeps completed-WAV playback as the default and rejects `--stream -o`. Timing measurements remain pending.
 2. **Measured Apple Silicon optimization:** once streaming parity and timing are recorded, profile the ticket 15 workloads and preserve that saved comparison as the baseline. Improve measured hot C paths with Accelerate or NEON first, checking the fixed numerical budgets and paired before/after results. Consider an isolated Metal path only if profiling identifies a suitable bottleneck and measurements support the cost; assume no gain in advance. Ticket 13's unsuccessful accuracy/performance attempt remains open as prior evidence. Incremental input/frontend or within-request decoding, daemon mode, quantization, and wider language support need their own evidence and scope.
 
 Keep the inference architecture readable and modular C, following the structure of [antirez's qwen-asr](https://github.com/antirez/qwen-asr) and [voxtral.c](https://github.com/antirez/voxtral.c). The corresponding Kokoro boundaries are already visible in `english_frontend.c`/`ipa_tokenizer.c` (frontend), `model_pack.c`/`voice_artifact.c` (weights), `tensor_utils.c` and the stage modules (numerical operations and model graph), `synthesis.c` (engine orchestration), and `cli.c` (command interface); the AudioQueue adapter should stay a separate output seam. The ASR models are architectural references only; do not import their decoding, KV-cache, or rollback behavior into Kokoro. Core ML remains outside the native inference path.

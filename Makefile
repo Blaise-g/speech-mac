@@ -7,7 +7,7 @@ BASE_CFLAGS ?= -std=c17 -Wall -Wextra -Wpedantic -Werror
 OPT_CFLAGS ?= -O2
 TEST_CFLAGS ?= -O0 -g
 CPPFLAGS ?= -Isrc
-LDLIBS ?= -framework Accelerate
+LDLIBS ?= -framework AudioToolbox -framework Accelerate
 
 APP_SOURCES := $(shell find src -type f -name '*.c' -print 2>/dev/null | sort)
 MAIN_SOURCES := $(filter %/main.c,$(APP_SOURCES))
