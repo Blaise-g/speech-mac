@@ -14,12 +14,12 @@ Ordinary English text is converted by eSpeak NG and synthesized by the resident 
 
 ## Acceptance criteria
 
-- [ ] Support the initial English path with a documented mapping from eSpeak output to Kokoro-supported symbols; record the eSpeak NG version and settings used.
-- [ ] `kokoro say TEXT`, `kokoro say -f/--file PATH`, and `... | kokoro say` consume the selected source. Require exactly one source; reject conflicting sources, invalid UTF-8, empty input, and unmappable output clearly.
-- [ ] With `--ipa`, bypass the English frontend and validate the supplied IPA/phoneme symbols against the supported inventory.
-- [ ] Preserve the existing prepared-phoneme reference path. Select `af_heart` by default and allow `-v/--voice am_adam`; `--list-voices` reports only installed supported English voices.
-- [ ] Consume long text completely using bounded, sentence-aware phoneme chunks (splitting an overlong sentence at a safe boundary) and combine all synthesized audio in order before WAV output or default playback. Never silently truncate input or output.
-- [ ] Document that pronunciation can differ from Misaki. Keep eSpeak NG and Python out of C model inference and runtime model execution.
+- [x] Support the initial English path with a documented mapping from eSpeak output to Kokoro-supported symbols; record the eSpeak NG version and settings used.
+- [x] `kokoro say TEXT`, `kokoro say -f/--file PATH`, and `... | kokoro say` consume the selected source. Require exactly one source; reject conflicting sources, invalid UTF-8, empty input, and unmappable output clearly.
+- [x] With `--ipa`, bypass the English frontend and validate the supplied IPA/phoneme symbols against the supported inventory.
+- [x] Preserve the existing prepared-phoneme reference path. Select `af_heart` by default and allow `-v/--voice am_adam`; `--list-voices` reports only installed supported English voices.
+- [x] Consume long text completely using bounded, sentence-aware phoneme chunks (splitting an overlong sentence at a safe boundary) and combine all synthesized audio in order before WAV output or default playback. Never silently truncate input or output.
+- [x] Document that pronunciation can differ from Misaki. Keep eSpeak NG and Python out of C model inference and runtime model execution.
 
 ## Tests
 
@@ -31,4 +31,8 @@ Ordinary English text is converted by eSpeak NG and synthesized by the resident 
 
 - `10-resident-engine-phoneme-cli` — resident engine and shared CLI options.
 
-**Status:** ready-for-agent
+**Status:** done
+
+## Verification — 2026-10-12
+
+Commit `d3bdaa39b297214864e63349bfff37b62284e9f0`. Coordinator verified clean tree/trailer and reran tokenizer and CLI tests: positional/file/stdin/IPA/source-errors/long ordered chunk PCM/playback checks pass. Independently exercised ordinary English and am_adam stdin synthesis and afinfo validated24kmonoPCM16. Worker full real-pack make check passed. Review fixed exact510-symbol split, UTF8 byte-vs-codepoint separator handling, shared decoding, and expectedfrontendtoken assertion. Retained57.525s text/WAV provenance in artifacts/. eSpeakNG1.52 installed. Human shortEnglish sample listening pending separately14; no11 blocker.
