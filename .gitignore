@@ -1,5 +1,8 @@
 .build/
+.venv/
+__pycache__/
 .DS_Store
 /models/
 /out/
 *.wav
+!artifacts/*.wav

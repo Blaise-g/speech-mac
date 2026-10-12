@@ -1,0 +1,9 @@
+{
+  "phonemes": "həˈloʊ",
+  "phoneme_ids": [50, 83, 156, 54, 57, 135],
+  "input_ids": [0, 50, 83, 156, 54, 57, 135, 0],
+  "voice_style_index": 5,
+  "speed": 1.0,
+  "seed": 104729,
+  "sample_rate_hz": 24000
+}
