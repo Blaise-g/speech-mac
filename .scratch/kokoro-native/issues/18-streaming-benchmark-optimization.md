@@ -32,7 +32,7 @@ Repeatable streaming timing records show when chunks become available to the pla
 
 Ticket 15 is completed historical provenance; ticket 13's open investigation is context and does not block this bounded attempt.
 
-**Status:** blocked — timing verified; optimization criterion open
+**Status:** blocked
 
 ## Dependency verification — 2026-10-12
 
@@ -53,3 +53,7 @@ The bounded float32 AdaIN fusion candidate failed the unchanged phase budget: on
 Independent review covered all six lenses without outstanding findings. Two findings were applied: preflight rejection of binaries lacking the silent/timing build marker, and distinct saved-measurement versus final-source provenance. Schema-1 samples were retained without retroactively claiming the marker; schema-2 future runs require it. Patch-only normalization passed `git apply --check` and reviewer confirmation.
 
 Coordinator answers settled partial event ordering, custom build-flag propagation, compile-out of benchmark counters, proxy wording, historical artifact preservation, and release-build parity. Q18-1: the sandbox startup failed with `-66680` after queue mute succeeded; coordinator authorized the same inaudible local-device operation with CoreAudio access. Escalated collection succeeded. No unresolved approval rejection or device blocker remains.
+
+## Whole-branch review fixes — 2026-10-12
+
+R1 and R2 are applied in `ceb0854e42ec8e3b05fecaf952faf4539b4061ed`, with both IDs and this ticket's trailer in the commit. Coordinator verified the clean tree, helper regression, nine locked-`uv` report tests, unchanged original timing artifacts, and the separate [post-review build record](../../../artifacts/18-streaming-benchmark-postreview-build-20261012T171907Z.json). Current helper/tool source fingerprint is `8f72867104eacd1f40bcf8be238dd4003d5dbbf2e26dca9205e56ae61e9f6b81`; that record is build verification with no new performance measurements. Historical raw/report identities remain unchanged. Full real-model checks and independent fix review passed. The optimization criterion remains open for the numerical and timing reasons above.
