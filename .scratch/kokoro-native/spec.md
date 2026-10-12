@@ -58,3 +58,13 @@ Use the foundation's glossary and decision records where present. Here, frontend
 ## User scope amendment — 2026-10-11
 
 The user requests a minimal useful CLI: `kokoro say` with positional text, `-f/--file` UTF-8 text file, or stdin; `-v/--voice`, `-s/--speed`, `-o/--output`, `--ipa`, `--list-voices`, help/version. Use completed-WAV macOS playback when no output is requested. Process long input without silent truncation. Support the initial English voices af_heart and am_adam. This supersedes the original one-voice and playback-deferral scope for tickets 10–11. Streaming, daemon mode, quantization and broad voice/language coverage remain deferred at the user’s request to keep the first release simple. Reference performance/size claims are not native implementation promises.
+
+## Whole-branch review — 2026-10-12
+
+Reviewed base `963ce48eb1da6f6b067588b067e6d325313bcf93` through `b69274b9cfc5abc32567f39353131536822cdfa6`. Report-only review covered Correctness, Spec, Standards, Reuse, Quality and Efficiency. Generated binaries and full lock records were not visually inspected; their producers, consumers, manifests and provenance were reviewed. No configured Git remote exists, so forge overlap is not applicable.
+
+| Id | Finding | Applied / rejected / deferred | Reason | Verified by |
+| --- | --- | --- | --- | --- |
+| R-1 | Public voice-style row size could overflow when multiplying by sizeof(float). | applied | Check full F32 row size before multiplication; reject crafted [2^54+1,1,256] view. | `a36e879e63d2fafff8d210346ced578e02b0589b`; coordinator parser regression passed; worker full real-model check passed. |
+
+Review summary: one accepted correctness finding fixed, no remaining accepted findings. Earlier ticket06 helper-sharing question requires no refactor: stage weights/shapes/layouts differ and no concrete benefit justifies a larger common layer for this release. Tickets13/14 remain open as recorded.

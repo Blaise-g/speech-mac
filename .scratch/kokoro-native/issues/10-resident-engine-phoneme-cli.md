@@ -36,3 +36,7 @@ A reusable C engine keeps model weights resident across requests. The `kokoro sa
 ## Verification — 2026-10-12
 
 Commit `65873d88f9f24f97f826966e2204f35e4293a9da`. Coordinator verified clean tree/trailer and reran engine/CLI focused tests: repeated resident requests, voice selection, WAV/player cleanup pass. Independently invoked am_adam IPA speed1.3 output and inspected valid mono24kPCM16 WAV. Worker full make check with model/voice artifacts and locked uv suite (20) passed. Single review fixed cross-voice comparison bounds and added CLI artifact/voice coverage. am_adam compact style artifact shares model pack; no daemon. English/file/stdin remains11.
+
+## Branch review fix — 2026-10-12
+
+R-1 applied in `a36e879e63d2fafff8d210346ced578e02b0589b`: full-row-size guard rejects overflowing public override metadata. Regression failed before/fixed afterward; coordinator reran parser test, worker real-model/voice/engine/full checks passed. Scoped independent review clear.
