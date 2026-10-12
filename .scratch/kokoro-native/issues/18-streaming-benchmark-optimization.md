@@ -32,4 +32,8 @@ Repeatable streaming timing records show when chunks become available to the pla
 
 Ticket 15 is completed historical provenance; ticket 13's open investigation is context and does not block this bounded attempt.
 
-**Status:** blocked
+**Status:** ready-for-agent
+
+## Dependency verification — 2026-10-12
+
+Ticket 17 is verified in `7111a9571b894dfc6ec7bfae6a877aeca97263d2`: full real-model checks, independent review, coordinator focused rerun, and the separate silence-only real AudioQueue lifecycle test passed. Timing and the bounded optimization attempt are unblocked.

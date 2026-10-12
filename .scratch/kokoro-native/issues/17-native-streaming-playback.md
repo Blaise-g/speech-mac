@@ -30,4 +30,24 @@ An explicit `kokoro say --stream` request starts macOS playback after its first 
 
 - `16-streaming-design` — verified design and interface/ownership decisions.
 
-**Status:** ready-for-agent
+**Status:** done
+
+## Verification — 2026-10-12
+
+Coordinator verified commit `7111a9571b894dfc6ec7bfae6a877aeca97263d2`, its `Ticket: 17-native-streaming-playback` trailer, and the clean worktree. All acceptance criteria above are met. The producer preserves engine/chunk ownership, order, seed/style/speed and float samples; the narrow AudioQueue adapter bounds queued PCM to three 4096-frame buffers. Normal completion observes graceful stop; cancellation stops playback independently of active synthesis and joins before borrowed data is released.
+
+Worker `17_native_streaming_playback` used `implement-lite · xhigh · gpt-6-luna (override)`. `make format`, full `make check` with real model assets, focused stream and CLI tests, and whitespace checks passed. Coordinator independently reran `make test-one TEST=tests/test_stream.c` on the committed tree: passed, including real-model parity. The normal suite explicitly skips opt-in device playback. The separate final `KOKORO_AUDIO_QUEUE_SMOKE=1 make test-one TEST=tests/test_stream.c` passed with CoreAudio access and 8192 zero samples; no audible speech benchmark or human listening acceptance is claimed. The commit hook passed with model-backed cases explicitly skipped in its asset-free staged snapshot; the separate full working-tree check exercised them.
+
+The same independent reviewer examined all 15 changed paths with Correctness, Standards, Spec, Reuse, Quality, and Efficiency. No outstanding findings remained. Coordinator-assigned review record identifiers below group the reported fixes; verification refers to the committed source and focused/full checks above.
+
+| Id | Lens | Finding | Disposition | Verified by |
+| --- | --- | --- | --- | --- |
+| 17-R1 | Correctness | SIGINT initialization could clear an interrupt after handler installation | Applied: reset before installing handler | `7111a95`; CLI checks and static review |
+| 17-R2 | Correctness | Callback mutex could wait | Applied: lock-free atomic state and precreated semaphore notification | `7111a95`; stream tests and device silence smoke |
+| 17-R3 | Correctness | Overlap assertion proved consumption without callback reclamation | Applied: require 9000 consumed samples and three reclaimed buffers while final synthesis is blocked | `7111a95`; stream test |
+| 17-C1 | Correctness | Latched SIGINT caused repeated cancellation and a wait-loop spin | Applied: signal-triggered cancellation once, then ordinary wait | `7111a95`; blocked-synthesis latched-signal test |
+| 17-R4 | Quality | Unused start state and redundant terminal expression | Applied: removed both | `7111a95`; static review and full check |
+| 17-R5 | Quality | Usage and design status needed to reflect implemented playback | Applied: minimal README examples and timing-pending status | `7111a95`; independent doc review |
+| 17-R6 | Efficiency | Callback notifications could accumulate stale wake tokens | Applied: coalesced notification and predicate recheck | `7111a95`; backpressure, drain and synchronous-callback tests |
+
+Coordinator questions also settled prompt cancellation during active inference, serialization of cancellation against enqueue/start, and reference protection in the wait-error cleanup path. Regression checks cover these paths. Timing and any measured inference optimization belong to ticket 18.
