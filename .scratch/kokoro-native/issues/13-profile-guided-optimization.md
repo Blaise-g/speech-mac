@@ -23,4 +23,8 @@ One profile-backed change improves the measured native inference path while pres
 
 - `12-performance-baseline` — measured workload and run-to-run variation.
 
-**Status:** ready-for-agent
+**Status:** blocked
+
+## Open record — 2026-10-12
+
+Investigation commit `b35c7a151b279fcff7af15b48801653e61bf0126`; report artifacts/13-optimization-investigation.md. Coordinator verified clean tree/Ticket trailer and no native src diff from measured baseline e7c6465. Profile found scalar sine in generator residual hotpath. Tested sine substitutes miss fixed phase budget or have no measured gain/codegenerationbasis. Failed experiments discarded; no paired optimized speedclaim; no budgetrelaxation. Full model-backed checks passed on restored baseline, independent report review clear. Acceptance remains incomplete: no safe additional optimization above noise verified. Keep working measured~7.9x baseline; report13open.
