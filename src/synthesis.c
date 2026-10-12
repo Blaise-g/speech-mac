@@ -12,6 +12,21 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
+#ifdef KOKORO_BENCHMARK_TIMING
+#include <stdio.h>
+#include <time.h>
+
+extern void kokoro_benchmark_stage_record(const char *name, double seconds);
+
+static double benchmark_stage_clock(void) {
+    struct timespec value;
+    if (clock_gettime(CLOCK_MONOTONIC, &value) != 0) {
+        perror("kokoro benchmark clock_gettime");
+        abort();
+    }
+    return (double)value.tv_sec + (double)value.tv_nsec / 1000000000.0;
+}
+#endif
 
 typedef struct {
     KokoroContextEncoder *context_encoder;
@@ -112,28 +127,61 @@ static KokoroStatus synthesis_run(const KokoroStages *stages, const int64_t *tok
         status = KOKORO_OUT_OF_MEMORY;
         goto cleanup;
     }
+#ifdef KOKORO_BENCHMARK_TIMING
+    double context_started = benchmark_stage_clock();
+#endif
     status = kokoro_context_encode(stages->context_encoder, token_ids, token_count, token_count,
                                    context_features, token_count * KOKORO_CONTEXT_FEATURES, error);
+#ifdef KOKORO_BENCHMARK_TIMING
+    kokoro_benchmark_stage_record("context_encoder", benchmark_stage_clock() - context_started);
+#endif
     if (status != KOKORO_OK) {
         goto cleanup;
     }
+#ifdef KOKORO_BENCHMARK_TIMING
+    double duration_started = benchmark_stage_clock();
+#endif
     status = kokoro_duration_predict(stages->duration_predictor, context_features, token_count,
                                      options->voice_style_index, options->speed, &duration, error);
+#ifdef KOKORO_BENCHMARK_TIMING
+    kokoro_benchmark_stage_record("duration_prediction",
+                                  benchmark_stage_clock() - duration_started);
+#endif
     if (status != KOKORO_OK) {
         goto cleanup;
     }
+#ifdef KOKORO_BENCHMARK_TIMING
+    double pitch_noise_started = benchmark_stage_clock();
+#endif
     status = kokoro_pitch_noise_predict(stages->pitch_noise_predictor, &duration,
                                         options->voice_style_index, &pitch_noise, error);
+#ifdef KOKORO_BENCHMARK_TIMING
+    kokoro_benchmark_stage_record("pitch_noise_prediction",
+                                  benchmark_stage_clock() - pitch_noise_started);
+#endif
     if (status != KOKORO_OK) {
         goto cleanup;
     }
+#ifdef KOKORO_BENCHMARK_TIMING
+    double text_encoder_started = benchmark_stage_clock();
+#endif
     status = kokoro_text_encoder_run(stages->text_encoder, token_ids, token_count, token_count,
                                      &duration, &text, error);
+#ifdef KOKORO_BENCHMARK_TIMING
+    kokoro_benchmark_stage_record("text_encoder", benchmark_stage_clock() - text_encoder_started);
+#endif
     if (status != KOKORO_OK) {
         goto cleanup;
     }
+#ifdef KOKORO_BENCHMARK_TIMING
+    double decoder_started = benchmark_stage_clock();
+#endif
     status = kokoro_decoder_condition(stages->decoder_conditioner, &text, &pitch_noise,
                                       options->voice_style_index, &decoder, error);
+#ifdef KOKORO_BENCHMARK_TIMING
+    kokoro_benchmark_stage_record("decoder_conditioning",
+                                  benchmark_stage_clock() - decoder_started);
+#endif
     if (status != KOKORO_OK) {
         goto cleanup;
     }
@@ -143,14 +191,26 @@ static KokoroStatus synthesis_run(const KokoroStages *stages, const int64_t *tok
         .excitation = options->reference_excitation,
         .source_spectrogram = options->reference_source_spectrogram,
     };
+#ifdef KOKORO_BENCHMARK_TIMING
+    double generator_started = benchmark_stage_clock();
+#endif
     status =
         kokoro_neural_generate(stages->neural_generator, &decoder, &pitch_noise,
                                options->voice_style_index, &generator_options, &spectrum, error);
+#ifdef KOKORO_BENCHMARK_TIMING
+    kokoro_benchmark_stage_record("neural_generator", benchmark_stage_clock() - generator_started);
+#endif
     if (status != KOKORO_OK) {
         goto cleanup;
     }
+#ifdef KOKORO_BENCHMARK_TIMING
+    double istft_started = benchmark_stage_clock();
+#endif
     status = kokoro_istft_reconstruct(spectrum.magnitude, spectrum.phase, spectrum.frame_count,
                                       &waveform, error);
+#ifdef KOKORO_BENCHMARK_TIMING
+    kokoro_benchmark_stage_record("istft", benchmark_stage_clock() - istft_started);
+#endif
     if (status != KOKORO_OK) {
         goto cleanup;
     }

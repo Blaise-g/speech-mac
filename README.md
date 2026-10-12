@@ -21,6 +21,12 @@ Run `make` to list the available commands. Use `make setup` once in a clone to i
 
 The C test suite uses `tests/test_*.c`; run a focused test with `make test-one TEST=tests/test_name.c`. `make check` covers format check, lint, typecheck, build, and the full test suite.
 
+## Performance baseline
+
+Run `make benchmark` on Apple Silicon to build both binaries with release `-O2` flags and write `artifacts/12-performance-baseline.md` plus the raw `artifacts/12-performance-baseline.json`. The benchmark repeats a short English reply, a paragraph, and the reply as prepared IPA using `af_heart`, speed `1.0`, and a fixed seed. Each workload gets five fresh-process sessions with one warm-up and five measured resident requests per session.
+
+The report separates fresh process startup, model-pack open and SHA-256 validation, engine creation, frontend, native synthesis, full waveform availability, and WAV close. First audio means the complete waveform buffer is ready after all chunks are combined. A new process does not imply cleared OS file pages, so cache state is recorded as uncontrolled and the benchmark does not purge caches. Audio throughput is generated audio seconds divided by synthesis seconds; RTF is the inverse.
+
 ## English and prepared phoneme CLI
 
 The `say` command reads one source: positional text, a UTF-8 file, or standard input. Ordinary text is passed to eSpeak NG and then mapped through the pinned Kokoro v1.0 symbol vocabulary. `--ipa` skips eSpeak NG and validates the selected source directly against that vocabulary.

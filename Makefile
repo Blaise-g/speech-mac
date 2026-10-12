@@ -13,10 +13,10 @@ APP_SOURCES := $(shell find src -type f -name '*.c' -print 2>/dev/null | sort)
 MAIN_SOURCES := $(filter %/main.c,$(APP_SOURCES))
 TEST_SOURCES := $(shell find tests -type f -name 'test_*.c' -print 2>/dev/null | sort)
 ENGINE_SOURCES := $(filter-out %/main.c,$(APP_SOURCES))
-C_SOURCES := $(shell find src tests -type f -name '*.c' -print 2>/dev/null | sort)
-FORMAT_FILES := $(shell find src tests -type f \( -name '*.c' -o -name '*.h' \) -print 2>/dev/null | sort)
+C_SOURCES := $(shell find src tests benchmarks -type f -name '*.c' -print 2>/dev/null | sort)
+FORMAT_FILES := $(shell find src tests benchmarks -type f \( -name '*.c' -o -name '*.h' \) -print 2>/dev/null | sort)
 
-.PHONY: help setup dev format format-check lint typecheck build test test-one check-fast check clean source-discovery
+.PHONY: help setup dev format format-check lint typecheck build test test-one check-fast check clean source-discovery benchmark-build benchmark
 
 help:
 	@printf '%s\n' \
@@ -27,6 +27,7 @@ help:
 	  'make test                          build and run the full C test suite' \
 	  'make check-fast                    format check, lint, typecheck, and tests' \
 	  'make check                         run the full local check sequence' \
+	  'make benchmark                     run the repeated native baseline (release -O2)' \
 	  'make clean                         remove local build artifacts'
 
 setup:
@@ -83,6 +84,21 @@ build: source-discovery
 	  $(CLANG) $(CPPFLAGS) $(BASE_CFLAGS) $(OPT_CFLAGS) $(APP_SOURCES) $(LDLIBS) -o $(BUILD_DIR)/kokoro; \
 	fi
 
+benchmark-build: source-discovery
+	@$(MAKE) build OPT_CFLAGS='-O2'
+	@mkdir -p $(BUILD_DIR)
+	@$(CLANG) $(CPPFLAGS) $(BASE_CFLAGS) -O2 -DKOKORO_BENCHMARK_TIMING benchmarks/native_driver.c $(ENGINE_SOURCES) $(LDLIBS) -o $(BUILD_DIR)/kokoro-benchmark
+
+benchmark: benchmark-build
+	@UV_CACHE_DIR=/private/tmp/kokoro-uv-cache uv run --project reference --locked --no-sync python benchmarks/run.py --runs 5 --warm-repetitions 5 --output artifacts/12-performance-baseline.json
+
+benchmark: export KOKORO_BENCH_COMPILER = $(CLANG)
+benchmark: export KOKORO_BENCH_CPPFLAGS = $(CPPFLAGS)
+benchmark: export KOKORO_BENCH_BASE_CFLAGS = $(BASE_CFLAGS)
+benchmark: export KOKORO_BENCH_OPT_CFLAGS = -O2
+benchmark: export KOKORO_BENCH_LDLIBS = $(LDLIBS)
+benchmark: export KOKORO_BENCH_BUILD_DIR = $(BUILD_DIR)
+
 test: source-discovery
 	@if [ -z "$(TEST_SOURCES)" ]; then \
 	  echo 'Test suite empty: no tests/test_*.c files yet.'; \
@@ -121,6 +137,7 @@ test-one: source-discovery
 source-discovery:
 	@find src -type f \( -name '*.c' -o -name '*.h' \) -print >/dev/null
 	@find tests -type f \( -name '*.c' -o -name '*.h' \) -print >/dev/null
+	@find benchmarks -type f \( -name '*.c' -o -name '*.h' \) -print >/dev/null
 
 check-fast: format-check lint typecheck test
 
