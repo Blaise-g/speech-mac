@@ -2,6 +2,7 @@
 
 #include "context_encoder.h"
 #include "kokoro_internal.h"
+#include "utf8.h"
 
 #include <stdbool.h>
 #include <stdio.h>
@@ -74,48 +75,6 @@ static const PhonemeToken vocabulary[] = {
     {UINT32_C(0x2198), INT64_C(173)}, {UINT32_C(0xAB67), INT64_C(23)},
 };
 
-static bool decode_utf8(const unsigned char *text, size_t length, size_t *offset,
-                        uint32_t *codepoint) {
-    unsigned char first = text[*offset];
-    if (first < 0x80) {
-        *codepoint = first;
-        (*offset)++;
-        return true;
-    }
-    size_t continuation_count;
-    uint32_t value;
-    if (first >= 0xc2 && first <= 0xdf) {
-        continuation_count = 1;
-        value = (uint32_t)(first & 0x1fU);
-    } else if (first >= 0xe0 && first <= 0xef) {
-        continuation_count = 2;
-        value = (uint32_t)(first & 0x0fU);
-    } else if (first >= 0xf0 && first <= 0xf4) {
-        continuation_count = 3;
-        value = (uint32_t)(first & 0x07U);
-    } else {
-        return false;
-    }
-    if (continuation_count > length - *offset - 1) {
-        return false;
-    }
-    for (size_t index = 1; index <= continuation_count; index++) {
-        unsigned char continuation = text[*offset + index];
-        if ((continuation & 0xc0U) != 0x80U) {
-            return false;
-        }
-        value = (value << 6) | (uint32_t)(continuation & 0x3fU);
-    }
-    if ((continuation_count == 2 && value < 0x800) ||
-        (continuation_count == 3 && value < 0x10000) || (value >= 0xd800 && value <= 0xdfff) ||
-        value > 0x10ffff) {
-        return false;
-    }
-    *codepoint = value;
-    *offset += continuation_count + 1;
-    return true;
-}
-
 static bool token_for_codepoint(uint32_t codepoint, int64_t *token_id) {
     size_t lower = 0;
     size_t upper = sizeof(vocabulary) / sizeof(vocabulary[0]);
@@ -163,7 +122,8 @@ KokoroStatus kokoro_ipa_encode(const char *phonemes, int64_t **result, size_t *r
     size_t token_count = 1;
     while (offset < byte_count) {
         uint32_t codepoint;
-        if (!decode_utf8((const unsigned char *)phonemes, byte_count, &offset, &codepoint)) {
+        if (!kokoro_utf8_decode_next((const unsigned char *)phonemes, byte_count, &offset,
+                                     &codepoint)) {
             free(token_ids);
             kokoro_error_set(error, KOKORO_INVALID_ARGUMENT, "IPA input is not valid UTF-8");
             return KOKORO_INVALID_ARGUMENT;
@@ -185,6 +145,228 @@ KokoroStatus kokoro_ipa_encode(const char *phonemes, int64_t **result, size_t *r
     token_ids[token_count++] = 0;
     *result = token_ids;
     *result_count = token_count;
+    kokoro_error_set(error, KOKORO_OK, NULL);
+    return KOKORO_OK;
+}
+
+void kokoro_ipa_chunks_free(KokoroIpaChunks *chunks) {
+    if (chunks == NULL) {
+        return;
+    }
+    for (size_t index = 0; index < chunks->count; index++) {
+        free(chunks->items[index].token_ids);
+    }
+    free(chunks->items);
+    *chunks = (KokoroIpaChunks){0};
+}
+
+static KokoroStatus append_chunk(KokoroIpaChunks *chunks, const char *phonemes, size_t length,
+                                 KokoroError *error) {
+    if (chunks->count >= SIZE_MAX / sizeof(*chunks->items)) {
+        kokoro_error_set(error, KOKORO_OUT_OF_MEMORY, "too many IPA chunks");
+        return KOKORO_OUT_OF_MEMORY;
+    }
+    char *chunk_text = malloc(length + 1);
+    if (chunk_text == NULL) {
+        kokoro_error_set(error, KOKORO_OUT_OF_MEMORY, "cannot allocate IPA chunk");
+        return KOKORO_OUT_OF_MEMORY;
+    }
+    memcpy(chunk_text, phonemes, length);
+    chunk_text[length] = '\0';
+    int64_t *token_ids = NULL;
+    size_t token_count = 0;
+    KokoroStatus status = kokoro_ipa_encode(chunk_text, &token_ids, &token_count, error);
+    free(chunk_text);
+    if (status != KOKORO_OK) {
+        return status;
+    }
+    KokoroIpaChunk *items = realloc(chunks->items, (chunks->count + 1) * sizeof(*items));
+    if (items == NULL) {
+        free(token_ids);
+        kokoro_error_set(error, KOKORO_OUT_OF_MEMORY, "cannot allocate IPA chunk list");
+        return KOKORO_OUT_OF_MEMORY;
+    }
+    chunks->items = items;
+    chunks->items[chunks->count++] = (KokoroIpaChunk){
+        .token_ids = token_ids,
+        .token_count = token_count,
+    };
+    return KOKORO_OK;
+}
+
+static KokoroStatus encode_line(const char *line, size_t line_length, bool prefix_space,
+                                KokoroIpaChunks *chunks, KokoroError *error) {
+    if (line_length == 0) {
+        return KOKORO_OK;
+    }
+    if (prefix_space && line_length == SIZE_MAX) {
+        kokoro_error_set(error, KOKORO_OUT_OF_MEMORY, "IPA line is too large");
+        return KOKORO_OUT_OF_MEMORY;
+    }
+    const size_t max_phonemes = KOKORO_CONTEXT_MAX_TOKENS - 2U;
+    /* A chunk boundary already separates overlong sentences from the previous line. */
+    if (prefix_space && line_length >= max_phonemes) {
+        size_t offset = 0;
+        size_t symbols = 0;
+        while (offset < line_length && symbols < max_phonemes) {
+            uint32_t codepoint;
+            if (!kokoro_utf8_decode_next((const unsigned char *)line, line_length, &offset,
+                                         &codepoint)) {
+                kokoro_error_set(error, KOKORO_INVALID_ARGUMENT, "IPA input is not valid UTF-8");
+                return KOKORO_INVALID_ARGUMENT;
+            }
+            symbols++;
+        }
+        if (symbols == max_phonemes) {
+            prefix_space = false;
+        }
+    }
+    size_t buffer_length = line_length + (prefix_space ? 1U : 0U);
+    char *buffer = malloc(buffer_length);
+    if (buffer == NULL) {
+        kokoro_error_set(error, KOKORO_OUT_OF_MEMORY, "cannot allocate IPA line");
+        return KOKORO_OUT_OF_MEMORY;
+    }
+    size_t line_offset = 0;
+    if (prefix_space) {
+        buffer[0] = ' ';
+        line_offset = 1;
+    }
+    memcpy(buffer + line_offset, line, line_length);
+
+    size_t start = 0;
+    KokoroStatus status = KOKORO_OK;
+    while (start < buffer_length && status == KOKORO_OK) {
+        size_t offset = start;
+        size_t codepoints = 0;
+        size_t last_space_end = 0;
+        while (offset < buffer_length && codepoints < max_phonemes) {
+            size_t codepoint_start = offset;
+            uint32_t codepoint;
+            if (!kokoro_utf8_decode_next((const unsigned char *)buffer, buffer_length, &offset,
+                                         &codepoint)) {
+                kokoro_error_set(error, KOKORO_INVALID_ARGUMENT, "IPA input is not valid UTF-8");
+                status = KOKORO_INVALID_ARGUMENT;
+                break;
+            }
+            codepoints++;
+            if (codepoint == UINT32_C(0x20) && codepoints > 1) {
+                last_space_end = offset;
+            }
+            if (offset <= codepoint_start) {
+                kokoro_error_set(error, KOKORO_INVALID_ARGUMENT, "invalid IPA character boundary");
+                status = KOKORO_INVALID_ARGUMENT;
+                break;
+            }
+        }
+        if (status != KOKORO_OK) {
+            break;
+        }
+        size_t chunk_end = offset;
+        size_t next_start = offset;
+        if (offset < buffer_length) {
+            if (last_space_end <= start) {
+                if (buffer[offset] == ' ') {
+                    /* The space itself falls past the context limit; the chunk boundary separates
+                     * these words without exceeding the model's phoneme limit. */
+                    while (next_start < buffer_length && buffer[next_start] == ' ') {
+                        next_start++;
+                    }
+                } else {
+                    kokoro_error_set(
+                        error, KOKORO_CONTEXT_TOO_LONG,
+                        "cannot split an IPA word longer than %zu phoneme symbols at a "
+                        "whitespace boundary",
+                        max_phonemes);
+                    status = KOKORO_CONTEXT_TOO_LONG;
+                    break;
+                }
+            } else {
+                chunk_end = last_space_end;
+                next_start = chunk_end;
+            }
+        }
+        status = append_chunk(chunks, buffer + start, chunk_end - start, error);
+        start = next_start;
+    }
+    free(buffer);
+    return status;
+}
+
+static KokoroStatus validate_chunk_input(const char *phonemes, size_t length, bool sentence_lines,
+                                         KokoroError *error) {
+    size_t offset = 0;
+    while (offset < length) {
+        if (sentence_lines && (phonemes[offset] == '\n' || phonemes[offset] == '\r')) {
+            offset++;
+            continue;
+        }
+        size_t start = offset;
+        uint32_t codepoint;
+        if (!kokoro_utf8_decode_next((const unsigned char *)phonemes, length, &offset,
+                                     &codepoint)) {
+            kokoro_error_set(error, KOKORO_INVALID_ARGUMENT, "IPA input is not valid UTF-8");
+            return KOKORO_INVALID_ARGUMENT;
+        }
+        int64_t ignored_token;
+        if (!token_for_codepoint(codepoint, &ignored_token)) {
+            kokoro_error_set(error, KOKORO_INVALID_TOKEN_ID,
+                             "IPA character U+%04X is not in the pinned vocabulary", codepoint);
+            return KOKORO_INVALID_TOKEN_ID;
+        }
+        if (offset <= start) {
+            kokoro_error_set(error, KOKORO_INVALID_ARGUMENT, "invalid IPA character boundary");
+            return KOKORO_INVALID_ARGUMENT;
+        }
+    }
+    return KOKORO_OK;
+}
+
+KokoroStatus kokoro_ipa_encode_chunks(const char *phonemes, bool sentence_lines,
+                                      KokoroIpaChunks *chunks, KokoroError *error) {
+    if (chunks != NULL) {
+        *chunks = (KokoroIpaChunks){0};
+    }
+    if (phonemes == NULL || chunks == NULL || phonemes[0] == '\0') {
+        kokoro_error_set(error, KOKORO_INVALID_ARGUMENT,
+                         "nonempty IPA input and chunk output are required");
+        return KOKORO_INVALID_ARGUMENT;
+    }
+    size_t length = strlen(phonemes);
+    KokoroStatus status = validate_chunk_input(phonemes, length, sentence_lines, error);
+    if (!sentence_lines) {
+        if (status == KOKORO_OK) {
+            status = encode_line(phonemes, length, false, chunks, error);
+        }
+    } else {
+        size_t start = 0;
+        bool have_line = false;
+        while (start <= length && status == KOKORO_OK) {
+            size_t end = start;
+            while (end < length && phonemes[end] != '\n' && phonemes[end] != '\r') {
+                end++;
+            }
+            if (end > start) {
+                status = encode_line(phonemes + start, end - start, have_line, chunks, error);
+                have_line = true;
+            }
+            if (end == length) {
+                break;
+            }
+            start = end + 1;
+            if (phonemes[end] == '\r' && start < length && phonemes[start] == '\n') {
+                start++;
+            }
+        }
+    }
+    if (status == KOKORO_OK && chunks->count == 0) {
+        kokoro_error_set(error, KOKORO_INVALID_ARGUMENT, "IPA input contains no phonemes");
+        status = KOKORO_INVALID_ARGUMENT;
+    }
+    if (status != KOKORO_OK) {
+        kokoro_ipa_chunks_free(chunks);
+        return status;
+    }
     kokoro_error_set(error, KOKORO_OK, NULL);
     return KOKORO_OK;
 }

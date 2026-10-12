@@ -1,5 +1,7 @@
 #include "ipa_tokenizer.h"
 
+#include "context_encoder.h"
+
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -50,5 +52,71 @@ int main(void) {
     status = kokoro_ipa_encode(oversized, &token_ids, &token_count, &error);
     passed &= check(status == KOKORO_CONTEXT_TOO_LONG && token_ids == NULL && token_count == 0,
                     "overlong phoneme input was not rejected");
+
+    KokoroIpaChunks chunks = {0};
+    status = kokoro_ipa_encode_chunks("həlˈoʊ\nwɜːld", true, &chunks, &error);
+    const int64_t first_sentence[] = {0, 50, 83, 54, 156, 57, 135, 0};
+    const int64_t second_sentence[] = {0, 16, 65, 87, 158, 54, 46, 0};
+    passed &= check(
+        status == KOKORO_OK && chunks.count == 2 &&
+            chunks.items[0].token_count == sizeof(first_sentence) / sizeof(first_sentence[0]) &&
+            memcmp(chunks.items[0].token_ids, first_sentence, sizeof(first_sentence)) == 0 &&
+            chunks.items[1].token_count == sizeof(second_sentence) / sizeof(second_sentence[0]) &&
+            memcmp(chunks.items[1].token_ids, second_sentence, sizeof(second_sentence)) == 0,
+        "eSpeak sentence lines did not map to the expected Kokoro token IDs");
+    kokoro_ipa_chunks_free(&chunks);
+
+    char safe_split[512];
+    memset(safe_split, 'a', 509);
+    safe_split[509] = ' ';
+    safe_split[510] = 'a';
+    safe_split[511] = '\0';
+    status = kokoro_ipa_encode_chunks(safe_split, false, &chunks, &error);
+    passed &= check(status == KOKORO_OK && chunks.count == 2 &&
+                        chunks.items[0].token_count == KOKORO_CONTEXT_MAX_TOKENS &&
+                        chunks.items[0].token_ids[KOKORO_CONTEXT_MAX_TOKENS - 2] == 16 &&
+                        chunks.items[1].token_count == 3 && chunks.items[1].token_ids[1] == 43,
+                    "long IPA input was not split at a safe boundary without losing symbols");
+    kokoro_ipa_chunks_free(&chunks);
+
+    char exact_limit_split[514];
+    memset(exact_limit_split, 'a', 510);
+    exact_limit_split[510] = ' ';
+    exact_limit_split[511] = 'a';
+    exact_limit_split[512] = '\0';
+    status = kokoro_ipa_encode_chunks(exact_limit_split, false, &chunks, &error);
+    passed &= check(status == KOKORO_OK && chunks.count == 2 &&
+                        chunks.items[0].token_count == KOKORO_CONTEXT_MAX_TOKENS &&
+                        chunks.items[0].token_ids[KOKORO_CONTEXT_MAX_TOKENS - 2] == 43 &&
+                        chunks.items[1].token_count == 3 && chunks.items[1].token_ids[1] == 43,
+                    "the exact context limit did not split at the following whitespace boundary");
+    kokoro_ipa_chunks_free(&chunks);
+
+    char multibyte_sentence[523];
+    multibyte_sentence[0] = 'a';
+    multibyte_sentence[1] = '\n';
+    for (size_t index = 0; index < 260; index++) {
+        multibyte_sentence[2 + index * 2] = (char)0xc9;
+        multibyte_sentence[3 + index * 2] = (char)0x99;
+    }
+    multibyte_sentence[522] = '\0';
+    status = kokoro_ipa_encode_chunks(multibyte_sentence, true, &chunks, &error);
+    passed &= check(status == KOKORO_OK && chunks.count == 2 &&
+                        chunks.items[1].token_count == 263 && chunks.items[1].token_ids[1] == 16 &&
+                        chunks.items[1].token_ids[2] == 83 && chunks.items[1].token_ids[261] == 83,
+                    "a multi-byte sentence lost its separator under the phoneme-symbol limit");
+    kokoro_ipa_chunks_free(&chunks);
+
+    status = kokoro_ipa_encode_chunks("həlˈoʊ\nwɜːld", false, &chunks, &error);
+    passed &= check(status == KOKORO_INVALID_TOKEN_ID && chunks.count == 0,
+                    "prepared IPA accepted an unsupported newline symbol");
+
+    char unsafe_split[512];
+    memset(unsafe_split, 'a', sizeof(unsafe_split) - 1);
+    unsafe_split[sizeof(unsafe_split) - 1] = '\0';
+    status = kokoro_ipa_encode_chunks(unsafe_split, false, &chunks, &error);
+    passed &= check(status == KOKORO_CONTEXT_TOO_LONG && chunks.count == 0 &&
+                        strstr(error.message, "whitespace boundary") != NULL,
+                    "an overlong word without a safe split was not reported clearly");
     return passed ? 0 : 1;
 }

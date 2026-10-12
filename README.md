@@ -7,7 +7,13 @@ Native C inference for Kokoro-82M v1.0, targeting Apple Silicon macOS. The initi
 - An Apple Silicon Mac running macOS with Xcode Command Line Tools (`clang`, `make`, and `xcrun`).
 - Git.
 
-`uv` manages the locked Python reference and conversion tools. eSpeak NG will be used by the English text frontend. Neither Python nor eSpeak NG is part of the native inference runtime.
+`uv` manages the locked Python reference and conversion tools. Install eSpeak NG for English text input:
+
+```sh
+brew install espeak-ng
+```
+
+The C program invokes eSpeak NG as a separate process; eSpeak NG and Python are not part of C model inference.
 
 ## Development and checks
 
@@ -15,15 +21,20 @@ Run `make` to list the available commands. Use `make setup` once in a clone to i
 
 The C test suite uses `tests/test_*.c`; run a focused test with `make test-one TEST=tests/test_name.c`. `make check` covers format check, lint, typecheck, build, and the full test suite.
 
-## Prepared phoneme CLI
+## English and prepared phoneme CLI
 
-The initial CLI accepts phonemes from the pinned Kokoro v1.0 vocabulary:
+The `say` command reads one source: positional text, a UTF-8 file, or standard input. Ordinary text is passed to eSpeak NG and then mapped through the pinned Kokoro v1.0 symbol vocabulary. `--ipa` skips eSpeak NG and validates the selected source directly against that vocabulary.
 
 ```sh
+.build/kokoro say 'Hello from the terminal.'
+.build/kokoro say -f notes.txt --output notes.wav
+printf 'Hello from standard input.' | .build/kokoro say --output stdin.wav
 .build/kokoro say --ipa 'həˈloʊ'
 .build/kokoro say --ipa 'həˈloʊ' --voice am_adam --speed 1.25 --output hello.wav
 .build/kokoro --list-voices
 ```
+
+The English frontend was checked with eSpeak NG 1.52.0 using `-q --ipa=3 -v en-us` and its default rate and pitch. Stress and length marks map through Kokoro's pinned symbol vocabulary. eSpeak also emits U+200D joiners; the frontend strips that formatting marker because Kokoro has no corresponding token. When eSpeak marks a syllabic consonant with U+0329, the frontend represents it as a schwa before that consonant because Kokoro has no syllabic-consonant token. Other output symbols outside the vocabulary fail clearly. eSpeak's line breaks are kept as sentence boundaries, and an overlong line is split at a whitespace boundary so each model request stays within 510 phoneme symbols. All chunk audio is combined in order before writing or playback. These pronunciations can differ from Misaki.
 
 The default voice is `af_heart`, and the default speed is `1.0`. Speed must be between `0.5` and `2.0`. `--output` writes mono PCM16 WAV at 24 kHz. Without it, the CLI writes a completed WAV to a mode-0600 temporary file, plays it with macOS `afplay`, and removes the file afterward. `--help` and `--version` show the command options and version.
 
