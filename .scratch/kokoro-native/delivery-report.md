@@ -1,5 +1,30 @@
 # Native Kokoro delivery report
 
+## Streaming delivery, 2026-10-12
+
+[Native PR #1](https://github.com/Blaise-g/kokoro-mac/pull/1) was merged at `81aad9657d00d63a352c5e52affe4f07f1b91ab2`; its exact-head and merged-main CI checks passed. [Streaming PR #2](https://github.com/Blaise-g/kokoro-mac/pull/2) is published against `main` on `feat/kokoro-streaming`. The approved plan leaves that later PR open; its [check status](https://github.com/Blaise-g/kokoro-mac/pull/2/checks) is the live CI evidence for its latest head.
+
+`kokoro say --stream` plays complete frontend chunks through a separate AudioQueue adapter while later chunks synthesize. Positional text, UTF-8 files, stdin, IPA, both voices and speed options are preserved. The queue holds three 4096-frame buffers plus the producer's current complete chunk. Completed-WAV playback remains the default; `--stream -o` is rejected. Inference remains native C and Accelerate under the antirez architecture standard.
+
+The [timing report](../../artifacts/18-streaming-benchmark-20261012T161920Z/report.md) retains 20 baseline samples and ten diagnostic pairs. At `af_heart`, paragraph first-chunk readiness was 0.524 s [0.501, 0.539] and successful playback-start return was 0.584 s [0.545, 0.772]. These timings start at the benchmark's CLI call, not process startup or acoustic onset. The 49,152-byte playback bound does not establish process-wide memory savings. Queue-empty observations are possible-gap proxies; listening, actual device underruns and acoustic onset remain unverified.
+
+The bounded AdaIN fusion candidate failed the fixed phase budget, and its 0.65%/1.68% diagnostic gains did not clear 10.77%/5.71% contemporaneous variation. Its runtime code was removed. The failed experiment and all prior comparison records are retained. Ticket 18's safe-optimization criterion stays open. The [post-review build record](../../artifacts/18-streaming-benchmark-postreview-build-20261012T171907Z.json) identifies later benchmark-tool fixes and contains no performance measurements.
+
+| Ticket Key | Worker Profile | Status | Pull request | Commits | Checks with results | Review dispositions | Open items |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| 17-native-streaming-playback | implement-lite · xhigh · gpt-6-luna (override) | verified | [#2](https://github.com/Blaise-g/kokoro-mac/pull/2) | `7111a9571b894dfc6ec7bfae6a877aeca97263d2` | Full real-model C check and focused stream/CLI checks passed; real silence-only AudioQueue smoke passed; coordinator focused rerun passed. | Per-ticket fixes applied; no outstanding findings. | Final human listening remains in ticket 14. |
+| 18-streaming-benchmark-optimization | implement-lite · xhigh · gpt-6-luna (override) | open: timing verified, safe optimization rejected | [#2](https://github.com/Blaise-g/kokoro-mac/pull/2) | `1a7a427f2b0526448537e6a0fcc2517b0987a7e1`, `ceb0854e42ec8e3b05fecaf952faf4539b4061ed` | Full real-model C check, release-O2 generator/inference checks, nine locked-uv fixtures, helper-entry regression, raw/report reproduction and source fingerprints passed. | Two per-ticket findings and two whole-branch findings applied; no outstanding findings. | Numerical rejection and timing variation prevent a safe gain claim. |
+
+Whole-branch review has two applied findings, zero rejected or deferred findings, and no remaining accepted findings. Open-PR overlap was none before publication. The authoritative [triage](spec.md#final-streaming-integration-review--2026-10-12) records the helper playback and output-preflight fixes. No changed paths were omitted; independent fix review covered all six lenses. Mutating each fixed behavior made its regression fail, and both mutations were reversed.
+
+CI and staged-snapshot hooks do not fetch ignored model assets, so their model-backed cases explicitly skip. Separate full working-tree checks used the real assets. Device lifecycle evidence used silence, and timing collection used per-queue mute without changing system volume. Python project commands use the locked uv environment.
+
+There are no open escalations or uncommitted planning files. Tickets 13 and 14 retain their earlier optimization/listening reasons; ticket 18 retains its new optimization reason. Fifteen of the eighteen implementation/design tickets are verified. This delivery includes no rollout or deployment, and no task-owned daemon remains from the comparison run.
+
+Worktrees are kept at `/Volumes/Code/Personal/kokoro-mac` (`main`), `.worktrees/kokoro-native-planning` (`feat/kokoro-native`) and `.worktrees/kokoro-streaming-planning` (`feat/kokoro-streaming`). The native worktree holds model assets and the uv environment linked by the other checkouts; keep it while those links are in use. Both run branches carry ticket commits; there is no empty run branch to remove.
+
+## Historical follow-up delivery before remote publication
+
 
 The CoreML comparison and native streaming design are verified. The run now has 14 verified tickets out of 16; original tickets 13 (additional optimization) and 14 (final human listening) remain open. Streaming runtime code is future work. The antirez C architecture standard and measured Apple Silicon optimization sequence are recorded in [CODING_STANDARDS.md](../../CODING_STANDARDS.md) and [the streaming plan](../../docs/streaming-plan.md).
 
