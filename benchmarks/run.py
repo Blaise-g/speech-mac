@@ -359,8 +359,8 @@ def markdown_report(report: dict[str, object]) -> str:
         "Each entry gives median, [min, max], and (max - min) / median variation. "
         "No performance target is assumed.",
         "",
-        "| Workload | Cold CLI end-to-end | Engine create | Frontend | Warm request to full waveform | Native synthesis | WAV close | Audio duration | Audio throughput | RTF |",
-        "| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |",
+        "| Workload | Cold CLI end-to-end | Cold process to full waveform | Engine create | Frontend | Warm request to full waveform | Native synthesis | WAV close | Audio duration | Audio throughput | RTF |",
+        "| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |",
     ]
     for workload in report["workloads"]:
         values = workload["summaries"]
@@ -370,6 +370,7 @@ def markdown_report(report: dict[str, object]) -> str:
                 [
                     f"{workload['name']} ({workload['mode']})",
                     summary_text(values["cold_cli_end_to_end_seconds"], "ms"),
+                    summary_text(values["cold_process_to_full_waveform_seconds"], "ms"),
                     summary_text(values["engine_create_seconds"], "ms"),
                     summary_text(values["warm_frontend_seconds"], "ms"),
                     summary_text(values["warm_request_to_waveform_seconds"], "ms"),
