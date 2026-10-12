@@ -1,5 +1,6 @@
 import unittest
 import json
+import subprocess
 import tempfile
 import ctypes
 from types import SimpleNamespace
@@ -23,6 +24,51 @@ def sample(workload, mode, seconds, *, implementation="native", text="same text"
         "provenance_sha256": "provenance",
         "wall_seconds": seconds,
     }
+
+
+class FakeStartProcess:
+    def __init__(self, stdout, stderr, *, returncode=0, output_stdout="", output_stderr="", wait_actions=()):
+        self.stdout = stdout
+        self.stderr = stderr
+        self.returncode = None
+        self.result = returncode
+        self.output_stdout = output_stdout
+        self.output_stderr = output_stderr
+        self.wait_actions = list(wait_actions)
+        self.wait_calls = []
+        self.terminate_calls = 0
+        self.kill_calls = 0
+        self.output_written = False
+
+    def _write_output(self):
+        if self.output_written:
+            return
+        self.stdout.write(self.output_stdout)
+        self.stderr.write(self.output_stderr)
+        self.stdout.flush()
+        self.stderr.flush()
+        self.output_written = True
+
+    def terminate(self):
+        self.terminate_calls += 1
+        self._write_output()
+        self.returncode = -15
+
+    def poll(self):
+        return self.returncode
+
+    def wait(self, timeout=None):
+        self.wait_calls.append(timeout)
+        action = self.wait_actions.pop(0) if self.wait_actions else self.result
+        if isinstance(action, BaseException):
+            raise action
+        self._write_output()
+        self.returncode = action
+        return self.returncode
+
+    def kill(self):
+        self.kill_calls += 1
+        self.returncode = -9
 
 
 class ComparisonTests(unittest.TestCase):
@@ -153,21 +199,27 @@ class ComparisonTests(unittest.TestCase):
             ("Daemon is running (PID 42)", 42),
             ("Daemon is not running", None),
         ]
+        processes = []
+
+        def popen(args, **kwargs):
+            process = FakeStartProcess(
+                kwargs["stdout"], kwargs["stderr"], output_stdout="Kokoro daemon ready (PID 42)\n"
+            )
+            processes.append(process)
+            return process
+
         with tempfile.TemporaryDirectory() as directory:
             with (
                 patch.object(compare, "daemon_status", side_effect=statuses),
                 patch.object(compare, "mach_timebase", side_effect=OSError("unavailable")),
-                patch.object(
-                    compare.subprocess,
-                    "run",
-                    side_effect=[SimpleNamespace(stdout="daemon ready (PID 42)", stderr=""), None],
-                ) as run,
+                patch.object(compare.subprocess, "Popen", side_effect=popen) as popen_mock,
+                patch.object(compare.os, "kill") as kill,
             ):
                 with self.assertRaisesRegex(OSError, "unavailable"):
                     compare.coreml_resident(Path(directory), (), 1, "provenance")
-        self.assertEqual(
-            run.call_args_list[1].args[0], [str(compare.COREML_CLI), "daemon", "stop"]
-        )
+        self.assertEqual(processes[0].terminate_calls, 0)
+        self.assertEqual(popen_mock.call_args.args[0], [str(compare.COREML_CLI), "daemon", "start"])
+        kill.assert_called_once_with(42, compare.signal.SIGTERM)
 
     def test_owned_daemon_is_stopped_after_transient_startup_status_failure(self):
         statuses = [
@@ -176,43 +228,285 @@ class ComparisonTests(unittest.TestCase):
             ("Daemon is running (PID 42)", 42),
             ("Daemon is not running", None),
         ]
+        process_holder = []
+
+        def popen(args, **kwargs):
+            process = FakeStartProcess(
+                kwargs["stdout"], kwargs["stderr"], output_stdout="Kokoro daemon ready (PID 42)\n"
+            )
+            process_holder.append(process)
+            return process
+
         with tempfile.TemporaryDirectory() as directory:
             with (
                 patch.object(compare, "daemon_status", side_effect=statuses),
-                patch.object(
-                    compare.subprocess,
-                    "run",
-                    side_effect=[SimpleNamespace(stdout="daemon ready (PID 42)", stderr=""), None],
-                ) as run,
+                patch.object(compare.subprocess, "Popen", side_effect=popen),
+                patch.object(compare.os, "kill") as kill,
             ):
                 with self.assertRaisesRegex(OSError, "temporary status failure"):
                     compare.coreml_resident(Path(directory), (), 1, "provenance")
-        self.assertEqual(
-            run.call_args_list[1].args[0], [str(compare.COREML_CLI), "daemon", "stop"]
-        )
+        self.assertEqual(process_holder[0].terminate_calls, 0)
+        kill.assert_called_once_with(42, compare.signal.SIGTERM)
 
-    def test_startup_pid_mismatch_leaves_unverified_daemon_untouched(self):
+    def test_cleanup_status_failure_reports_owned_daemon_left_untouched(self):
         statuses = [
             ("Daemon is not running", None),
-            ("Daemon is running (PID 43)", 43),
-            ("Daemon is running (PID 43)", 43),
+            ("Daemon is running (PID 42)", 42),
+            OSError("status unavailable"),
         ]
         with tempfile.TemporaryDirectory() as directory:
             with (
                 patch.object(compare, "daemon_status", side_effect=statuses),
                 patch.object(
                     compare.subprocess,
-                    "run",
-                    return_value=SimpleNamespace(stdout="daemon ready (PID 42)", stderr=""),
-                ) as run,
+                    "Popen",
+                    side_effect=lambda args, **kwargs: FakeStartProcess(
+                        kwargs["stdout"], kwargs["stderr"], output_stdout="Kokoro daemon ready (PID 42)\n"
+                    ),
+                ),
+                patch.object(compare.os, "kill") as kill,
             ):
                 with self.assertRaisesRegex(RuntimeError, "left untouched"):
                     compare.coreml_resident(Path(directory), (), 1, "provenance")
-        self.assertEqual(run.call_count, 1)
+        kill.assert_not_called()
 
-    def test_unparseable_start_pid_never_stops_an_unverified_daemon(self):
+    def test_start_failure_after_ready_pid_still_stops_owned_daemon(self):
         statuses = [
             ("Daemon is not running", None),
+            ("Daemon is running (PID 42)", 42),
+            ("Daemon is not running", None),
+        ]
+        processes = []
+
+        def popen(args, **kwargs):
+            process = FakeStartProcess(
+                kwargs["stdout"],
+                kwargs["stderr"],
+                returncode=1,
+                output_stdout="Kokoro daemon ready (PID 42)\n",
+            )
+            processes.append(process)
+            return process
+
+        with tempfile.TemporaryDirectory() as directory:
+            with (
+                patch.object(compare, "daemon_status", side_effect=statuses),
+                patch.object(compare.subprocess, "Popen", side_effect=popen),
+                patch.object(compare.os, "kill") as kill,
+            ):
+                with self.assertRaisesRegex(subprocess.CalledProcessError, "returned non-zero"):
+                    compare.coreml_resident(Path(directory), (), 1, "provenance")
+        self.assertEqual(processes[0].terminate_calls, 0)
+        kill.assert_called_once_with(42, compare.signal.SIGTERM)
+
+    def test_interrupt_after_popen_recovers_output_before_cleanup(self):
+        statuses = [
+            ("Daemon is not running", None),
+            ("Daemon is running (PID 42)", 42),
+            ("Daemon is not running", None),
+        ]
+        processes = []
+        wait_calls = 0
+        wait_start = compare._wait_for_daemon_start
+
+        def popen(args, **kwargs):
+            process = FakeStartProcess(
+                kwargs["stdout"], kwargs["stderr"], output_stdout="Kokoro daemon ready (PID 42)\n"
+            )
+            processes.append(process)
+            return process
+
+        def interrupt_before_wait(process, args, deadline):
+            nonlocal wait_calls
+            wait_calls += 1
+            if wait_calls == 1:
+                raise KeyboardInterrupt()
+            return wait_start(process, args, deadline)
+
+        with tempfile.TemporaryDirectory() as directory:
+            with (
+                patch.object(compare, "daemon_status", side_effect=statuses),
+                patch.object(compare.subprocess, "Popen", side_effect=popen),
+                patch.object(compare, "_wait_for_daemon_start", side_effect=interrupt_before_wait),
+                patch.object(compare.os, "kill") as kill,
+            ):
+                with self.assertRaises(KeyboardInterrupt):
+                    compare.coreml_resident(Path(directory), (), 1, "provenance")
+        self.assertEqual(wait_calls, 2)
+        self.assertEqual(len(processes[0].wait_calls), 1)
+        self.assertAlmostEqual(processes[0].wait_calls[0], 12, places=3)
+        kill.assert_called_once_with(42, compare.signal.SIGTERM)
+
+    def test_interrupt_during_popen_waits_for_detached_launcher_pid_output(self):
+        statuses = [
+            ("Daemon is not running", None),
+            ("Daemon is running (PID 42)", 42),
+            ("Daemon is not running", None),
+        ]
+
+        def interrupted_popen(args, **kwargs):
+            raise KeyboardInterrupt()
+
+        def publish_ready_output(_delay):
+            output = popen.call_args.kwargs["stdout"]
+            output.write("Kokoro daemon ready (PID 42)\n")
+            output.flush()
+
+        with tempfile.TemporaryDirectory() as directory:
+            with (
+                patch.object(compare, "daemon_status", side_effect=statuses),
+                patch.object(compare.subprocess, "Popen", side_effect=interrupted_popen) as popen,
+                patch.object(compare.time, "sleep", side_effect=publish_ready_output) as sleep,
+                patch.object(compare.os, "kill") as kill,
+            ):
+                with self.assertRaises(KeyboardInterrupt):
+                    compare.coreml_resident(Path(directory), (), 1, "provenance")
+        self.assertTrue(popen.call_args.kwargs["start_new_session"])
+        sleep.assert_called_once_with(0.1)
+        kill.assert_called_once_with(42, compare.signal.SIGTERM)
+
+    def test_interrupt_during_popen_without_pid_reports_unknown_ownership(self):
+        with tempfile.TemporaryDirectory() as directory:
+            with (
+                patch.object(compare, "daemon_status", return_value=("Daemon is not running", None)),
+                patch.object(compare.subprocess, "Popen", side_effect=KeyboardInterrupt) as popen,
+                patch.object(compare.time, "perf_counter", side_effect=(1.0, 2.0, 14.0)),
+                patch.object(compare.time, "sleep") as sleep,
+                patch.object(compare.os, "kill") as kill,
+            ):
+                with self.assertRaisesRegex(RuntimeError, "any possibly started daemon was left untouched"):
+                    compare.coreml_resident(Path(directory), (), 1, "provenance")
+        popen.assert_called_once()
+        sleep.assert_called_once_with(0.1)
+        kill.assert_not_called()
+
+    def test_interrupt_before_pid_parse_recovers_completed_launcher_output(self):
+        statuses = [
+            ("Daemon is not running", None),
+            ("Daemon is running (PID 42)", 42),
+            ("Daemon is not running", None),
+        ]
+        processes = []
+        read_calls = 0
+        read_output = compare._read_start_output
+
+        def popen(args, **kwargs):
+            process = FakeStartProcess(
+                kwargs["stdout"], kwargs["stderr"], output_stdout="Kokoro daemon ready (PID 42)\n"
+            )
+            processes.append(process)
+            return process
+
+        def interrupt_first_read(stream):
+            nonlocal read_calls
+            read_calls += 1
+            if read_calls == 1:
+                raise KeyboardInterrupt()
+            return read_output(stream)
+
+        with tempfile.TemporaryDirectory() as directory:
+            with (
+                patch.object(compare, "daemon_status", side_effect=statuses),
+                patch.object(compare.subprocess, "Popen", side_effect=popen),
+                patch.object(compare, "_read_start_output", side_effect=interrupt_first_read),
+                patch.object(compare.os, "kill") as kill,
+            ):
+                with self.assertRaises(KeyboardInterrupt):
+                    compare.coreml_resident(Path(directory), (), 1, "provenance")
+        self.assertEqual(len(processes[0].wait_calls), 1)
+        self.assertAlmostEqual(processes[0].wait_calls[0], 12, places=3)
+        kill.assert_called_once_with(42, compare.signal.SIGTERM)
+
+    def test_startup_interrupt_waits_for_ready_pid_then_stops_owned_daemon(self):
+        statuses = [
+            ("Daemon is not running", None),
+            ("Daemon is running (PID 42)", 42),
+            ("Daemon is not running", None),
+        ]
+        processes = []
+
+        def popen(args, **kwargs):
+            process = FakeStartProcess(
+                kwargs["stdout"],
+                kwargs["stderr"],
+                output_stdout="Kokoro daemon ready (PID 42)\n",
+                wait_actions=(KeyboardInterrupt(), 0),
+            )
+            processes.append(process)
+            return process
+
+        with tempfile.TemporaryDirectory() as directory:
+            with (
+                patch.object(compare, "daemon_status", side_effect=statuses),
+                patch.object(compare.subprocess, "Popen", side_effect=popen),
+                patch.object(compare.os, "kill") as kill,
+            ):
+                with self.assertRaises(KeyboardInterrupt):
+                    compare.coreml_resident(Path(directory), (), 1, "provenance")
+        self.assertEqual(len(processes[0].wait_calls), 2)
+        self.assertEqual(processes[0].terminate_calls, 0)
+        kill.assert_called_once_with(42, compare.signal.SIGTERM)
+
+    def test_start_timeout_captures_pid_from_stderr_and_stops_owned_daemon(self):
+        statuses = [
+            ("Daemon is not running", None),
+            ("Daemon is running (PID 42)", 42),
+            ("Daemon is not running", None),
+        ]
+        processes = []
+
+        def popen(args, **kwargs):
+            process = FakeStartProcess(
+                kwargs["stdout"],
+                kwargs["stderr"],
+                output_stderr="Daemon started (PID 42) but readiness timed out\n",
+                wait_actions=(subprocess.TimeoutExpired(args, 12),),
+            )
+            processes.append(process)
+            return process
+
+        with tempfile.TemporaryDirectory() as directory:
+            with (
+                patch.object(compare, "daemon_status", side_effect=statuses),
+                patch.object(compare.subprocess, "Popen", side_effect=popen),
+                patch.object(compare.os, "kill") as kill,
+            ):
+                with self.assertRaisesRegex(TimeoutError, "did not finish within 12 seconds"):
+                    compare.coreml_resident(Path(directory), (), 1, "provenance")
+        self.assertEqual(processes[0].terminate_calls, 1)
+        kill.assert_called_once_with(42, compare.signal.SIGTERM)
+
+    def test_already_running_output_does_not_claim_foreign_daemon_ownership(self):
+        statuses = [
+            ("Daemon is not running", None),
+            ("Daemon is running (PID 43)", 43),
+        ]
+        processes = []
+
+        def popen(args, **kwargs):
+            process = FakeStartProcess(
+                kwargs["stdout"],
+                kwargs["stderr"],
+                output_stdout="Daemon already running (PID 43)\n",
+            )
+            processes.append(process)
+            return process
+
+        with tempfile.TemporaryDirectory() as directory:
+            with (
+                patch.object(compare, "daemon_status", side_effect=statuses),
+                patch.object(compare.subprocess, "Popen", side_effect=popen),
+                patch.object(compare.os, "kill") as kill,
+            ):
+                with self.assertRaisesRegex(RuntimeError, "ownership is unverified, so it was left untouched"):
+                    compare.coreml_resident(Path(directory), (), 1, "provenance")
+        self.assertEqual(processes[0].terminate_calls, 0)
+        kill.assert_not_called()
+
+    def test_status_pid_mismatch_leaves_foreign_daemon_untouched(self):
+        statuses = [
+            ("Daemon is not running", None),
+            ("Daemon is running (PID 43)", 43),
             ("Daemon is running (PID 43)", 43),
         ]
         with tempfile.TemporaryDirectory() as directory:
@@ -220,13 +514,59 @@ class ComparisonTests(unittest.TestCase):
                 patch.object(compare, "daemon_status", side_effect=statuses),
                 patch.object(
                     compare.subprocess,
-                    "run",
-                    return_value=SimpleNamespace(stdout="unexpected startup output", stderr=""),
-                ) as run,
+                    "Popen",
+                    side_effect=lambda args, **kwargs: FakeStartProcess(
+                        kwargs["stdout"],
+                        kwargs["stderr"],
+                        output_stdout="Kokoro daemon ready (PID 42)\n",
+                    ),
+                ),
+                patch.object(compare.os, "kill") as kill,
             ):
-                with self.assertRaisesRegex(RuntimeError, "ownership is unverified"):
+                with self.assertRaisesRegex(RuntimeError, "left untouched"):
                     compare.coreml_resident(Path(directory), (), 1, "provenance")
-        self.assertEqual(run.call_count, 1)
+        kill.assert_not_called()
+
+    def test_pid_replacement_after_ownership_check_signals_only_owned_pid(self):
+        status_pids = iter((None, 42, 42, 43))
+        calls = 0
+
+        def status():
+            nonlocal calls
+            pid = next(status_pids)
+            calls += 1
+            return ("Daemon is not running" if pid is None else f"Daemon is running (PID {pid})", pid)
+
+        process_holder = []
+
+        def popen(args, **kwargs):
+            process = FakeStartProcess(
+                kwargs["stdout"], kwargs["stderr"], output_stdout="Kokoro daemon ready (PID 42)\n"
+            )
+            process_holder.append(process)
+            return process
+
+        with tempfile.TemporaryDirectory() as directory:
+            with (
+                patch.object(compare, "daemon_status", side_effect=status),
+                patch.object(compare.subprocess, "Popen", side_effect=popen),
+                patch.object(compare.os, "kill") as kill,
+            ):
+                with self.assertRaisesRegex(RuntimeError, "changed from owned PID 42 to 43"):
+                    compare.coreml_resident(Path(directory), (), 1, "provenance")
+        self.assertEqual(calls, 4)
+        kill.assert_called_once_with(42, compare.signal.SIGTERM)
+
+    def test_preexisting_daemon_is_not_spawned_or_stopped(self):
+        with (
+            patch.object(compare, "daemon_status", return_value=("Daemon is running (PID 43)", 43)),
+            patch.object(compare.subprocess, "Popen") as popen,
+            patch.object(compare.os, "kill") as kill,
+        ):
+            with self.assertRaisesRegex(RuntimeError, "refusing to stop it"):
+                compare.coreml_resident(Path("unused"), (), 1, "provenance")
+        popen.assert_not_called()
+        kill.assert_not_called()
 
     def test_external_output_directory_is_rejected_before_benchmarking(self):
         with tempfile.TemporaryDirectory() as directory:

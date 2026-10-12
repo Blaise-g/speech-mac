@@ -10,13 +10,16 @@ import os
 import platform
 import re
 import shlex
+import signal
 import subprocess
 import sys
+import tempfile
 import threading
 import time
 import wave
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import TextIO
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "benchmarks"))
@@ -482,6 +485,90 @@ def daemon_status() -> tuple[str, int | None]:
     return output, int(match[1])
 
 
+def _read_start_output(stream: TextIO) -> str:
+    stream.flush()
+    stream.seek(0)
+    return stream.read()
+
+
+def _started_daemon_pid(output: str) -> int | None:
+    match = re.search(r"(?:Kokoro daemon ready|Daemon started) \(PID (\d+)\)", output, re.IGNORECASE)
+    return int(match[1]) if match else None
+
+
+def _wait_for_daemon_start(
+    process: subprocess.Popen[str], start_args: list[str], deadline: float
+) -> tuple[int, KeyboardInterrupt | None, bool]:
+    interrupted: KeyboardInterrupt | None = None
+    timed_out = False
+    while True:
+        try:
+            remaining = deadline - time.perf_counter()
+            if remaining <= 0:
+                raise subprocess.TimeoutExpired(start_args, 12)
+            returncode = process.wait(timeout=remaining)
+            break
+        except KeyboardInterrupt as error:
+            if interrupted is None:
+                interrupted = error
+        except subprocess.TimeoutExpired:
+            timed_out = True
+            process.terminate()
+            while True:
+                try:
+                    returncode = process.wait(timeout=3)
+                    break
+                except KeyboardInterrupt as error:
+                    if interrupted is None:
+                        interrupted = error
+                except subprocess.TimeoutExpired:
+                    process.kill()
+                    while True:
+                        try:
+                            returncode = process.wait()
+                            break
+                        except KeyboardInterrupt as error:
+                            if interrupted is None:
+                                interrupted = error
+                    break
+            break
+    return returncode, interrupted, timed_out
+
+
+def _stop_owned_daemon(owned_pid: int) -> str:
+    try:
+        current_status, current_pid = daemon_status()
+    except Exception as error:
+        raise RuntimeError(
+            f"could not verify owned daemon PID {owned_pid} during cleanup; left untouched"
+        ) from error
+    if current_pid is None:
+        return current_status
+    if current_pid != owned_pid:
+        raise RuntimeError(
+            f"daemon PID changed from owned PID {owned_pid} to {current_pid}; left untouched"
+        )
+
+    os.kill(owned_pid, signal.SIGTERM)
+    deadline = time.perf_counter() + 12
+    while True:
+        try:
+            current_status, current_pid = daemon_status()
+        except Exception as error:
+            raise RuntimeError(
+                f"could not confirm shutdown of owned daemon PID {owned_pid} after SIGTERM"
+            ) from error
+        if current_pid is None:
+            return current_status
+        if current_pid != owned_pid:
+            raise RuntimeError(
+                f"daemon PID changed from owned PID {owned_pid} to {current_pid}; left untouched"
+            )
+        if time.perf_counter() >= deadline:
+            raise TimeoutError(f"owned CoreML daemon PID {owned_pid} remained running after SIGTERM")
+        time.sleep(0.1)
+
+
 def coreml_resident(
     report_dir: Path,
     specs: tuple[dict[str, str], ...],
@@ -491,32 +578,74 @@ def coreml_resident(
     initial_output, initial_pid = daemon_status()
     if initial_pid is not None:
         raise RuntimeError(f"CoreML daemon already running (PID {initial_pid}); refusing to stop it")
-    started = time.perf_counter()
     start_args = [str(COREML_CLI), "daemon", "start"]
-    start = subprocess.run(start_args, cwd=ROOT, text=True, capture_output=True, check=True)
-    start_seconds = time.perf_counter() - started
-    match = re.search(r"daemon ready \(PID (\d+)\)", start.stdout, re.IGNORECASE)
-    owned_pid = int(match[1]) if match else None
+    owned_pid: int | None = None
+    start_stdout = ""
+    start_stderr = ""
+    start_seconds = 0.0
+    start_process: subprocess.Popen[str] | None = None
+    startup_deadline: float | None = None
+    startup_interrupted: KeyboardInterrupt | None = None
     sampler: ProcessSampler | None = None
     requests: dict[str, list[dict[str, object]]] = {}
     warmups: list[dict[str, object]] = []
+    stdout = tempfile.TemporaryFile(mode="w+t", encoding="utf-8")
+    stderr = tempfile.TemporaryFile(mode="w+t", encoding="utf-8")
     try:
+        started = time.perf_counter()
+        startup_deadline = started + 12
+        start_process = subprocess.Popen(
+            start_args,
+            cwd=ROOT,
+            stdin=subprocess.DEVNULL,
+            stdout=stdout,
+            stderr=stderr,
+            text=True,
+            start_new_session=True,
+        )
+        # Defer Ctrl-C through the bounded readiness window because the detached
+        # launcher may only print its service PID after startup completes.
+        returncode, startup_interrupted, startup_timed_out = _wait_for_daemon_start(
+            start_process, start_args, startup_deadline
+        )
+        start_seconds = time.perf_counter() - started
+        start_stdout = _read_start_output(stdout)
+        start_stderr = _read_start_output(stderr)
+        owned_pid = _started_daemon_pid(f"{start_stdout}\n{start_stderr}")
         if owned_pid is None:
             try:
                 _, reported_pid = daemon_status()
             except Exception as error:
                 raise RuntimeError(
-                    "daemon start omitted its PID and the status probe failed; ownership is "
-                    "unverified, so any running daemon was left untouched"
+                    "daemon start produced no verifiable PID; ownership is unverified, "
+                    "so any running daemon was left untouched; status probe failed"
                 ) from error
-            detail = (
-                f"; status reports PID {reported_pid}, left untouched because ownership is unverified"
-                if reported_pid is not None else ""
+            if reported_pid is not None:
+                raise RuntimeError(
+                    "daemon start produced no verifiable PID; "
+                    f"status reports PID {reported_pid}, ownership is unverified, "
+                    "so it was left untouched"
+                )
+            if startup_interrupted is not None:
+                raise startup_interrupted
+            if startup_timed_out:
+                raise TimeoutError("daemon start did not finish within 12 seconds")
+            if returncode:
+                raise subprocess.CalledProcessError(
+                    returncode, start_args, output=start_stdout, stderr=start_stderr
+                )
+            raise RuntimeError(f"daemon start did not report its PID: {start_stdout!r}")
+        if startup_interrupted is not None:
+            raise startup_interrupted
+        if startup_timed_out:
+            raise TimeoutError("daemon start did not finish within 12 seconds")
+        if returncode:
+            raise subprocess.CalledProcessError(
+                returncode, start_args, output=start_stdout, stderr=start_stderr
             )
-            raise RuntimeError(f"daemon start did not report its PID: {start.stdout!r}{detail}")
         status, reported_pid = daemon_status()
         if reported_pid != owned_pid:
-            raise RuntimeError(f"started PID {owned_pid}, but daemon status reports {reported_pid}")
+            raise RuntimeError(f"started PID {owned_pid}, but daemon status reports {reported_pid}; left untouched")
         sampler = ProcessSampler(owned_pid)
         timebase = mach_timebase()
         lifetime_start = sampler.read()
@@ -573,35 +702,70 @@ def coreml_resident(
                     }
                 )
         lifetime_end = sampler.read()
+    except KeyboardInterrupt as error:
+        if startup_interrupted is None:
+            startup_interrupted = error
+        raise
     finally:
         try:
             if sampler:
                 sampler.stop()
         finally:
-            stopped_status = "Daemon ownership could not be verified; no stop attempted"
-            if owned_pid is not None:
-                try:
-                    current_status, current_pid = daemon_status()
-                except Exception as error:
-                    raise RuntimeError(
-                        f"could not verify owned daemon PID {owned_pid} during cleanup; left untouched"
-                    ) from error
-                if current_pid == owned_pid:
-                    subprocess.run([str(COREML_CLI), "daemon", "stop"], cwd=ROOT, check=True)
-                    stopped_status, stopped_pid = daemon_status()
-                    if stopped_pid is not None:
-                        raise RuntimeError(f"owned CoreML daemon remains running: {stopped_status}")
-                elif current_pid is not None:
-                    raise RuntimeError(
-                        f"daemon PID changed from owned PID {owned_pid} to {current_pid}; left untouched"
-                    )
+            try:
+                if startup_interrupted is not None and owned_pid is None:
+                    if start_process is not None and start_process.poll() is None:
+                        _wait_for_daemon_start(
+                            start_process,
+                            start_args,
+                            startup_deadline if startup_deadline is not None else time.perf_counter(),
+                        )
+                    elif start_process is None:
+                        # Popen itself can be interrupted after spawn but before its
+                        # process handle is assigned; keep checking captured output
+                        # through the same bounded startup window.
+                        deadline = startup_deadline if startup_deadline is not None else time.perf_counter() + 12
+                        while time.perf_counter() < deadline:
+                            start_stdout = _read_start_output(stdout)
+                            start_stderr = _read_start_output(stderr)
+                            owned_pid = _started_daemon_pid(f"{start_stdout}\n{start_stderr}")
+                            if owned_pid is not None:
+                                break
+                            time.sleep(0.1)
+                    start_stdout = _read_start_output(stdout)
+                    start_stderr = _read_start_output(stderr)
+                    owned_pid = _started_daemon_pid(f"{start_stdout}\n{start_stderr}")
+                    if owned_pid is None:
+                        try:
+                            _, reported_pid = daemon_status()
+                        except Exception as error:
+                            raise RuntimeError(
+                                "startup was interrupted before ownership could be verified; "
+                                "any running daemon was left untouched; status probe failed"
+                            ) from error
+                        if reported_pid is not None:
+                            raise RuntimeError(
+                                "startup was interrupted without verifiable PID output; "
+                                f"status reports PID {reported_pid}, ownership is unverified, "
+                                "so it was left untouched"
+                            )
+                        raise RuntimeError(
+                            "startup was interrupted before any service PID could be verified; "
+                            "no stop was attempted, and any possibly started daemon was left untouched"
+                        ) from startup_interrupted
+                if owned_pid is not None:
+                    stopped_status = _stop_owned_daemon(owned_pid)
                 else:
-                    stopped_status = current_status
+                    stopped_status = "Daemon ownership could not be verified; no stop attempted"
+            finally:
+                start_stdout = _read_start_output(stdout)
+                start_stderr = _read_start_output(stderr)
+                stdout.close()
+                stderr.close()
     return {
         "initial_status": initial_output,
         "start_command": start_args,
-        "start_stdout": start.stdout,
-        "start_stderr": start.stderr,
+        "start_stdout": start_stdout,
+        "start_stderr": start_stderr,
         "start_seconds": start_seconds,
         "owned_pid": owned_pid,
         "running_status": status,
