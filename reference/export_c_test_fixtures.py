@@ -75,6 +75,23 @@ def export_pitch_noise_fixtures() -> None:
             (FIXTURES / f"{name}.f32le").write_bytes(raw)
 
 
+def export_text_encoder_fixtures() -> None:
+    specs = {
+        "text_features": ("<f4", (1, 512, 8)),
+        "aligned_text": ("<f4", (1, 512, 55)),
+    }
+    manifest = json.loads((FIXTURES / "manifest.json").read_text(encoding="utf-8"))
+    with np.load(FIXTURES / "af_heart_hello.npz", allow_pickle=False) as fixture:
+        for name, (dtype, shape) in specs.items():
+            array = np.ascontiguousarray(fixture[name], dtype=dtype)
+            if array.shape != shape:
+                raise ValueError(f"unexpected {name} fixture shape: {array.shape}")
+            raw = array.tobytes(order="C")
+            if hashlib.sha256(raw).hexdigest() != manifest["arrays"][name]["sha256"]:
+                raise ValueError(f"raw {name} fixture does not match its manifest digest")
+            (FIXTURES / f"{name}.f32le").write_bytes(raw)
+
+
 def export_minimal_pack() -> None:
     metadata = {
         "model": HF_REPOSITORY,
@@ -101,5 +118,6 @@ if __name__ == "__main__":
     export_context_features()
     export_duration_fixtures()
     export_pitch_noise_fixtures()
+    export_text_encoder_fixtures()
     export_minimal_pack()
-    print("Exported contextual, duration, F0/noise, and minimal pack fixtures for the C tests.")
+    print("Exported contextual, duration, pitch/noise, text encoder, and minimal pack fixtures.")
