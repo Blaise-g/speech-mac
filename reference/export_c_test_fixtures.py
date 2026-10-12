@@ -114,6 +114,7 @@ def export_neural_generator_fixtures() -> None:
         "source_spectrogram_phase": ("<f4", (1, 11, 6601)),
         "spectral_magnitude": ("<f4", (1, 11, 6601)),
         "spectral_phase": ("<f4", (1, 11, 6601)),
+        "waveform": ("<f4", (33000,)),
     }
     manifest = json.loads((FIXTURES / "manifest.json").read_text(encoding="utf-8"))
     with np.load(FIXTURES / "af_heart_hello.npz", allow_pickle=False) as fixture:
@@ -159,5 +160,5 @@ if __name__ == "__main__":
     export_minimal_pack()
     print(
         "Exported contextual, duration, pitch/noise, text encoder, decoder, neural generator, "
-        "and minimal pack fixtures."
+        "waveform, and minimal pack fixtures."
     )
