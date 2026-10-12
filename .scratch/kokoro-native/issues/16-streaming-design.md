@@ -26,4 +26,8 @@ A concise, benchmark-informed design document for adding chunk-level playback to
 
 - `15-coreml-comparison-baseline` — matched workload measurements and documented resource limits.
 
-**Status:** blocked
+**Status:** ready-for-agent
+
+## Dependency verification — 2026-10-12
+
+Ticket15 is verified in `fc8f34e5ea5651ea0727a0f27e4f1ab33b6e0ffd`; design-only work is unblocked.
