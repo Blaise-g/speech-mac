@@ -16,7 +16,7 @@ ENGINE_SOURCES := $(filter-out %/main.c,$(APP_SOURCES))
 C_SOURCES := $(shell find src tests benchmarks -type f -name '*.c' -print 2>/dev/null | sort)
 FORMAT_FILES := $(shell find src tests benchmarks -type f \( -name '*.c' -o -name '*.h' \) -print 2>/dev/null | sort)
 
-.PHONY: help setup dev format format-check lint typecheck build test test-one check-fast check clean source-discovery benchmark-build benchmark
+.PHONY: help setup dev format format-check lint typecheck build test test-one check-fast check clean source-discovery benchmark-build benchmark stream-benchmark-build stream-benchmark
 
 help:
 	@printf '%s\n' \
@@ -28,6 +28,7 @@ help:
 	  'make check-fast                    format check, lint, typecheck, and tests' \
 	  'make check                         run the full local check sequence' \
 	  'make benchmark                     run the repeated native baseline (release -O2)' \
+	  'make stream-benchmark               run muted native streaming measurements' \
 	  'make clean                         remove local build artifacts'
 
 setup:
@@ -98,6 +99,28 @@ benchmark: export KOKORO_BENCH_BASE_CFLAGS = $(BASE_CFLAGS)
 benchmark: export KOKORO_BENCH_OPT_CFLAGS = -O2
 benchmark: export KOKORO_BENCH_LDLIBS = $(LDLIBS)
 benchmark: export KOKORO_BENCH_BUILD_DIR = $(BUILD_DIR)
+
+stream-benchmark-build: source-discovery
+	@mkdir -p $(BUILD_DIR)
+	@$(CLANG) $(CPPFLAGS) $(BASE_CFLAGS) -O2 -DKOKORO_STREAM_BENCHMARK_TIMING \
+	  -DKOKORO_STREAM_SILENT_OUTPUT benchmarks/stream_driver.c $(ENGINE_SOURCES) $(LDLIBS) \
+	  -o $(BUILD_DIR)/kokoro-stream-benchmark
+
+stream-benchmark: stream-benchmark-build
+	@UV_CACHE_DIR=/private/tmp/kokoro-uv-cache uv run --project reference --locked --no-sync \
+	  python benchmarks/stream.py --runs 5
+
+stream-benchmark: export KOKORO_STREAM_COMPILER = $(CLANG)
+stream-benchmark: export KOKORO_STREAM_BASE_CFLAGS = $(BASE_CFLAGS)
+stream-benchmark: export KOKORO_STREAM_OPT_CFLAGS = -O2
+stream-benchmark: export KOKORO_STREAM_CPPFLAGS = $(CPPFLAGS)
+stream-benchmark: export KOKORO_STREAM_LDLIBS = $(LDLIBS)
+
+stream-benchmark-build: export KOKORO_STREAM_COMPILER = $(CLANG)
+stream-benchmark-build: export KOKORO_STREAM_BASE_CFLAGS = $(BASE_CFLAGS)
+stream-benchmark-build: export KOKORO_STREAM_OPT_CFLAGS = -O2
+stream-benchmark-build: export KOKORO_STREAM_CPPFLAGS = $(CPPFLAGS)
+stream-benchmark-build: export KOKORO_STREAM_LDLIBS = $(LDLIBS)
 
 test: source-discovery
 	@if [ -z "$(TEST_SOURCES)" ]; then \

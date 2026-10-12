@@ -2,6 +2,7 @@
 
 #include "audio_queue_playback.h"
 #include "kokoro_internal.h"
+#include "stream_benchmark.h"
 
 #include <errno.h>
 #include <math.h>
@@ -116,6 +117,7 @@ static void *stream_producer(void *argument) {
             goto stop;
         }
         const KokoroIpaChunk *chunk = &stream->chunks->items[chunk_index];
+        KOKORO_STREAM_BENCHMARK_RECORD(KOKORO_STREAM_BENCHMARK_CHUNK_BEGIN, 1);
         KokoroSynthesisOptions options = {
             .voice_style_index = chunk->token_count - 3,
             .speed = stream->speed,
@@ -123,12 +125,21 @@ static void *stream_producer(void *argument) {
         };
         KokoroSynthesisOutput output = {0};
         memset(&error, 0, sizeof(error));
+#ifdef KOKORO_STREAM_BENCHMARK_TIMING
+        KOKORO_STREAM_BENCHMARK_RECORD(KOKORO_STREAM_BENCHMARK_SYNTHESIS_BEGIN, 0);
+#endif
         result = stream->synthesize(stream->synthesize_context, stream->engine, chunk->token_ids,
                                     chunk->token_count, &options, &output, &error);
+#ifdef KOKORO_STREAM_BENCHMARK_TIMING
+        KOKORO_STREAM_BENCHMARK_RECORD(KOKORO_STREAM_BENCHMARK_SYNTHESIS_END, 0);
+#endif
         if (result != KOKORO_OK) {
             kokoro_synthesis_output_free(&output);
             set_terminal(stream, result, &error);
             goto stop;
+        }
+        if (chunk_index == 0) {
+            KOKORO_STREAM_BENCHMARK_RECORD(KOKORO_STREAM_BENCHMARK_FIRST_CHUNK_READY, 0);
         }
         if (is_cancelled(stream)) {
             kokoro_synthesis_output_free(&output);
@@ -163,6 +174,7 @@ static void *stream_producer(void *argument) {
                 }
                 goto stop;
             }
+            KOKORO_STREAM_BENCHMARK_RECORD(KOKORO_STREAM_BENCHMARK_BUFFER_ACCEPTED, count);
             offset += count;
             if (!started) {
                 memset(&error, 0, sizeof(error));
@@ -188,6 +200,11 @@ static void *stream_producer(void *argument) {
     }
     memset(&error, 0, sizeof(error));
     result = stream->playback_ops->drain(playback, &error);
+#ifdef KOKORO_STREAM_BENCHMARK_TIMING
+    if (result == KOKORO_OK) {
+        KOKORO_STREAM_BENCHMARK_RECORD(KOKORO_STREAM_BENCHMARK_DRAIN_COMPLETE, 0);
+    }
+#endif
     if (result != KOKORO_OK) {
         if (result != KOKORO_CANCELLED) {
             set_terminal(stream, result, &error);

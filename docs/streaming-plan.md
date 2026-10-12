@@ -1,6 +1,6 @@
 # Native streaming playback plan
 
-Status: playback implemented; timing measurements pending · 2026-10-12
+Status: playback and timing implemented; optimization criterion remains open · 2026-10-12
 
 ## Decision and evidence
 
@@ -62,7 +62,7 @@ Implemented defect-revealing tests cover:
 
 ## Delivery stages and later work
 
-1. **Completed minimal delivery:** the bounded AudioQueue adapter and producer use the existing prepared chunk list; opt-in `--stream` playback keeps completed-WAV playback as the default and rejects `--stream -o`. Timing measurements remain pending.
-2. **Measured Apple Silicon optimization:** once streaming parity and timing are recorded, profile the ticket 15 workloads and preserve that saved comparison as the baseline. Improve measured hot C paths with Accelerate or NEON first, checking the fixed numerical budgets and paired before/after results. Consider an isolated Metal path only if profiling identifies a suitable bottleneck and measurements support the cost; assume no gain in advance. Ticket 13's unsuccessful accuracy/performance attempt remains open as prior evidence. Incremental input/frontend or within-request decoding, daemon mode, quantization, and wider language support need their own evidence and scope.
+1. **Completed minimal delivery:** the bounded AudioQueue adapter and producer use the existing prepared chunk list; opt-in `--stream` playback keeps completed-WAV playback as the default and rejects `--stream -o`. Ticket 18 records repeated muted AudioQueue timings for the ticket 15 short and paragraph inputs at `af_heart` and `am_adam`; see the [streaming timing and optimization report](../artifacts/18-streaming-benchmark-20261012T161920Z/report.md). The report marks acoustic onset unavailable and queue-starvation counts as observations, not confirmed device underruns or audible gaps.
+2. **Measured Apple Silicon optimization:** ticket 18 records a profile-guided float32 AdaIN affine-fusion attempt. The unchanged fixed parity budget rejected it, and paired gains did not clear contemporaneous variation. No optimization is accepted, so the criterion remains open. A future bounded attempt must profile the ticket 15 workloads, check the fixed numerical budgets, and use paired before/after results; prefer supported Accelerate/NEON work or layout/scratch reuse. Consider an isolated Metal path only if profiling identifies a suitable bottleneck and measurements support the cost; assume no gain in advance. Ticket 13's unsuccessful accuracy/performance attempt remains prior evidence. Incremental input/frontend or within-request decoding, daemon mode, quantization, and wider language support need their own evidence and scope.
 
 Keep the inference architecture readable and modular C, following the structure of [antirez's qwen-asr](https://github.com/antirez/qwen-asr) and [voxtral.c](https://github.com/antirez/voxtral.c). The corresponding Kokoro boundaries are already visible in `english_frontend.c`/`ipa_tokenizer.c` (frontend), `model_pack.c`/`voice_artifact.c` (weights), `tensor_utils.c` and the stage modules (numerical operations and model graph), `synthesis.c` (engine orchestration), and `cli.c` (command interface); the AudioQueue adapter should stay a separate output seam. The ASR models are architectural references only; do not import their decoding, KV-cache, or rollback behavior into Kokoro. Core ML remains outside the native inference path.

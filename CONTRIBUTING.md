@@ -10,4 +10,10 @@ The comparison tooling tests are separate from `make check` and do not need mode
 UV_CACHE_DIR=/private/tmp/kokoro-uv-cache uv run --project reference --offline --no-sync --locked python reference/tests/test_compare.py
 ```
 
+The streaming report validator has a separate focused fixture suite. Run it from the repository root with the locked Python project:
+
+```sh
+UV_CACHE_DIR=/private/tmp/kokoro-uv-cache uv run --project reference --offline --no-sync --locked python -m unittest discover -s reference/tests -p test_stream_report.py
+```
+
 Use concise conventional commit subjects such as `feat: add phoneme frontend`, and include `Ticket: <NN>-<slug>` in every implementation commit. Complete an independent review before committing. Update the ticket's status and verification evidence as work progresses. A local hook can be bypassed; `.github/workflows/ci.yml` runs `make check` on pull requests and pushes to `main`. GitHub currently cannot enforce that check on this private repository, so verify it before merging.

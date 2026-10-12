@@ -27,6 +27,8 @@ Run `make benchmark` on Apple Silicon to build both binaries with release `-O2` 
 
 The report separates fresh process startup, model-pack open and SHA-256 validation, engine creation, frontend, native synthesis, full waveform availability, and WAV close. In these completed-WAV baseline runs, first audio means the complete waveform buffer is ready after all chunks are combined; the metric does not measure `--stream` playback. A new process does not imply cleared OS file pages, so cache state is recorded as uncontrolled and the benchmark does not purge caches. Audio throughput is generated audio seconds divided by synthesis seconds; RTF is the inverse.
 
+Run `make stream-benchmark` on Apple Silicon to build the release `-O2` streaming helper and write a dated report with its raw measurements under `artifacts/`. Each benchmark AudioQueue is muted to volume `0.0` before PCM is submitted; the command does not change system output volume. The report measures streaming events from CLI call entry and keeps buffer reclamation separate from acoustic onset, which is unavailable without independent render evidence. See the [captured streaming report](artifacts/18-streaming-benchmark-20261012T161920Z/report.md); its profile-guided candidate failed the fixed parity budget, so the optimization criterion remains open.
+
 ## English and prepared phoneme CLI
 
 The `say` command reads one source: positional text, a UTF-8 file, or standard input. Ordinary text is passed to eSpeak NG and then mapped through the pinned Kokoro v1.0 symbol vocabulary. `--ipa` skips eSpeak NG and validates the selected source directly against that vocabulary.

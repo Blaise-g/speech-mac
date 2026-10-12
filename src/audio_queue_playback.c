@@ -1,6 +1,7 @@
 #include "audio_queue_playback.h"
 
 #include "kokoro_internal.h"
+#include "stream_benchmark.h"
 
 #include <dispatch/dispatch.h>
 #include <pthread.h>
@@ -23,6 +24,11 @@ typedef struct {
     atomic_bool cancelled;
     atomic_bool progress_pending;
     atomic_uint property_generation;
+#ifdef KOKORO_STREAM_BENCHMARK_TIMING
+    atomic_uint queued_buffers;
+    atomic_bool submissions_complete;
+    atomic_bool started;
+#endif
     bool listener_installed;
     bool running_observed;
     dispatch_semaphore_t progress;
@@ -65,6 +71,15 @@ static void wait_for_progress(AudioQueuePlayback *playback) {
 static void buffer_available(void *user_data, AudioQueueRef queue, AudioQueueBufferRef buffer) {
     (void)queue;
     AudioQueuePlayback *playback = user_data;
+#ifdef KOKORO_STREAM_BENCHMARK_TIMING
+    unsigned int queued =
+        atomic_fetch_sub_explicit(&playback->queued_buffers, 1, memory_order_acq_rel);
+    if (queued == 1 && atomic_load_explicit(&playback->started, memory_order_acquire) &&
+        !atomic_load_explicit(&playback->submissions_complete, memory_order_acquire)) {
+        KOKORO_STREAM_BENCHMARK_RECORD(KOKORO_STREAM_BENCHMARK_QUEUE_STARVED, 0);
+    }
+    KOKORO_STREAM_BENCHMARK_RECORD(KOKORO_STREAM_BENCHMARK_BUFFER_RECLAIMED, 0);
+#endif
     for (size_t index = 0; index < KOKORO_STREAM_BUFFER_COUNT; index++) {
         if (playback->buffers[index] == buffer) {
             atomic_store_explicit(&playback->used[index], false, memory_order_release);
@@ -117,6 +132,7 @@ static KokoroStatus audio_queue_close(void *handle, KokoroError *error) {
 }
 
 static KokoroStatus audio_queue_open(void *context, void **handle, KokoroError *error) {
+    KOKORO_STREAM_BENCHMARK_RECORD(KOKORO_STREAM_BENCHMARK_AUDIOQUEUE_OPEN_BEGIN, 0);
     if (handle == NULL) {
         kokoro_error_set(error, KOKORO_INVALID_ARGUMENT, "playback output pointer is required");
         return KOKORO_INVALID_ARGUMENT;
@@ -139,6 +155,11 @@ static KokoroStatus audio_queue_open(void *context, void **handle, KokoroError *
     atomic_init(&playback->cancelled, false);
     atomic_init(&playback->progress_pending, false);
     atomic_init(&playback->property_generation, 0);
+#ifdef KOKORO_STREAM_BENCHMARK_TIMING
+    atomic_init(&playback->queued_buffers, 0);
+    atomic_init(&playback->submissions_complete, false);
+    atomic_init(&playback->started, false);
+#endif
     for (size_t index = 0; index < KOKORO_STREAM_BUFFER_COUNT; index++) {
         atomic_init(&playback->used[index], false);
     }
@@ -175,6 +196,14 @@ static KokoroStatus audio_queue_open(void *context, void **handle, KokoroError *
         audio_queue_close(playback, NULL);
         return KOKORO_IO_ERROR;
     }
+#ifdef KOKORO_STREAM_SILENT_OUTPUT
+    status = AudioQueueSetParameter(playback->queue, kAudioQueueParam_Volume, 0.0f);
+    if (status != noErr) {
+        set_audio_error(error, "set benchmark queue volume to zero", status);
+        audio_queue_close(playback, NULL);
+        return KOKORO_IO_ERROR;
+    }
+#endif
     status = api->add_property_listener(playback->queue, kAudioQueueProperty_IsRunning,
                                         property_changed, playback);
     if (status != noErr) {
@@ -193,6 +222,7 @@ static KokoroStatus audio_queue_open(void *context, void **handle, KokoroError *
         }
     }
     *handle = playback;
+    KOKORO_STREAM_BENCHMARK_RECORD(KOKORO_STREAM_BENCHMARK_AUDIOQUEUE_OPEN_END, 0);
     kokoro_error_set(error, KOKORO_OK, NULL);
     return KOKORO_OK;
 }
@@ -231,16 +261,24 @@ static KokoroStatus audio_queue_submit(void *handle, const float *samples, size_
         if (index < KOKORO_STREAM_BUFFER_COUNT) {
             break;
         }
+        KOKORO_STREAM_BENCHMARK_RECORD(KOKORO_STREAM_BENCHMARK_BACKPRESSURE_BEGIN, 0);
         wait_for_progress(playback);
+        KOKORO_STREAM_BENCHMARK_RECORD(KOKORO_STREAM_BENCHMARK_BACKPRESSURE_END, 0);
     }
     AudioQueueBufferRef buffer = playback->buffers[index];
 
     size_t byte_count = sample_count * sizeof(*samples);
     memcpy(buffer->mAudioData, samples, byte_count);
     buffer->mAudioDataByteSize = (UInt32)byte_count;
+#ifdef KOKORO_STREAM_BENCHMARK_TIMING
+    (void)atomic_fetch_add_explicit(&playback->queued_buffers, 1, memory_order_acq_rel);
+#endif
     pthread_mutex_lock(&playback->operation_mutex);
     if (atomic_load_explicit(&playback->cancelled, memory_order_acquire)) {
         pthread_mutex_unlock(&playback->operation_mutex);
+#ifdef KOKORO_STREAM_BENCHMARK_TIMING
+        (void)atomic_fetch_sub_explicit(&playback->queued_buffers, 1, memory_order_acq_rel);
+#endif
         release_buffer(playback, index);
         kokoro_error_set(error, KOKORO_CANCELLED, "stream cancelled");
         return KOKORO_CANCELLED;
@@ -248,6 +286,9 @@ static KokoroStatus audio_queue_submit(void *handle, const float *samples, size_
     OSStatus status = playback->api->enqueue_buffer(playback->queue, buffer, 0, NULL);
     pthread_mutex_unlock(&playback->operation_mutex);
     if (status != noErr) {
+#ifdef KOKORO_STREAM_BENCHMARK_TIMING
+        (void)atomic_fetch_sub_explicit(&playback->queued_buffers, 1, memory_order_acq_rel);
+#endif
         release_buffer(playback, index);
         set_audio_error(error, "enqueue buffer", status);
         return KOKORO_IO_ERROR;
@@ -303,17 +344,27 @@ static KokoroStatus audio_queue_start(void *handle, KokoroError *error) {
         return KOKORO_CANCELLED;
     }
 
+    KOKORO_STREAM_BENCHMARK_RECORD(KOKORO_STREAM_BENCHMARK_AUDIOQUEUE_START_BEGIN, 0);
     OSStatus status = playback->api->start(playback->queue, NULL);
+#ifdef KOKORO_STREAM_BENCHMARK_TIMING
+    if (status == noErr) {
+        atomic_store_explicit(&playback->started, true, memory_order_release);
+    }
+#endif
     pthread_mutex_unlock(&playback->operation_mutex);
     if (status != noErr) {
         set_audio_error(error, "start", status);
         return KOKORO_IO_ERROR;
     }
+    KOKORO_STREAM_BENCHMARK_RECORD(KOKORO_STREAM_BENCHMARK_START_REQUESTED, 0);
     return wait_for_running(playback, true, error);
 }
 
 static KokoroStatus audio_queue_drain(void *handle, KokoroError *error) {
     AudioQueuePlayback *playback = handle;
+#ifdef KOKORO_STREAM_BENCHMARK_TIMING
+    atomic_store_explicit(&playback->submissions_complete, true, memory_order_release);
+#endif
     pthread_mutex_lock(&playback->operation_mutex);
     bool running_observed = playback->running_observed;
     if (atomic_load_explicit(&playback->cancelled, memory_order_acquire)) {
