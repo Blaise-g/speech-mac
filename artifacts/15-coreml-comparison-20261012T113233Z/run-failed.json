@@ -1,0 +1,13 @@
+{
+  "result": "discarded; no comparison result",
+  "command": "UV_CACHE_DIR=/private/tmp/kokoro-uv-cache uv run --project reference --offline --no-sync --locked python benchmarks/compare.py --fresh-runs 5 --resident-runs 5 --warm-repetitions 5",
+  "completed_measurements": {
+    "fresh_cli": "5 runs per implementation for short English, representative paragraph, and shared IPA",
+    "native_resident": "5 sessions per English workload, each with 5 warm repetitions",
+    "coreml_resident": "5 daemon requests per English workload after one unmeasured warmup each"
+  },
+  "failure": "Report normalization incorrectly required equal sample counts across resident implementations (25 native warm requests versus 5 CoreML daemon requests).",
+  "daemon_cleanup": "The owned CoreML daemon was stopped; status printed 'Daemon stopped'.",
+  "preserved_audio_files": 52,
+  "raw_timing_records": "not persisted by this failed attempt; the next run checkpoints raw.json before comparison normalization"
+}
