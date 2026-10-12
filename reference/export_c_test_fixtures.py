@@ -105,6 +105,28 @@ def export_decoder_fixture() -> None:
     (FIXTURES / "decoder_features.f32le").write_bytes(raw)
 
 
+def export_neural_generator_fixtures() -> None:
+    specs = {
+        "excitation_harmonic": ("<f4", (1, 33000, 1)),
+        "excitation_noise": ("<f4", (1, 33000, 1)),
+        "excitation_voiced": ("<f4", (1, 33000, 1)),
+        "source_spectrogram_magnitude": ("<f4", (1, 11, 6601)),
+        "source_spectrogram_phase": ("<f4", (1, 11, 6601)),
+        "spectral_magnitude": ("<f4", (1, 11, 6601)),
+        "spectral_phase": ("<f4", (1, 11, 6601)),
+    }
+    manifest = json.loads((FIXTURES / "manifest.json").read_text(encoding="utf-8"))
+    with np.load(FIXTURES / "af_heart_hello.npz", allow_pickle=False) as fixture:
+        for name, (dtype, shape) in specs.items():
+            array = np.ascontiguousarray(fixture[name], dtype=dtype)
+            if array.shape != shape:
+                raise ValueError(f"unexpected {name} fixture shape: {array.shape}")
+            raw = array.tobytes(order="C")
+            if hashlib.sha256(raw).hexdigest() != manifest["arrays"][name]["sha256"]:
+                raise ValueError(f"raw {name} fixture does not match its manifest digest")
+            (FIXTURES / f"{name}.f32le").write_bytes(raw)
+
+
 def export_minimal_pack() -> None:
     metadata = {
         "model": HF_REPOSITORY,
@@ -133,5 +155,9 @@ if __name__ == "__main__":
     export_pitch_noise_fixtures()
     export_text_encoder_fixtures()
     export_decoder_fixture()
+    export_neural_generator_fixtures()
     export_minimal_pack()
-    print("Exported contextual, duration, pitch/noise, text encoder, decoder, and minimal pack fixtures.")
+    print(
+        "Exported contextual, duration, pitch/noise, text encoder, decoder, neural generator, "
+        "and minimal pack fixtures."
+    )

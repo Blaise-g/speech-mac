@@ -201,6 +201,24 @@
         110
       ]
     },
+    "source_spectrogram_magnitude": {
+      "dtype": "float32",
+      "sha256": "eee0644938d6db197b7d9c0adde79c4f5bb37a4012c88dcee62917c00894d910",
+      "shape": [
+        1,
+        11,
+        6601
+      ]
+    },
+    "source_spectrogram_phase": {
+      "dtype": "float32",
+      "sha256": "89784a9ff9b80e8ac4905b258092eb594f140d206726f2dbea722efffda8a872",
+      "shape": [
+        1,
+        11,
+        6601
+      ]
+    },
     "spectral_magnitude": {
       "dtype": "float32",
       "sha256": "04447c9531c470f09191f3c62121d683bf64bcaa735cc5132e7da90435915434",
@@ -250,8 +268,8 @@
   },
   "fixture": {
     "path": "af_heart_hello.npz",
-    "sha256": "808bc995a7c7651e99d53623f3944fdc2b19d6660387ff0da186fbd8d3859921",
-    "size_bytes": 1225406
+    "sha256": "7b89454ae048f4307312da17246602e7aa67afea26fa551f692a96a267dc3c36",
+    "size_bytes": 1708515
   },
   "inference_source": {
     "files": {
@@ -452,6 +470,18 @@
         "rmse": 0.0
       },
       "noise": {
+        "bitwise_equal": true,
+        "max_abs_difference": 0.0,
+        "normalized_rmse": 0.0,
+        "rmse": 0.0
+      },
+      "source_spectrogram_magnitude": {
+        "bitwise_equal": true,
+        "max_abs_difference": 0.0,
+        "normalized_rmse": 0.0,
+        "rmse": 0.0
+      },
+      "source_spectrogram_phase": {
         "bitwise_equal": true,
         "max_abs_difference": 0.0,
         "normalized_rmse": 0.0,

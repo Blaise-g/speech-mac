@@ -98,8 +98,15 @@ def _capture(model: KModel, input_data: dict[str, Any], voice_table: torch.Tenso
     ]
 
     stft = model.decoder.generator.stft
+    original_transform = stft.transform
     original_inverse = stft.inverse
     original_f0n = model.predictor.F0Ntrain
+
+    def capture_transform(signal: torch.Tensor):
+        magnitude, phase = original_transform(signal)
+        save("source_spectrogram_magnitude", magnitude)
+        save("source_spectrogram_phase", phase)
+        return magnitude, phase
 
     def capture_f0n(features: torch.Tensor, style: torch.Tensor):
         output = original_f0n(features, style)
@@ -112,6 +119,7 @@ def _capture(model: KModel, input_data: dict[str, Any], voice_table: torch.Tenso
         save("spectral_phase", phase)
         return original_inverse(magnitude, phase)
 
+    stft.transform = capture_transform
     stft.inverse = capture_inverse
     model.predictor.F0Ntrain = capture_f0n
     input_ids = torch.tensor([input_data["input_ids"]], dtype=torch.long)
@@ -132,6 +140,7 @@ def _capture(model: KModel, input_data: dict[str, Any], voice_table: torch.Tenso
             speed=input_data["speed"],
         )
     finally:
+        stft.transform = original_transform
         stft.inverse = original_inverse
         model.predictor.F0Ntrain = original_f0n
         for handle in handles:
