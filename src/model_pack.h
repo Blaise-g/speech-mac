@@ -24,5 +24,7 @@ KokoroStatus kokoro_pack_open(const char *path, KokoroPack **pack, KokoroError *
 void kokoro_pack_close(KokoroPack *pack);
 KokoroStatus kokoro_pack_tensor(const KokoroPack *pack, const char *name, KokoroTensorView *view,
                                 KokoroError *error);
+KokoroStatus kokoro_pack_voice_style(const KokoroPack *pack, const KokoroTensorView *override_style,
+                                     KokoroTensorView *view, KokoroError *error);
 
 #endif

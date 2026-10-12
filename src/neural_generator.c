@@ -423,8 +423,9 @@ void kokoro_neural_generator_free(KokoroNeuralGenerator *generator) {
     free(generator);
 }
 
-KokoroStatus kokoro_neural_generator_create(const KokoroPack *pack, KokoroNeuralGenerator **result,
-                                            KokoroError *error) {
+KokoroStatus kokoro_neural_generator_create(const KokoroPack *pack,
+                                            const KokoroTensorView *voice_style,
+                                            KokoroNeuralGenerator **result, KokoroError *error) {
     if (result != NULL) {
         *result = NULL;
     }
@@ -440,7 +441,7 @@ KokoroStatus kokoro_neural_generator_create(const KokoroPack *pack, KokoroNeural
     }
 
     KokoroTensorView voice_view;
-    KokoroStatus status = kokoro_pack_tensor(pack, "voice.af_heart.style", &voice_view, error);
+    KokoroStatus status = kokoro_pack_voice_style(pack, voice_style, &voice_view, error);
     if (status != KOKORO_OK) {
         kokoro_neural_generator_free(generator);
         return status;
@@ -449,7 +450,7 @@ KokoroStatus kokoro_neural_generator_create(const KokoroPack *pack, KokoroNeural
         voice_view.shape[1] != 1 || voice_view.shape[2] != GENERATOR_VOICE_SIZE ||
         voice_view.shape[0] > SIZE_MAX / GENERATOR_VOICE_SIZE) {
         kokoro_error_set(error, KOKORO_INCOMPATIBLE_PACK,
-                         "af_heart style tensor must have shape [rows, 1, 256]");
+                         "voice style tensor must have shape [rows, 1, 256]");
         kokoro_neural_generator_free(generator);
         return KOKORO_INCOMPATIBLE_PACK;
     }
@@ -460,7 +461,7 @@ KokoroStatus kokoro_neural_generator_create(const KokoroPack *pack, KokoroNeural
     for (size_t index = 0; index < voice_count; index++) {
         if (!isfinite(voice[index])) {
             kokoro_error_set(error, KOKORO_INCOMPATIBLE_PACK,
-                             "af_heart style tensor contains a non-finite value");
+                             "voice style tensor contains a non-finite value");
             kokoro_neural_generator_free(generator);
             return KOKORO_INCOMPATIBLE_PACK;
         }

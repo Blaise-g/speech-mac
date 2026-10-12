@@ -30,6 +30,7 @@ typedef struct {
 /* The pack must outlive the predictor; the predictor borrows its read-only weights and voice rows.
  */
 KokoroStatus kokoro_duration_predictor_create(const KokoroPack *pack,
+                                              const KokoroTensorView *voice_style,
                                               KokoroDurationPredictor **predictor,
                                               KokoroError *error);
 void kokoro_duration_predictor_free(KokoroDurationPredictor *predictor);

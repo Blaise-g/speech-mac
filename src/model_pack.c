@@ -1,8 +1,8 @@
 #include "model_pack.h"
 
 #include "kokoro_internal.h"
+#include "sha256.h"
 
-#include <CommonCrypto/CommonDigest.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <limits.h>
@@ -19,7 +19,6 @@
 #define PACK_VERSION 1U
 #define PACK_MAX_TENSORS 4096U
 #define PACK_MAX_NAME 1024U
-#define PACK_SHA256_SIZE 32U
 
 static const unsigned char pack_magic[8] = {'K', 'O', 'K', 'O', 'R', 'O', '1', '\0'};
 
@@ -624,33 +623,6 @@ static int compare_ranges(const void *left, const void *right) {
     return a->end > b->end ? 1 : 0;
 }
 
-static bool sha256_hex(const unsigned char *data, size_t length, char output[65]) {
-    CC_SHA256_CTX context;
-    unsigned char digest[PACK_SHA256_SIZE];
-    if (CC_SHA256_Init(&context) != 1) {
-        return false;
-    }
-    size_t offset = 0;
-    while (offset < length) {
-        size_t remaining = length - offset;
-        CC_LONG chunk = remaining > UINT32_MAX ? UINT32_MAX : (CC_LONG)remaining;
-        if (CC_SHA256_Update(&context, data + offset, chunk) != 1) {
-            return false;
-        }
-        offset += chunk;
-    }
-    if (CC_SHA256_Final(digest, &context) != 1) {
-        return false;
-    }
-    static const char digits[] = "0123456789abcdef";
-    for (size_t index = 0; index < sizeof(digest); index++) {
-        output[index * 2] = digits[digest[index] >> 4];
-        output[index * 2 + 1] = digits[digest[index] & 0x0f];
-    }
-    output[64] = '\0';
-    return true;
-}
-
 static void pack_release(KokoroPack *pack) {
     if (pack == NULL) {
         return;
@@ -757,7 +729,7 @@ KokoroStatus kokoro_pack_open(const char *path, KokoroPack **result, KokoroError
         return KOKORO_MALFORMED_PACK;
     }
     char payload_sha256[65];
-    if (!sha256_hex(payload, (size_t)payload_size, payload_sha256)) {
+    if (!kokoro_sha256_hex(payload, (size_t)payload_size, payload_sha256)) {
         kokoro_error_set(error, KOKORO_IO_ERROR, "cannot calculate pack payload SHA-256");
         (void)munmap((void *)mapping, mapping_size);
         (void)close(descriptor);
@@ -982,4 +954,30 @@ KokoroStatus kokoro_pack_tensor(const KokoroPack *pack, const char *name, Kokoro
     }
     kokoro_error_set(error, KOKORO_INCOMPATIBLE_PACK, "required tensor is missing: %s", name);
     return KOKORO_INCOMPATIBLE_PACK;
+}
+
+KokoroStatus kokoro_pack_voice_style(const KokoroPack *pack, const KokoroTensorView *override_style,
+                                     KokoroTensorView *view, KokoroError *error) {
+    if (view == NULL) {
+        kokoro_error_set(error, KOKORO_INVALID_ARGUMENT, "voice style view output is required");
+        return KOKORO_INVALID_ARGUMENT;
+    }
+    KokoroStatus status;
+    if (override_style == NULL) {
+        status = kokoro_pack_tensor(pack, "voice.af_heart.style", view, error);
+        if (status != KOKORO_OK) {
+            return status;
+        }
+    } else {
+        *view = *override_style;
+    }
+    if (view->type != KOKORO_TENSOR_F32 || view->rank != 3 || view->shape[0] == 0 ||
+        view->shape[1] != 1 || view->shape[2] != 256 || view->shape[0] > SIZE_MAX / 256 ||
+        view->data == NULL || view->byte_count != (size_t)view->shape[0] * 256 * sizeof(float)) {
+        kokoro_error_set(error, KOKORO_INCOMPATIBLE_PACK,
+                         "voice style tensor must have shape [rows, 1, 256]");
+        return KOKORO_INCOMPATIBLE_PACK;
+    }
+    kokoro_error_set(error, KOKORO_OK, NULL);
+    return KOKORO_OK;
 }

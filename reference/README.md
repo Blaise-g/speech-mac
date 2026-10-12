@@ -2,21 +2,21 @@
 
 This directory contains development-only Python tools for the official Kokoro-82M v1.0 oracle, compact module-boundary fixtures, and conversion to the C-readable weight pack. Python is not part of the shipped inference path.
 
-The immutable source and artifact pins are in [pins.json](pins.json). The Hugging Face model snapshot is `f3ff3571791e39611d31c381e3a41a3af07b4987`; its checkpoint SHA-256 is the v1.0 release hash `496dba118d1a58f5f3db2efc88dbdc216e0483fc89fe6e47ee1f2c53f18ad1e4`. The official inference code is `hexgrad/kokoro` commit `dfb907a02bba8152ca444717ca5d78747ccb4bec`, package version 0.9.4. Core source file hashes are recorded alongside the repository revision. Python dependencies are pinned in [pyproject.toml](pyproject.toml) and [uv.lock](uv.lock).
+The immutable source and artifact pins are in [pins.json](pins.json). The Hugging Face model snapshot is `f3ff3571791e39611d31c381e3a41a3af07b4987`; its checkpoint SHA-256 is the v1.0 release hash `496dba118d1a58f5f3db2efc88dbdc216e0483fc89fe6e47ee1f2c53f18ad1e4`. Both `af_heart` and `am_adam` voice files come from this snapshot. The official inference code is `hexgrad/kokoro` commit `dfb907a02bba8152ca444717ca5d78747ccb4bec`, package version 0.9.4. Core source file hashes are recorded alongside the repository revision. Python dependencies are pinned in [pyproject.toml](pyproject.toml) and [uv.lock](uv.lock).
 
 Use Python 3.12.12 and uv 0.9.5 for the pinned toolchain. The model checkpoint and voice files go under the root `models/` directory, which is ignored by Git.
 
 ```sh
-uv python install 3.12.12
-uv sync --project reference --locked
-uv run --project reference --locked python reference/assets.py download
-uv run --project reference --locked python reference/convert.py
-uv run --project reference --locked python reference/oracle.py --write
-uv run --project reference --locked python reference/oracle.py --verify
-(cd reference && uv run --project . --offline --no-sync --locked python -m unittest discover -s tests)
+UV_CACHE_DIR=/private/tmp/kokoro-uv-cache uv python install 3.12.12
+UV_CACHE_DIR=/private/tmp/kokoro-uv-cache uv sync --project reference --locked
+UV_CACHE_DIR=/private/tmp/kokoro-uv-cache uv run --project reference --locked python reference/assets.py download
+UV_CACHE_DIR=/private/tmp/kokoro-uv-cache uv run --project reference --locked python reference/convert.py
+UV_CACHE_DIR=/private/tmp/kokoro-uv-cache uv run --project reference --locked python reference/oracle.py --write
+UV_CACHE_DIR=/private/tmp/kokoro-uv-cache uv run --project reference --locked python reference/oracle.py --verify
+(cd reference && UV_CACHE_DIR=/private/tmp/kokoro-uv-cache uv run --project . --offline --no-sync --locked python -m unittest discover -s tests)
 ```
 
-`assets.py verify` checks file sizes and SHA-256 before conversion or inference. The converter accepts only the pinned checkpoint/config/voice, requires the expected checkpoint modules and `af_heart` tensor shape, and writes `models/kokoro-v1_0-af_heart.kpack`. Re-running conversion writes the same pack bytes for the same lock and inputs.
+`assets.py verify` checks file sizes and SHA-256 before conversion or inference. The converter accepts only the pinned checkpoint/config/voice files, requires the expected checkpoint modules and both `[510, 1, 256]` style shapes, and writes `models/kokoro-v1_0-af_heart.kpack` plus `models/voices/am_adam.kvoice`. Re-running conversion writes the same artifacts for the same lock and inputs. The model pack stays single-copy; the separate artifact contains only `am_adam` style rows.
 
 The current checked-in fixture set covers one hello-only input. The fixed prepared input is in [oracle_input.json](oracle_input.json). It spells `həˈloʊ` and supplies its exact vocabulary IDs between the model's zero BOS/EOS IDs. The voice row follows the official `len(phonemes) - 1` selection rule. The reference wrapper calls the pinned `KModel.forward_with_tokens` and captures module outputs with hooks. It reconstructs the explicit monotonic alignment from the official returned durations using the upstream repeat-interleave construction. It seeds the official random source, captures harmonic/noise/voicing excitation, and runs twice before writing a fixture. Both reference runs must be bitwise equal. Later stage tickets can add boundary-case inputs while these initial numerical budgets stay fixed.
 
@@ -45,6 +45,10 @@ All integers and tensor elements use little-endian encoding. The pack starts wit
 The index immediately follows the header. Each sorted tensor entry is `u16 name_length`, `u8 dtype_code`, `u8 rank`, `u32 reserved`, `rank` `u64` dimensions, `u64 payload_offset`, `u64 payload_size`, and `name_length` UTF-8 bytes. Dtype code 1 is float32; code 2 is int64. Tensor offsets are relative to the payload start and aligned to the dtype's element size. The JSON metadata and then the payload follow the index; the metadata may end in JSON whitespace so the payload begins on an 8-byte boundary. The payload is ordered by tensor name, with zero padding between entries where needed for dtype alignment, and its SHA-256 is in the metadata. V1 supports at most 4096 tensors, rank 8, and 1024-byte names. Only `bert.*`, `bert_encoder.*`, `predictor.*`, `text_encoder.*`, `decoder.*`, and `voice.af_heart.style` names are accepted.
 
 The reference reader validates magic/version, metadata compatibility and hashes, tensor names and uniqueness, rank/shape/byte-size agreement, offset bounds and overlap, required model and voice tensors, truncation, and trailing bytes. The native C loader applies the same structural checks and alignment requirements without a Python runtime or JSON library; it parses the required provenance fields from the recorded metadata bytes.
+
+## Separate voice artifact, version 1
+
+`am_adam.kvoice` keeps a second voice from duplicating the model checkpoint in the tensor pack. Its 192-byte header contains the `KVOICE1\0` magic, format version, style row count and width, payload byte count, pinned model revision, original official voice-file SHA-256, and converted style-payload SHA-256. The payload is contiguous little-endian float32 data with shape `[510, 1, 256]`. The C loader checks the header, pinned hashes, exact artifact digest, shape, and finite values before exposing the mapped style rows to the resident engine.
 
 ## Numerical budgets
 

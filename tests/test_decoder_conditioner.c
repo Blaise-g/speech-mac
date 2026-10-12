@@ -175,7 +175,7 @@ int main(void) {
     KokoroError error = {0};
     KokoroDecoderConditioner *conditioner = NULL;
     KokoroPack *pack = NULL;
-    KokoroStatus status = kokoro_decoder_conditioner_create(NULL, &conditioner, &error);
+    KokoroStatus status = kokoro_decoder_conditioner_create(NULL, NULL, &conditioner, &error);
     if (!expect_status(status, KOKORO_INVALID_ARGUMENT, &error,
                        "reject null decoder conditioner pack") ||
         conditioner != NULL) {
@@ -190,7 +190,7 @@ int main(void) {
     if (!expect_status(status, KOKORO_OK, &error, "open pinned model pack")) {
         return 1;
     }
-    status = kokoro_decoder_conditioner_create(pack, &conditioner, &error);
+    status = kokoro_decoder_conditioner_create(pack, NULL, &conditioner, &error);
     if (!expect_status(status, KOKORO_OK, &error, "bind decoder conditioning weights")) {
         kokoro_pack_close(pack);
         return 1;

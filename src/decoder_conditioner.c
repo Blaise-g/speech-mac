@@ -266,6 +266,7 @@ static void free_block(DecoderBlock *block) {
 }
 
 KokoroStatus kokoro_decoder_conditioner_create(const KokoroPack *pack,
+                                               const KokoroTensorView *voice_style,
                                                KokoroDecoderConditioner **result,
                                                KokoroError *error) {
     if (result != NULL) {
@@ -282,7 +283,7 @@ KokoroStatus kokoro_decoder_conditioner_create(const KokoroPack *pack,
         return KOKORO_OUT_OF_MEMORY;
     }
     KokoroTensorView voice_view;
-    KokoroStatus status = kokoro_pack_tensor(pack, "voice.af_heart.style", &voice_view, error);
+    KokoroStatus status = kokoro_pack_voice_style(pack, voice_style, &voice_view, error);
     if (status != KOKORO_OK) {
         free(conditioner);
         return status;
@@ -291,7 +292,7 @@ KokoroStatus kokoro_decoder_conditioner_create(const KokoroPack *pack,
         voice_view.shape[1] != 1 || voice_view.shape[2] != DECODER_VOICE_SIZE ||
         voice_view.shape[0] > SIZE_MAX / DECODER_VOICE_SIZE) {
         kokoro_error_set(error, KOKORO_INCOMPATIBLE_PACK,
-                         "af_heart style tensor must have shape [rows, 1, 256]");
+                         "voice style tensor must have shape [rows, 1, 256]");
         free(conditioner);
         return KOKORO_INCOMPATIBLE_PACK;
     }
@@ -300,7 +301,7 @@ KokoroStatus kokoro_decoder_conditioner_create(const KokoroPack *pack,
     for (size_t index = 0; index < conditioner->voice_style_count * DECODER_VOICE_SIZE; index++) {
         if (!isfinite(conditioner->voice_styles[index])) {
             kokoro_error_set(error, KOKORO_INCOMPATIBLE_PACK,
-                             "af_heart style tensor contains a non-finite value");
+                             "voice style tensor contains a non-finite value");
             kokoro_decoder_conditioner_free(conditioner);
             return KOKORO_INCOMPATIBLE_PACK;
         }

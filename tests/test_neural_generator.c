@@ -415,7 +415,7 @@ int main(void) {
     KokoroError error = {0};
     KokoroPack *pack = NULL;
     KokoroNeuralGenerator *generator = NULL;
-    KokoroStatus status = kokoro_neural_generator_create(NULL, &generator, &error);
+    KokoroStatus status = kokoro_neural_generator_create(NULL, NULL, &generator, &error);
     if (!expect_status(status, KOKORO_INVALID_ARGUMENT, &error, "reject null model pack") ||
         generator != NULL) {
         return fail("null model pack was accepted");
@@ -428,7 +428,7 @@ int main(void) {
     if (!expect_status(status, KOKORO_OK, &error, "open pinned model pack")) {
         return 1;
     }
-    status = kokoro_neural_generator_create(pack, &generator, &error);
+    status = kokoro_neural_generator_create(pack, NULL, &generator, &error);
     if (!expect_status(status, KOKORO_OK, &error, "bind neural generator weights")) {
         kokoro_pack_close(pack);
         return 1;

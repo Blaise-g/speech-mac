@@ -17,6 +17,7 @@ typedef struct {
 
 /* The pack must outlive the predictor; the predictor borrows its voice and projection weights. */
 KokoroStatus kokoro_pitch_noise_predictor_create(const KokoroPack *pack,
+                                                 const KokoroTensorView *voice_style,
                                                  KokoroPitchNoisePredictor **predictor,
                                                  KokoroError *error);
 void kokoro_pitch_noise_predictor_free(KokoroPitchNoisePredictor *predictor);

@@ -12,9 +12,11 @@ import torch
 
 from assets import ARTIFACTS, MODEL_DIR, ROOT, verify_assets
 from pack import MODEL_NAME, MODEL_REVISION, SOURCE_REVISION, VOICE_NAME, read_pack, write_pack
+from voice_artifact import read_voice, write_voice
 
 
 PACK_PATH = MODEL_DIR / "kokoro-v1_0-af_heart.kpack"
+ADAM_VOICE_PATH = MODEL_DIR / "voices/am_adam.kvoice"
 REQUIRED_GROUPS = {"bert", "bert_encoder", "predictor", "text_encoder", "decoder"}
 
 
@@ -78,6 +80,12 @@ def convert(output: Path = PACK_PATH) -> Path:
     for name, (_, shape, _) in tensors.items():
         if pack.tensors[name].shape != shape:
             raise RuntimeError(f"pack tensor shape changed during serialization: {name}")
+    adam_voice_path = MODEL_DIR / "voices/am_adam.pt"
+    adam_voice = torch.load(adam_voice_path, map_location="cpu", weights_only=True)
+    if not isinstance(adam_voice, torch.Tensor) or tuple(adam_voice.shape) != (510, 1, 256):
+        raise ValueError(f"unexpected am_adam style shape: {getattr(adam_voice, 'shape', None)}")
+    write_voice(ADAM_VOICE_PATH, *_tensor_bytes(adam_voice))
+    _, artifact_sha256 = read_voice(ADAM_VOICE_PATH)
     return output
 
 
@@ -88,3 +96,6 @@ if __name__ == "__main__":
     path = convert(args.output)
     print(f"Wrote {path.relative_to(ROOT)} ({path.stat().st_size} bytes)")
     print(f"Verified {len(read_pack(path).tensors)} named tensors.")
+    _, artifact_sha256 = read_voice(ADAM_VOICE_PATH)
+    print(f"Wrote {ADAM_VOICE_PATH.relative_to(ROOT)} ({ADAM_VOICE_PATH.stat().st_size} bytes)")
+    print(f"am_adam artifact SHA-256: {artifact_sha256}")

@@ -235,7 +235,7 @@ int main(void) {
     KokoroError error = {0};
     KokoroPitchNoisePredictor *predictor = NULL;
     KokoroPack *pack = NULL;
-    KokoroStatus status = kokoro_pitch_noise_predictor_create(NULL, &predictor, &error);
+    KokoroStatus status = kokoro_pitch_noise_predictor_create(NULL, NULL, &predictor, &error);
     if (!expect_status(status, KOKORO_INVALID_ARGUMENT, &error,
                        "reject null pitch/noise predictor pack") ||
         predictor != NULL) {
@@ -250,7 +250,7 @@ int main(void) {
     if (!expect_status(status, KOKORO_OK, &error, "open pinned model pack")) {
         return 1;
     }
-    status = kokoro_pitch_noise_predictor_create(pack, &predictor, &error);
+    status = kokoro_pitch_noise_predictor_create(pack, NULL, &predictor, &error);
     if (!expect_status(status, KOKORO_OK, &error, "bind pitch/noise predictor weights")) {
         kokoro_pack_close(pack);
         return 1;

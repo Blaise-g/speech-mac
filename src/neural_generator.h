@@ -54,6 +54,7 @@ typedef struct {
 
 /* The pack must outlive the generator; it borrows voice, normalization, and convolution biases. */
 KokoroStatus kokoro_neural_generator_create(const KokoroPack *pack,
+                                            const KokoroTensorView *voice_style,
                                             KokoroNeuralGenerator **generator, KokoroError *error);
 void kokoro_neural_generator_free(KokoroNeuralGenerator *generator);
 

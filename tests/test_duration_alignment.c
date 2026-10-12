@@ -209,7 +209,7 @@ static int model_backed_parity(void) {
         return 0;
     }
     KokoroDurationPredictor *predictor = NULL;
-    status = kokoro_duration_predictor_create(pack, &predictor, &error);
+    status = kokoro_duration_predictor_create(pack, NULL, &predictor, &error);
     if (!expect_status(status, KOKORO_OK, &error, "bind duration predictor weights")) {
         kokoro_pack_close(pack);
         return 0;

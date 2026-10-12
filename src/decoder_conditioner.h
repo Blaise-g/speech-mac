@@ -21,6 +21,7 @@ typedef struct {
 
 /* The pack must outlive the conditioner; it borrows the voice table and AdaIN weights. */
 KokoroStatus kokoro_decoder_conditioner_create(const KokoroPack *pack,
+                                               const KokoroTensorView *voice_style,
                                                KokoroDecoderConditioner **conditioner,
                                                KokoroError *error);
 void kokoro_decoder_conditioner_free(KokoroDecoderConditioner *conditioner);

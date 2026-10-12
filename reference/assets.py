@@ -16,7 +16,9 @@ ARTIFACTS = {
     "config.json": ("14a726edd3718279eac426630879ff743955b16a", "5abb01e2403b072bf03d04fde160443e209d7a0dad49a423be15196b9b43c17f", 2351),
     "kokoro-v1_0.pth": ("496dba118d1a58f5f3db2efc88dbdc216e0483fc89fe6e47ee1f2c53f18ad1e4", "496dba118d1a58f5f3db2efc88dbdc216e0483fc89fe6e47ee1f2c53f18ad1e4", 327212226),
     "voices/af_heart.pt": ("0ab5709b8ffab19bfd849cd11d98f75b60af7733253ad0d67b12382a102cb4ff", "0ab5709b8ffab19bfd849cd11d98f75b60af7733253ad0d67b12382a102cb4ff", 523425),
+    "voices/am_adam.pt": ("ced7e284aba12472891be1da3ab34db84cc05cc02b5889535796dbf2d8b0cb34", "ced7e284aba12472891be1da3ab34db84cc05cc02b5889535796dbf2d8b0cb34", 523420),
 }
+AM_ADAM_SOURCE_SHA256 = ARTIFACTS["voices/am_adam.pt"][1]
 
 
 def _sha256(path: Path) -> str:
@@ -28,7 +30,7 @@ def _sha256(path: Path) -> str:
 
 
 def verify_assets() -> dict[str, str]:
-    """Require the exact pinned config, checkpoint, and af_heart style files."""
+    """Require the exact pinned config, checkpoint, and supported voice files."""
     actual: dict[str, str] = {}
     failures: list[str] = []
     for filename, (_, expected_sha, expected_size) in ARTIFACTS.items():
@@ -77,4 +79,4 @@ if __name__ == "__main__":
         download_assets()
     else:
         verify_assets()
-    print("Pinned model config, checkpoint, and af_heart voice verified.")
+    print("Pinned model config, checkpoint, and voice files verified.")

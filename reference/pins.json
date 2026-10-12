@@ -19,6 +19,17 @@
       "path": "voices/af_heart.pt",
       "size_bytes": 523425,
       "sha256": "0ab5709b8ffab19bfd849cd11d98f75b60af7733253ad0d67b12382a102cb4ff"
+    },
+    "additional_voices": {
+      "am_adam": {
+        "path": "voices/am_adam.pt",
+        "size_bytes": 523420,
+        "sha256": "ced7e284aba12472891be1da3ab34db84cc05cc02b5889535796dbf2d8b0cb34",
+        "style_shape": [510, 1, 256],
+        "artifact_path": "voices/am_adam.kvoice",
+        "style_payload_sha256": "162b035ed91cfc48b6046982184c645f72edcdd1b82843347f605d7bf7b15716",
+        "artifact_sha256": "2c49b32ed630afb2366ab40b19bcb666e58e98f721748e6c856f214a2807773b"
+      }
     }
   },
   "inference_source": {
