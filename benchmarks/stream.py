@@ -152,6 +152,23 @@ def require_silent_benchmark_binary(path: Path) -> None:
         raise RuntimeError(f"cannot inspect benchmark binary for silent-output marker: {path}") from error
 
 
+def resolve_output_dir(output: Path | None, stamp: str) -> Path:
+    output_dir = output or ROOT / f"artifacts/18-streaming-benchmark-{stamp}"
+    root = ROOT.resolve()
+    if not output_dir.is_absolute():
+        output_dir = root / output_dir
+    try:
+        artifacts_dir = (root / "artifacts").resolve()
+        artifacts_dir.relative_to(root)
+        resolved_output = output_dir.resolve()
+        resolved_output.relative_to(artifacts_dir)
+    except (OSError, RuntimeError, ValueError) as error:
+        raise ValueError("--output must point inside the repository artifacts directory") from error
+    if resolved_output == artifacts_dir:
+        raise ValueError("--output must point inside the repository artifacts directory")
+    return resolved_output
+
+
 def model_provenance() -> dict[str, object]:
     # The worktree links model assets to the coordinator's shared real-model tree.
     # Reuse the ticket 15 parser while giving its relative path calculation the resolved root.
@@ -494,6 +511,11 @@ def main() -> int:
         parser.error("--runs must be positive and --optimization-pairs cannot be negative")
     if args.optimization_pairs and args.candidate_binary is None:
         parser.error("--candidate-binary is required when paired optimization samples are requested")
+    stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    try:
+        output_dir = resolve_output_dir(args.output, stamp)
+    except ValueError as error:
+        parser.error(str(error))
     if not args.binary.is_file():
         parser.error(f"baseline benchmark binary does not exist: {args.binary}")
     if args.candidate_binary is not None and not args.candidate_binary.is_file():
@@ -505,10 +527,6 @@ def main() -> int:
     except (OSError, ValueError, RuntimeError) as error:
         parser.error(str(error))
 
-    stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
-    output_dir = args.output or ROOT / f"artifacts/18-streaming-benchmark-{stamp}"
-    if not output_dir.is_absolute():
-        output_dir = ROOT / output_dir
     output_dir.mkdir(parents=True, exist_ok=False)
 
     raw: dict[str, object] = {

@@ -118,6 +118,7 @@ int main(int argc, char **argv) {
     KokoroCliConfig config = {
         .model_pack_path = "models/kokoro-v1_0-af_heart.kpack",
         .voices_directory = "models/voices",
+        .player_path = "/usr/bin/false",
         .random_seed = STREAM_SEED,
     };
     cli_entry_ns = clock_ns(CLOCK_MONOTONIC);

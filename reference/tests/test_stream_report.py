@@ -1,10 +1,15 @@
 from __future__ import annotations
 
-import unittest
+import contextlib
+import io
 import sys
+import tempfile
+import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "benchmarks"))
+import stream
 from stream import render_report
 
 from benchmarks.stream_report import (
@@ -111,6 +116,45 @@ def raw_record() -> dict[str, object]:
 
 
 class StreamingReportTests(unittest.TestCase):
+    def test_external_output_path_fails_before_collection_or_directory_creation(self) -> None:
+        with (
+            tempfile.TemporaryDirectory() as external_directory,
+            tempfile.TemporaryDirectory(dir=stream.ROOT) as repository_directory,
+        ):
+            binary = Path(external_directory) / "silent-benchmark"
+            binary.write_bytes(b"KOKORO_STREAM_MUTED_OUTPUT_V1")
+            outputs = (
+                Path(external_directory) / "outside-repository",
+                Path(repository_directory) / "outside-artifacts",
+            )
+            for output in outputs:
+                with self.subTest(output=output):
+                    stderr = io.StringIO()
+                    with (
+                        patch.object(
+                            sys,
+                            "argv",
+                            ["stream.py", "--binary", str(binary), "--output", str(output)],
+                        ),
+                        patch.object(
+                            stream,
+                            "provenance",
+                            side_effect=AssertionError("provenance collection must not run"),
+                        ) as collect_provenance,
+                        patch.object(
+                            stream, "run_one", side_effect=AssertionError("speech must not run")
+                        ) as run_speech,
+                        contextlib.redirect_stderr(stderr),
+                    ):
+                        with self.assertRaises(SystemExit) as raised:
+                            stream.main()
+
+                    self.assertEqual(raised.exception.code, 2)
+                    self.assertIn("inside the repository artifacts directory", stderr.getvalue())
+                    self.assertFalse(output.exists())
+                    collect_provenance.assert_not_called()
+                    run_speech.assert_not_called()
+
     def test_validates_events_process_scopes_and_audio_queue_bounds(self) -> None:
         validate_measurement(measurement())
 
