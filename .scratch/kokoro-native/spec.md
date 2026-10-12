@@ -103,3 +103,25 @@ The user explicitly requested this follow-up, so the existing run is extended by
 
 - Ticket 15 adds focused Python report/parser tests using the locked `uv` environment and fixtures or stubs, not a live CoreML model or daemon. Tests cover sample/provenance preservation, mismatched workloads or measurement modes, unknown metric and process scopes, and per-workload outcomes without an assumed global winner. The device benchmark is separately reported with exact commands and retains all raw repeats.
 - Ticket 16's design specifies future defect-revealing tests at the highest useful engine/playback seams: ordered chunk completeness and batch equivalence under the existing fixed numerical budget; bounded-buffer producer backpressure; cancellation during synthesis and while waiting; playback of the first chunk before later chunks finish; error cleanup; and repeated engine requests. It adds no streaming implementation or runtime test in this planning extension.
+
+## Architectural standard reaffirmed — 2026-10-12
+
+The user reaffirmed antirez's [qwen-asr](https://github.com/antirez/qwen-asr) and [voxtral.c](https://github.com/antirez/voxtral.c) as the continuing structural standard. Keep native C inference, explicit weight/numerical/model/CLI boundaries, a small reusable API, and narrow platform adapters. Their ASR algorithms are references for structure; Kokoro retains its own TTS graph. The standard is recorded in `CODING_STANDARDS.md` and mapped to the current modules in `docs/streaming-plan.md`. CoreML is a comparison target, not the native runtime architecture.
+
+The user also confirmed further Apple Silicon optimization after streaming. Keep the saved comparison baseline, profile the resulting C path, and prioritize measured Accelerate/NEON opportunities. An isolated Metal path needs a suitable measured bottleneck and separate scope. Preserve the fixed accuracy budgets and report gains against observed variation; no backend or speedup is assumed.
+
+## Follow-up per-ticket review triage — 2026-10-12
+
+| Id | Finding | Applied / rejected / deferred | Reason | Verified by |
+| --- | --- | --- | --- | --- |
+| T15-R1 | Daemon startup/resource failure could escape cleanup. | applied | Cleanup checks ownership before stopping; preserve foreign processes. | `fc8f34e`; coordinator 20 comparison tests, including lifecycle failures, passed. |
+| T15-R2 | External output paths failed after measurements. | applied | Reject unsupported paths before starting the benchmark. | `fc8f34e`; output-path regression passed. |
+| T15-R3 | Provenance mismatch/preservation lacked regression coverage. | applied | Exercise mismatch rejection and raw-record preservation. | `fc8f34e`; provenance regressions passed. |
+| T15-R4 | Mach ticks were named/converted as nanoseconds. | applied | Use host125/3 timebase, retain original capture and tick values, document correction. | `fc8f34e`; conversion tests and coordinator original-hash/report recomputation passed. |
+| T15-R5 | Daemon records were duplicated under each workload. | applied | Retain one top-level daemon record. | `fc8f34e`; artifact review and report recomputation passed. |
+| T15-R6 | Resident throughput used mismatched frontend timing scopes. | applied | Compare waveform-ready timing for both tools. | `fc8f34e`; scope regression and raw-report recomputation passed. |
+| T16-C01 | Buffer reuse did not establish successful playback drain. | applied | Graceful stop plus running-state notification defines completion. | `715a19e`; static design review. |
+| T16-C02 | Cancellation result and completion race were undefined. | applied | Proposed appended cancellation status; first terminal result wins under lock. | `715a19e`; static design review. |
+| T16-C03 | Callback timing overstated audio consumption/rendering. | applied | Name reclamation separately; render/acoustic timing unavailable without independent evidence. | `715a19e`; static design review. |
+
+No remaining accepted per-ticket findings. Ticket15 benchmark is verified; ticket16 design is verified. Original13 optimization and14 listening remain open. Streaming runtime code and device acceptance are not implemented by the design ticket.
