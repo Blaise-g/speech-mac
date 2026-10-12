@@ -92,6 +92,19 @@ def export_text_encoder_fixtures() -> None:
             (FIXTURES / f"{name}.f32le").write_bytes(raw)
 
 
+def export_decoder_fixture() -> None:
+    manifest = json.loads((FIXTURES / "manifest.json").read_text(encoding="utf-8"))
+    with np.load(FIXTURES / "af_heart_hello.npz", allow_pickle=False) as fixture:
+        features = np.ascontiguousarray(fixture["decoder_features"], dtype="<f4")
+    if features.shape != (1, 512, 110):
+        raise ValueError(f"unexpected decoder feature shape: {features.shape}")
+    raw = features.tobytes(order="C")
+    expected = manifest["arrays"]["decoder_features"]["sha256"]
+    if hashlib.sha256(raw).hexdigest() != expected:
+        raise ValueError("raw decoder fixture does not match its manifest digest")
+    (FIXTURES / "decoder_features.f32le").write_bytes(raw)
+
+
 def export_minimal_pack() -> None:
     metadata = {
         "model": HF_REPOSITORY,
@@ -119,5 +132,6 @@ if __name__ == "__main__":
     export_duration_fixtures()
     export_pitch_noise_fixtures()
     export_text_encoder_fixtures()
+    export_decoder_fixture()
     export_minimal_pack()
-    print("Exported contextual, duration, pitch/noise, text encoder, and minimal pack fixtures.")
+    print("Exported contextual, duration, pitch/noise, text encoder, decoder, and minimal pack fixtures.")
