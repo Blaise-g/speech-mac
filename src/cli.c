@@ -4,6 +4,8 @@
 #include "ipa_tokenizer.h"
 #include "istft.h"
 #include "kokoro_internal.h"
+#include "stream.h"
+#include "stream_internal.h"
 #include "synthesis.h"
 #include "utf8.h"
 #include "voice_artifact.h"
@@ -12,6 +14,7 @@
 #include <errno.h>
 #include <limits.h>
 #include <math.h>
+#include <signal.h>
 #include <spawn.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -34,6 +37,8 @@ typedef struct {
     const char *voices_directory;
     const char *player_path;
     const char *espeak_path;
+    const KokoroStreamPlaybackOps *stream_playback_ops;
+    void *stream_playback_context;
     uint64_t random_seed;
     FILE *in;
     FILE *out;
@@ -52,6 +57,8 @@ static CliConfig cli_config(const KokoroCliConfig *config) {
             config != NULL && config->player_path != NULL ? config->player_path : DEFAULT_PLAYER,
         .espeak_path =
             config != NULL && config->espeak_path != NULL ? config->espeak_path : DEFAULT_ESPEAK,
+        .stream_playback_ops = config != NULL ? config->stream_playback_ops : NULL,
+        .stream_playback_context = config != NULL ? config->stream_playback_context : NULL,
         .random_seed = config != NULL && config->random_seed != 0 ? config->random_seed : 104729,
         .in = config != NULL && config->stdin_stream != NULL ? config->stdin_stream : stdin,
         .out = config != NULL && config->stdout_stream != NULL ? config->stdout_stream : stdout,
@@ -61,9 +68,9 @@ static CliConfig cli_config(const KokoroCliConfig *config) {
 
 static void print_help(FILE *stream) {
     fputs("Usage:\n"
-          "  kokoro say TEXT [-v VOICE] [-s SPEED] [-o WAV]\n"
-          "  kokoro say -f, --file PATH [--ipa] [-v VOICE] [-s SPEED] [-o WAV]\n"
-          "  ... | kokoro say [--ipa] [-v VOICE] [-s SPEED] [-o WAV]\n"
+          "  kokoro say TEXT [-v VOICE] [-s SPEED] [-o WAV | --stream]\n"
+          "  kokoro say -f, --file PATH [--ipa] [-v VOICE] [-s SPEED] [-o WAV | --stream]\n"
+          "  ... | kokoro say [--ipa] [-v VOICE] [-s SPEED] [-o WAV | --stream]\n"
           "  kokoro --list-voices\n"
           "\n"
           "Synthesize English text with eSpeak NG and the native Kokoro v1.0 model.\n"
@@ -74,10 +81,11 @@ static void print_help(FILE *stream) {
           "  -v, --voice NAME Voice: af_heart (default) or am_adam\n"
           "  -s, --speed NUM  Speed from 0.5 through 2.0 (default: 1.0)\n"
           "  -o, --output WAV Write mono 24 kHz WAV instead of playing it\n"
+          "  --stream         Play each complete synthesized sentence as it becomes ready\n"
           "  --help           Show this help\n"
           "  --version        Show version\n"
           "\n"
-          "Without --output, the completed WAV is played with macOS afplay.\n"
+          "Without --output or --stream, the completed WAV is played with macOS afplay.\n"
           "Model pack: models/kokoro-v1_0-af_heart.kpack\n"
           "Separate am_adam style: models/voices/am_adam.kvoice\n",
           stream);
@@ -236,6 +244,53 @@ static int fail_arguments(const CliConfig *config, const char *message) {
     fprintf(config->err, "kokoro: %s\n", message);
     fputs("Run `kokoro say --help` for usage.\n", config->err);
     return 2;
+}
+
+static volatile sig_atomic_t stream_interrupted;
+
+static void record_stream_interrupt(int signal_number) {
+    (void)signal_number;
+    stream_interrupted = 1;
+}
+
+static int run_stream(const CliConfig *config, KokoroEngine *engine, const KokoroIpaChunks *chunks,
+                      float speed, uint64_t random_seed) {
+    struct sigaction action = {0};
+    struct sigaction previous_action;
+    stream_interrupted = 0;
+    action.sa_handler = record_stream_interrupt;
+    (void)sigemptyset(&action.sa_mask);
+    if (sigaction(SIGINT, &action, &previous_action) != 0) {
+        fprintf(config->err, "kokoro: cannot install Ctrl-C handler: %s\n", strerror(errno));
+        return 1;
+    }
+    KokoroStream *stream = NULL;
+    KokoroError error = {0};
+    KokoroStatus status =
+        config->stream_playback_ops == NULL
+            ? kokoro_stream_start(engine, chunks, speed, random_seed, &stream, &error)
+            : kokoro_stream_start_with(engine, chunks, speed, random_seed,
+                                       config->stream_playback_ops, config->stream_playback_context,
+                                       NULL, NULL, &stream, &error);
+    if (status == KOKORO_OK) {
+        status = kokoro_stream_wait(stream, &stream_interrupted, &error);
+    }
+    kokoro_stream_free(stream);
+    int restore_error = sigaction(SIGINT, &previous_action, NULL) == 0 ? 0 : errno;
+    if (status == KOKORO_CANCELLED) {
+        fprintf(config->err, "kokoro: streaming playback cancelled\n");
+        return 130;
+    }
+    if (status != KOKORO_OK) {
+        fprintf(config->err, "kokoro: streaming playback failed: %s\n", error.message);
+        return 1;
+    }
+    if (restore_error != 0) {
+        fprintf(config->err, "kokoro: cannot restore Ctrl-C handler: %s\n",
+                strerror(restore_error));
+        return 1;
+    }
+    return 0;
 }
 
 typedef enum { INPUT_SOURCE_NONE, INPUT_SOURCE_POSITIONAL, INPUT_SOURCE_FILE } InputSourceKind;
@@ -446,6 +501,7 @@ int kokoro_cli_run(int argc, char **argv, const KokoroCliConfig *input_config) {
     const char *voice = "af_heart";
     const char *output_path = NULL;
     bool ipa_mode = false;
+    bool stream_mode = false;
     bool after_double_dash = false;
     float speed = 1.0f;
     for (int index = 2; index < argc; index++) {
@@ -457,6 +513,11 @@ int kokoro_cli_run(int argc, char **argv, const KokoroCliConfig *input_config) {
                 return fail_arguments(&config, "--ipa may be specified only once");
             }
             ipa_mode = true;
+        } else if (!after_double_dash && strcmp(option, "--stream") == 0) {
+            if (stream_mode) {
+                return fail_arguments(&config, "--stream may be specified only once");
+            }
+            stream_mode = true;
         } else if (!after_double_dash &&
                    (strcmp(option, "-f") == 0 || strcmp(option, "--file") == 0)) {
             if (index + 1 >= argc || argv[index + 1][0] == '\0') {
@@ -503,6 +564,9 @@ int kokoro_cli_run(int argc, char **argv, const KokoroCliConfig *input_config) {
     }
     if (strcmp(voice, "af_heart") != 0 && strcmp(voice, "am_adam") != 0) {
         return fail_arguments(&config, "unknown voice; choose af_heart or am_adam");
+    }
+    if (stream_mode && output_path != NULL) {
+        return fail_arguments(&config, "--stream cannot be combined with --output");
     }
 
     TextInput input = {0};
@@ -559,6 +623,12 @@ int kokoro_cli_run(int argc, char **argv, const KokoroCliConfig *input_config) {
     }
     SampleBuffer combined = {0};
     int result = 0;
+    if (stream_mode) {
+        result = run_stream(&config, engine, &chunks, speed, config.random_seed);
+        kokoro_engine_free(engine);
+        kokoro_ipa_chunks_free(&chunks);
+        return result;
+    }
     for (size_t index = 0; index < chunks.count; index++) {
         KokoroSynthesisOptions options = {
             .voice_style_index = chunks.items[index].token_count - 3,

@@ -25,7 +25,9 @@ The C test suite uses `tests/test_*.c`; run a focused test with `make test-one T
 
 Run `make benchmark` on Apple Silicon to build both binaries with release `-O2` flags and write `artifacts/12-performance-baseline.md` plus the raw `artifacts/12-performance-baseline.json`. The benchmark repeats a short English reply, a paragraph, and the reply as prepared IPA using `af_heart`, speed `1.0`, and a fixed seed. Each workload gets five fresh-process sessions with one warm-up and five measured resident requests per session.
 
-The report separates fresh process startup, model-pack open and SHA-256 validation, engine creation, frontend, native synthesis, full waveform availability, and WAV close. First audio means the complete waveform buffer is ready after all chunks are combined. A new process does not imply cleared OS file pages, so cache state is recorded as uncontrolled and the benchmark does not purge caches. Audio throughput is generated audio seconds divided by synthesis seconds; RTF is the inverse.
+The report separates fresh process startup, model-pack open and SHA-256 validation, engine creation, frontend, native synthesis, full waveform availability, and WAV close. In these completed-WAV baseline runs, first audio means the complete waveform buffer is ready after all chunks are combined; the metric does not measure `--stream` playback. A new process does not imply cleared OS file pages, so cache state is recorded as uncontrolled and the benchmark does not purge caches. Audio throughput is generated audio seconds divided by synthesis seconds; RTF is the inverse.
+
+Run `make stream-benchmark` on Apple Silicon to build the release `-O2` streaming helper and write a dated report with its raw measurements under `artifacts/`. Each benchmark AudioQueue is muted to volume `0.0` before PCM is submitted; the command does not change system output volume. The report measures streaming events from CLI call entry and keeps buffer reclamation separate from acoustic onset, which is unavailable without independent render evidence. See the [captured streaming report](artifacts/18-streaming-benchmark-20261012T161920Z/report.md); its profile-guided candidate failed the fixed parity budget, so the optimization criterion remains open.
 
 ## English and prepared phoneme CLI
 
@@ -35,14 +37,18 @@ The `say` command reads one source: positional text, a UTF-8 file, or standard i
 .build/kokoro say 'Hello from the terminal.'
 .build/kokoro say -f notes.txt --output notes.wav
 printf 'Hello from standard input.' | .build/kokoro say --output stdin.wav
+.build/kokoro say --stream -f notes.txt
+printf 'Hello from standard input.' | .build/kokoro say --stream
 .build/kokoro say --ipa 'həˈloʊ'
 .build/kokoro say --ipa 'həˈloʊ' --voice am_adam --speed 1.25 --output hello.wav
 .build/kokoro --list-voices
 ```
 
-The English frontend was checked with eSpeak NG 1.52.0 using `-q --ipa=3 -v en-us` and its default rate and pitch. Stress and length marks map through Kokoro's pinned symbol vocabulary. eSpeak also emits U+200D joiners; the frontend strips that formatting marker because Kokoro has no corresponding token. When eSpeak marks a syllabic consonant with U+0329, the frontend represents it as a schwa before that consonant because Kokoro has no syllabic-consonant token. Other output symbols outside the vocabulary fail clearly. eSpeak's line breaks are kept as sentence boundaries, and an overlong line is split at a whitespace boundary so each model request stays within 510 phoneme symbols. All chunk audio is combined in order before writing or playback. These pronunciations can differ from Misaki.
+`--stream` plays prepared sentence chunks through the default audio device. It accepts positional text, `-f`/`--file`, or standard input; streamed playback cannot be combined with `-o`/`--output`.
 
-The default voice is `af_heart`, and the default speed is `1.0`. Speed must be between `0.5` and `2.0`. `--output` writes mono PCM16 WAV at 24 kHz. Without it, the CLI writes a completed WAV to a mode-0600 temporary file, plays it with macOS `afplay`, and removes the file afterward. `--help` and `--version` show the command options and version.
+The English frontend was checked with eSpeak NG 1.52.0 using `-q --ipa=3 -v en-us` and its default rate and pitch. Stress and length marks map through Kokoro's pinned symbol vocabulary. eSpeak also emits U+200D joiners; the frontend strips that formatting marker because Kokoro has no corresponding token. When eSpeak marks a syllabic consonant with U+0329, the frontend represents it as a schwa before that consonant because Kokoro has no syllabic-consonant token. Other output symbols outside the vocabulary fail clearly. eSpeak's line breaks are kept as sentence boundaries, and an overlong line is split at a whitespace boundary so each model request stays within 510 phoneme symbols. Completed-WAV output combines chunk audio in order; `--stream` submits each synthesized chunk to bounded playback buffers while later chunks are synthesized. These pronunciations can differ from Misaki.
+
+The default voice is `af_heart`, and the default speed is `1.0`. Speed must be between `0.5` and `2.0`. `--output` writes mono PCM16 WAV at 24 kHz. Without `--output` or `--stream`, the CLI writes a completed WAV to a mode-0600 temporary file, plays it with macOS `afplay`, and removes the file afterward. `--help` and `--version` show the command options and version.
 
 The native model pack is `models/kokoro-v1_0-af_heart.kpack`; it contains the model and the initial `af_heart` style. `am_adam` uses the separately pinned `models/voices/am_adam.kvoice` style artifact, so it does not require a second copy of the model weights. Both are ignored by Git. Download and convert the pinned official artifacts with:
 

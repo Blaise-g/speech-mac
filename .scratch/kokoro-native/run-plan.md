@@ -240,3 +240,23 @@ The follow-up uses the same resolved Worker Profile for both tickets: `implement
 | 16 | 16-streaming-design | 15 | kokoro-mac | feat/kokoro-native ← 963ce48 (existing run base) | existing: .worktrees/kokoro-native-planning | implement-lite · xhigh · gpt-6-luna (override) | none; local work/read-only inspection | none | no | no |
 
 The follow-up dependency graph adds `12 → 15 → 16`; it does not add edges from 13 or 14. The project still executes one implementation worker per repository at a time. There is no remote, publication, rollout, or streaming implementation authorization in this extension.
+
+## Streaming implementation extension — 2026-10-12
+
+This extension is approved by the Coordinator on 2026-10-12. The original 14-ticket plan and the ticket 15–16 extension remain historical records above. The user approved the two implementation stages in `docs/streaming-plan.md`. The native [PR1](https://github.com/Blaise-g/kokoro-mac/pull/1) exact-head check and [merged-main CI run](https://github.com/Blaise-g/kokoro-mac/actions/runs/38265891128) passed; merge commit `81aad9657d00d63a352c5e52affe4f07f1b91ab2` is the verified base. The streaming run uses branch `feat/kokoro-streaming` and the existing `/Volumes/Code/Personal/kokoro-mac/.worktrees/kokoro-streaming-planning` worktree.
+
+The worker profile for both tickets is `implement-lite · xhigh · gpt-6-luna (override)`. Environment access is `none` for local repository work and read-only inspection. There are no pre-approved actions or rollout. The user authorized pushing the completed branch and opening one PR; merging that later PR needs separate approval. No consumer census is required because the tickets add opt-in behavior without removing or renaming a surface.
+
+### Streaming ticket breakdown
+
+- **17 — `17-native-streaming-playback`:** opt-in chunk-level AudioQueue playback over the existing resident engine, with bounded buffers, backpressure, cancellation, and deterministic overlap/parity tests. Blocked by verified design ticket 16.
+- **18 — `18-streaming-benchmark-optimization`:** repeatable streaming timing followed by one bounded, profile-guided Apple Silicon optimization attempt. Streaming measurements are deliverable independently; if no safe optimization clears contemporaneous variation, its criterion stays open with the reason. Blocked by ticket 17.
+
+### Run plan rows
+
+| Order | Ticket Key | Blocked by | Repository | Branch ← base (evidence) | Worktree | Worker Profile | Environment access | Pre-approved actions | Push + PR | Rollout |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 17 | 17-native-streaming-playback | 16 (verified done) | kokoro-mac | feat/kokoro-streaming ← 81aad9657d00d63a352c5e52affe4f07f1b91ab2 (merged main; exact-head CI passed) | existing: .worktrees/kokoro-streaming-planning (branch created from approved base) | implement-lite · xhigh · gpt-6-luna (override) | none; local work and read-only inspection | none | yes | no |
+| 18 | 18-streaming-benchmark-optimization | 17 | kokoro-mac | feat/kokoro-streaming ← 81aad9657d00d63a352c5e52affe4f07f1b91ab2 (merged main; exact-head CI passed) | existing: .worktrees/kokoro-streaming-planning | implement-lite · xhigh · gpt-6-luna (override) | none; local work and read-only inspection | none | yes | no |
+
+Capacity is four concurrent threads total. Run one repository worker and its one reviewer with the coordinator (three active threads); tickets 17 and 18 run strictly in sequence. The branch may be pushed and its PR opened after implementation and review; this approval does not include merging it.

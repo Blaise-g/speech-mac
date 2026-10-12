@@ -24,6 +24,8 @@ const char *kokoro_status_name(KokoroStatus status) {
         return "output buffer too small";
     case KOKORO_NUMERIC_ERROR:
         return "non-finite model output";
+    case KOKORO_CANCELLED:
+        return "cancelled";
     }
     return "unknown error";
 }

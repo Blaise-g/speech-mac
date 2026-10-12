@@ -1,0 +1,29 @@
+English and IPA CLI WAV, source-selection, chunking, and playback checks passed
+context fixture passed (max abs 2.0980835e-05; atol 1e-05, rtol 0.001)
+mismatched text and F0/noise lengths reject cleanly without partial output
+one duration frame produces two finite decoder frames
+decoder features fixture passed (max abs 7.78436661e-05; atol 1e-05, rtol 0.001)
+model-backed decoder conditioning parity passed
+speed boundaries, ties-to-even rounding, minimum duration, and alignment passed
+invalid speed, duration, and sequence inputs were rejected without output
+one-token duration predictor shape and alignment passed
+duration features fixture passed (max abs 2.81631947e-06; atol 1e-05, rtol 0.001)
+duration recurrent output fixture passed (max abs 1.20326877e-06; atol 1e-05, rtol 0.001)
+duration logits fixture passed (max abs 1.14440918e-05; atol 1e-05, rtol 0.001)
+duration values fixture passed (max abs 1.90734863e-06; atol 1e-05, rtol 0.001)
+duration alignment fixture passed (max abs 0; atol 1e-05, rtol 0.001)
+speed duration values fixture passed (max abs 3.81469727e-06; atol 1e-05, rtol 0.001)
+speed duration alignment fixture passed (max abs 0; atol 1e-05, rtol 0.001)
+speed duration values fixture passed (max abs 9.53674316e-07; atol 1e-05, rtol 0.001)
+speed duration alignment fixture passed (max abs 0; atol 1e-05, rtol 0.001)
+model-backed predictor, duration, and speed alignment parity passed
+resident engine repeated-request parity and voice checks passed
+assembled controlled waveform passed (normalized RMSE 1.68281453e-05, max abs 7.65919685e-06)
+fully native synthesis passed shape, finite-value, and seeded determinism checks
+official spectrum-to-waveform fixture passed (normalized RMSE 6.18711862e-07, max absolute error 3.27825546e-07)
+model pack parser checks passed
+test_neural_generator: spectral phase fixture miss at 1 of 72611 elements; first at 52803: actual 0.00870889146, expected 0.00873940811, difference 3.05166468e-05 exceeds 1.87394089e-05; max abs 3.05166468e-05
+native source magnitude fixture passed (max abs 1.1920929e-07; atol 1e-05, rtol 0.001)
+native source complex STFT passed (max complex error 2.75269826e-07)
+spectral magnitude fixture passed (max abs 8.58306885e-05; atol 1e-05, rtol 0.001)
+make: *** [test] Error 1
