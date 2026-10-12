@@ -204,3 +204,39 @@ All entries are in dependency order. Each ticket's context will cite `.scratch/k
 Capacity: 4 concurrent threads total. Run one implementation worker plus its one reviewer with the coordinator (3 active threads). Same repository tickets execute sequentially; none run in parallel. Final listening requires a human result and stays open if unavailable.
 
 Approval authorized publication of these tickets, appending implementation/testing decisions to the specification, creating the run branch at the verified setup commit in the existing planning worktree, committing the tracker, and subsequent local implementation/review commits. The run branch has been created. Remote publication is excluded.
+
+## User follow-up extension — 2026-10-12
+
+This extension is approved by the Coordinator on 2026-10-12 in the existing `feat/kokoro-native` run and existing planning worktree. The original 14-ticket plan, ticket states, and delivery report remain as recorded above. The native implementation remains based on setup commit `963ce48eb1da6f6b067588b067e6d325313bcf93`; follow-up tickets use the latest committed run branch as their working tree state. This comparison depends on ticket 12 only, so open tickets 13 and 14 do not block it. Ticket 16 follows the comparison. The repository stays local, with no remote publication.
+
+The follow-up uses the same resolved Worker Profile for both tickets: `implement-lite · xhigh · gpt-6-luna (override)`. Environment access is `none`: local work and read-only inspection only. Ticket 15 may launch a temporary CoreML daemon solely for measurement from the known stopped initial state; the worker must clean up its own process and restore that state. Persistent launch configuration, installed software, OS/model caches, and speaker playback are outside scope. No consumer census is required because neither ticket removes, renames, or deprecates a surface.
+
+### 15 — `15-coreml-comparison-baseline`: Compare the installed CoreML CLI with native Kokoro
+
+- **Blocked by:** `12-performance-baseline` only. Tickets 13 and 14 remain open and do not block this comparison.
+- **What it delivers:** repeatable, provenance-backed comparison results for installed Jud/kokoro-coreml v0.11.2 and the current native release build across the exact short user example and a representative longer workload.
+- **Acceptance checks:** preserve the installed CoreML executable; match voice, speed, and text; compare identical prepared IPA only if both CLIs support it; repeat fresh-process and resident modes where available; separate measured peak RSS from sampled RSS and daemon-lifetime CPU/RSS from request CPU deltas; document unmeasured GPU/ANE attribution as a limit, not a blocker; report audio duration, latency, throughput, format/frontend differences, and a per-workload winner or tie/inconclusive result without an assumed winner. Keep every raw run and rerun command in new comparison artifacts; do not alter ticket 12's baseline.
+- **Implementation constraint:** reuse ticket 12's native driver and reporting conventions; add only the small comparison-specific runner/reporting or minor native-driver instrumentation needed for this comparison, with no general benchmark SDK/harness.
+- **Tests:** focused locked-`uv` parser/report tests exercise provenance and raw sample retention, mismatched workload/mode rejection, unavailable metrics and scope labels, and outcome reporting with no invented global winner. Fixture/stub tests do not require a live daemon or model; the real device run is reported separately.
+- **Ticket Key:** `15-coreml-comparison-baseline`.
+- **Rollout:** no.
+- **Worker Profile:** `implement-lite · xhigh · gpt-6-luna (override)`.
+
+### 16 — `16-streaming-design`: Define a minimal native streaming plan
+
+- **Blocked by:** `15-coreml-comparison-baseline`.
+- **What it delivers:** a concise design-only document for opt-in, chunk-level playback, based on the comparison measurements. Playback starts after the first synthesized chunk while later chunks are produced; one model request still completes each chunk.
+- **Acceptance checks:** specify the proposed C interface and chunk lifetime/order, existing sentence-aware frontend boundaries, playback startup and backend, bounded-buffer backpressure, cancellation and error cleanup, WAV handling if included, and precise first-chunk/first-buffer/first-render timing with a target grounded in ticket 15 or a clear account of missing evidence. Keep the current completed-WAV default and simple CLI intact. Separate the first slice from daemon, Metal, quantization, expanded languages, and incremental decoding within a model request.
+- **Tests:** document future defect-revealing checks for complete ordered chunks, numerical equivalence with batch output, queue-bound backpressure, cancellation while producing/waiting, first playback before final synthesis completes, cleanup on errors, and repeat use of one engine. No streaming code or runtime test is part of the design ticket.
+- **Ticket Key:** `16-streaming-design`.
+- **Rollout:** no.
+- **Worker Profile:** `implement-lite · xhigh · gpt-6-luna (override)`.
+
+### Follow-up run plan rows
+
+| Order | Ticket Key | Blocked by | Repository | Branch ← base (evidence) | Worktree | Worker Profile | Environment access | Pre-approved actions | Push + PR | Rollout |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 15 | 15-coreml-comparison-baseline | 12 only; not 13/14 | kokoro-mac | feat/kokoro-native ← 963ce48 (existing run base) | existing: .worktrees/kokoro-native-planning | implement-lite · xhigh · gpt-6-luna (override) | none; local benchmark and read-only inspection | temporary CoreML daemon for measurement only from stopped state; clean up and restore stopped state | no | no |
+| 16 | 16-streaming-design | 15 | kokoro-mac | feat/kokoro-native ← 963ce48 (existing run base) | existing: .worktrees/kokoro-native-planning | implement-lite · xhigh · gpt-6-luna (override) | none; local work/read-only inspection | none | no | no |
+
+The follow-up dependency graph adds `12 → 15 → 16`; it does not add edges from 13 or 14. The project still executes one implementation worker per repository at a time. There is no remote, publication, rollout, or streaming implementation authorization in this extension.

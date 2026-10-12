@@ -68,3 +68,38 @@ Reviewed base `963ce48eb1da6f6b067588b067e6d325313bcf93` through `b69274b9cfc5ab
 | R-1 | Public voice-style row size could overflow when multiplying by sizeof(float). | applied | Check full F32 row size before multiplication; reject crafted [2^54+1,1,256] view. | `a36e879e63d2fafff8d210346ced578e02b0589b`; coordinator parser regression passed; worker full real-model check passed. |
 
 Review summary: one accepted correctness finding fixed, no remaining accepted findings. Earlier ticket06 helper-sharing question requires no refactor: stage weights/shapes/layouts differ and no concrete benefit justifies a larger common layer for this release. Tickets13/14 remain open as recorded.
+
+## User follow-up — CoreML comparison and streaming plan, 2026-10-12
+
+### Problem statement
+
+Compare the working native C implementation with the already-installed Jud/kokoro-coreml CLI using the user's example `kokoro say "hello from the terminal"` and representative longer input. Measure speed and computational resources, preserve a baseline for future improvements, and then plan streaming. Do not assume C is faster or more efficient merely because of the implementation language.
+
+### Decisions and scope
+
+- Use the installed CoreML executable `/opt/homebrew/bin/kokoro` (observed version0.11.2) and the current native release binary; do not upgrade or replace the existing installation. Pin executable/source/model provenance where observable.
+- Compare matched voice, speed and text, plus identical prepared IPA when both interfaces support it. Report generated durations and frontend/precision/output-format differences.
+- Repeat runs and separate cold fresh-process CLI, existing resident/native-engine, and CoreML resident/daemon modes. Do not label a daemon client-only CPU/RSS sample as the entire inference service's resource usage. No OS/model cache purge.
+- Record end-to-end latency, audio throughput, CPU seconds, peak process RSS and model asset sizes where measurable. State GPU/ANE attribution and memory-accounting limits instead of inventing total hardware efficiency.
+- Benchmark without speaker playback; write outputs into project-owned or temporary paths. Any benchmark-started daemon must be cleaned up and original state restored; do not stop a pre-existing user daemon or change persistent launch settings.
+- Retain raw results and a comparison report with repeatable commands and a run/provenance schema so future improvements can be compared without losing historical baselines.
+- After the comparison, produce a minimal native streaming plan with requirements, proposed interface, chunks/playback/backpressure/cancellation, first-audio metrics and acceptance tests. Stream means playback begins after the first synthesized chunk while later chunks are still being produced. Implementation is not authorized by this request; this follow-up delivers the plan only.
+- Preserve current simple CLI and accuracy constraints. A daemon, Metal backend, quantization or wider language support remains separate future work unless measurements justify a later proposal.
+
+### Acceptance
+
+A benchmark report distinguishes measured results from source claims, includes the exact installed version and native revision, documents cold/warm/resource scopes, and says which implementation wins for each workload without presuming a winner. Data and rerun commands support future comparison. The streaming plan follows the measured latency/resource bottlenecks and names a small first delivery plus deferred work.
+
+The user explicitly requested this follow-up, so the existing run is extended by tickets15 comparison then16 streaming plan, with the same Luna xhigh worker profile and local branch/worktree/no remote publication. Original13 optimization and14 listening remain open rather than blocking the new comparison.
+
+## Implementation Decisions
+
+- Ticket 15 compares the installed `/opt/homebrew/bin/kokoro` v0.11.2 executable with the native release build from the current run. Do not upgrade or replace the installed tool. Preserve every raw comparison run under new `artifacts/15-coreml-comparison*` paths, with executable/source/model/build provenance and rerun commands; leave ticket 12 artifacts intact. Record CLI, resident-engine, and daemon modes only where their interfaces support them, and identify whether CPU/RSS samples cover the client, service, or both.
+- Reuse ticket 12's native benchmark driver and reporting conventions, adding only comparison-specific runner/report code or minor native-driver instrumentation when required. Distinguish OS-reported peak RSS from interval-sampled RSS, and daemon-lifetime resource use from per-request CPU deltas. Treat unavailable GPU/ANE and associated memory attribution as an explicit measurement limit rather than a blocker.
+- Match the exact short user example and a representative longer input at `af_heart`, speed `1.0`; compare identical prepared IPA only where both CLIs support that input. Keep pronunciation frontend, numeric precision, output sample format, and audio format differences visible. Report fresh-process state without purging operating-system or model caches. Do not assume a winner, or claim GPU/ANE or total hardware efficiency when the metric cannot observe it.
+- Ticket 16 produces a design document only. The first proposed slice is opt-in, sentence-aware chunk playback using the existing frontend's input bounds and resident engine; one model request still produces each complete audio chunk. The design names the smallest playback API and bounded buffer supported by ticket 15 measurements, documents ownership, ordering, backpressure, cancellation and error cleanup, and leaves the existing completed-WAV default intact. A daemon, Metal, quantization, wider language support, and within-request incremental decoding require separate evidence and scope.
+
+## Testing Decisions
+
+- Ticket 15 adds focused Python report/parser tests using the locked `uv` environment and fixtures or stubs, not a live CoreML model or daemon. Tests cover sample/provenance preservation, mismatched workloads or measurement modes, unknown metric and process scopes, and per-workload outcomes without an assumed global winner. The device benchmark is separately reported with exact commands and retains all raw repeats.
+- Ticket 16's design specifies future defect-revealing tests at the highest useful engine/playback seams: ordered chunk completeness and batch equivalence under the existing fixed numerical budget; bounded-buffer producer backpressure; cancellation during synthesis and while waiting; playback of the first chunk before later chunks finish; error cleanup; and repeated engine requests. It adds no streaming implementation or runtime test in this planning extension.
