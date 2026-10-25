@@ -16,7 +16,7 @@ ENGINE_SOURCES := $(filter-out %/main.c,$(APP_SOURCES))
 C_SOURCES := $(shell find src tests benchmarks -type f -name '*.c' -print 2>/dev/null | sort)
 FORMAT_FILES := $(shell find src tests benchmarks -type f \( -name '*.c' -o -name '*.h' \) -print 2>/dev/null | sort)
 
-.PHONY: help setup dev format format-check lint typecheck build test test-one check-fast check clean source-discovery benchmark-build benchmark stream-benchmark-build stream-benchmark phonon-reference-check phonon-native-pack phonon-native-check
+.PHONY: help setup dev format format-check lint typecheck build test test-one check-fast check clean source-discovery benchmark-build benchmark stream-benchmark-build stream-benchmark phonon-reference-check phonon-native-pack phonon-native-check english-normalization-probe
 
 help:
 	@printf '%s\n' \
@@ -185,3 +185,8 @@ phonon-native-check: phonon-native-pack
 	@PHONON_NATIVE_PACK=$$(find .build -maxdepth 1 -name 'phonon-native-*-v1.kpack' -print -quit) \
 	 PHONON_Q8_ORACLE=.build/phonon-native-q8-projections-v1.bin \
 	 PHONON_BF16_ORACLE=.build/phonon-native-bf16-oracle-v1.bin $(MAKE) test-one TEST=tests/test_phonon_pack.c
+
+
+english-normalization-probe: source-discovery
+	@mkdir -p $(BUILD_DIR)
+	@$(CLANG) $(CPPFLAGS) $(BASE_CFLAGS) -O2 tests/english_normalize_probe.c src/english_normalize.c src/utf8.c src/kokoro.c -o $(BUILD_DIR)/english-normalize-probe
