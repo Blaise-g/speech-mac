@@ -8,7 +8,7 @@ None (Requirement Source).
 
 - Technical source: `.scratch/kokoro-native/spec.md` and its pinned primary sources.
 - Background: `.scratch/kokoro-native/spec.md`.
-- User approval dated 2026-10-25: “use implement lite with effort low for all”; resolved workflow/model/effort are implement-lite / gpt-6-luna / low, overriding AGENTS xhigh. Reviews also use Luna/low.
+- User clarification dated 2026-10-25: subsequent implementation, fixes and ticket reviews use implement-lite / gpt-6.1-sol / low, overriding the repository model/effort defaults. Final whole-branch review uses gpt-6.1-sol / high. Actual earlier Luna/low execution records remain historical evidence.
 
 ## Footprint
 
@@ -22,7 +22,7 @@ single/multiple 32-d latent frames using six-block AdaLN flow head, RMS time emb
 
 23-flow-transformer
 
-Worker Profile: medium; implement-lite / gpt-6-luna / low (user override 2026-10-25)
+Worker Profile: medium; implement-lite / gpt-6.1-sol / low (user clarification 2026-10-25)
 
 ## Acceptance criteria
 
@@ -32,7 +32,7 @@ Worker Profile: medium; implement-lite / gpt-6-luna / low (user override 2026-10
 - [x] Native equal-seed repeatability is defined, but cross-runtime parity consumes exact saved noise draws
 - [ ] Complete the approved slice checks and keep unavailable model/device checks explicit.
 
-Status: blocked
+Status: in-progress
 
 ## Execution record — 2026-10-25
 
@@ -81,13 +81,17 @@ Coordinator pre-report findings were also fixed: double temperature scaling, fix
 
 The first inventory treated absent sampler code as a blocker and ended without a report. Coordinator answer: implementing that missing code is this ticket's approved assignment; continue the same attempt through implementation, tests and review. Source: this ticket's What to build and Footprint. Subsequent progress continuations and report delivery correction changed neither scope nor profile and were not post-verification repairs.
 
-### Open Escalation E24-1 — acceptance protocol
+### Numerical issue E24-1 — repair under the unchanged contract
 
 The independently reviewed component operations meet the frozen targets on identical inputs, while tiny differences grow when native and PyTorch generation feed their own outputs into later frames. The current autonomous condition/integration/latent/PCM acceptance targets are unmet. No tolerance or validation protocol has been changed, and ticket25 through ticket35 remain held by this unverified predecessor.
 
-User decision requested:
+Protocol options considered before the model clarification, retained as historical context and not currently requested:
 
 1. Recommended: retain unchanged strict stage budgets for identical-input component comparisons, unchanged waveform budgets for fixed-input Mimi decoding and native batch/stream equivalence, plus exact replay/count/stop and state-reset checks. Report autonomous cross-backend trajectory/waveform error separately as a diagnostic. Preserve broad generation and listening acceptance in ticket34. This explicitly relaxes the current autonomous whole-generation gate; it does not establish audio quality by itself.
 2. Keep the existing autonomous acceptance gate and continue source-justified floating-point matching before later tickets. No fixture-specific formula selection or threshold widening.
 
 The recommendation has not taken effect. A change requires user approval under orchestrate's Approved plan rule.
+
+After the user clarified the intended model as GPT-6.1 Sol / low, the Coordinator withdrew the pending protocol-change proposal and scheduled preapproved repair follow-up 1 with that model. The new worker must investigate source-justified numerical fixes under all existing frozen gates. The checkpoint remains unverified and tickets25–35 remain held. There is no acceptance decision awaiting the user during this repair. The final whole-branch review will use GPT-6.1 Sol / high and cover the earlier Luna-written code too.
+
+Repair failure record: checkpoint `604d244c505d7d03db4c313438e98ab32e726776` is red on the autonomous native gate; last verified predecessor tip was `5495b64bfb2b905b03c45af565c03bb340495344`. Repair 1 is within the two preapproved follow-ups; no extra repair or scope change is authorized. The new launch receipt records its current run-tip/base after this tracker update is committed.

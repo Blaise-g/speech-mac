@@ -8,7 +8,7 @@ None (Requirement Source).
 
 - Technical source: `.scratch/kokoro-native/spec.md` and its pinned primary sources.
 - Background: `.scratch/kokoro-native/spec.md`.
-- User approval dated 2026-10-25: “use implement lite with effort low for all”; resolved workflow/model/effort are implement-lite / gpt-6-luna / low, overriding AGENTS xhigh. Reviews also use Luna/low.
+- User clarification dated 2026-10-25: subsequent implementation, fixes and ticket reviews use implement-lite / gpt-6.1-sol / low, overriding the repository model/effort defaults. Final whole-branch review uses gpt-6.1-sol / high. Actual earlier Luna/low execution records remain historical evidence.
 
 ## Footprint
 
@@ -22,7 +22,7 @@ convolution/transposed-convolution and residual-block seam checks for pinned [6,
 
 25-mimi-latent-transformer
 
-Worker Profile: medium
+Worker Profile: medium; implement-lite / gpt-6.1-sol / low (user clarification 2026-10-25)
 
 ## Acceptance criteria
 

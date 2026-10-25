@@ -8,7 +8,7 @@ None (Requirement Source).
 
 - Technical source: `.scratch/kokoro-native/spec.md` and its pinned primary sources.
 - Background: `.scratch/kokoro-native/spec.md`.
-- User approval dated 2026-10-25: “use implement lite with effort low for all”; resolved workflow/model/effort are implement-lite / gpt-6-luna / low, overriding AGENTS xhigh. Reviews also use Luna/low.
+- User clarification dated 2026-10-25: subsequent implementation, fixes and ticket reviews use implement-lite / gpt-6.1-sol / low, overriding the repository model/effort defaults. Final whole-branch review uses gpt-6.1-sol / high. Actual earlier Luna/low execution records remain historical evidence.
 - Consumer census: local API consumers are CLI/stream/benchmarks/tests. Nearby repositories and queried upstream PRs revealed no additional client. No UI exists. Installed `/opt/homebrew/bin/kokoro` is external and stays untouched. Census cannot rule out undiscoverable private callers. Recheck open PRs before removal/rename. Upstream PR209 context+1 discrepancy gates oracle reconciliation; PR186 Mimi Q8 was slower with quality tradeoff and is excluded.
 
 ## Footprint
@@ -23,7 +23,7 @@ speech-mac-only maintained runtime/dependencies/commands/libs/docs. Delete old m
 
 30-progressive-playback
 
-Worker Profile: medium
+Worker Profile: medium; implement-lite / gpt-6.1-sol / low (user clarification 2026-10-25)
 
 ## Acceptance criteria
 
