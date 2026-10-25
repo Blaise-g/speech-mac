@@ -304,8 +304,9 @@ static int time_embedding(const PhononFlowHead *head, size_t which, float value,
     return 1;
 }
 
-int phonon_flow_head_forward(const PhononFlowHead *head, const float condition[512],
-                             const float state[32], float s, float t, float velocity[32]) {
+static int head_forward_cancel(const PhononFlowHead *head, const float condition[512],
+                               const float state[32], float s, float t, float velocity[32],
+                               PhononCancelPoll cancel, void *context) {
     float x[512], y[512], time_s[512], time_t[512], modulation[1536], norm_w[512], norm_b[512];
     float h[512], first[512], second[512], normalized[512];
     if (!head || !condition || !state || !velocity || !isfinite(s) || !isfinite(t) ||
@@ -316,6 +317,8 @@ int phonon_flow_head_forward(const PhononFlowHead *head, const float condition[5
     for (size_t i = 0; i < 512; i++)
         y[i] += 0.5f * (time_s[i] + time_t[i]);
     for (size_t block = 0; block < PHONON_FLOW_HEAD_BLOCKS; block++) {
+        if (cancel && cancel(context))
+            return 0;
         memcpy(normalized, y, sizeof(normalized));
         phonon_math_silu(normalized, 512);
         if (!affine(&head->block_ada_weight[block], &head->block_ada_bias[block], normalized, 1536,
@@ -355,8 +358,14 @@ int phonon_flow_head_forward(const PhononFlowHead *head, const float condition[5
     return affine(&head->final_weight, &head->final_bias, h, 32, 512, velocity);
 }
 
-int phonon_flow_lsd_one_step(const PhononFlowHead *head, const float condition[512],
-                             const float raw_noise[32], float temperature, float output[32]) {
+int phonon_flow_head_forward(const PhononFlowHead *head, const float condition[512],
+                             const float state[32], float s, float t, float velocity[32]) {
+    return head_forward_cancel(head, condition, state, s, t, velocity, NULL, NULL);
+}
+
+int phonon_flow_lsd_one_step_cancel(const PhononFlowHead *head, const float condition[512],
+                                    const float raw_noise[32], float temperature, float output[32],
+                                    PhononCancelPoll cancel, void *context) {
     float noise[32], velocity[32];
     if (!head || !condition || !raw_noise || !output || !isfinite(temperature) || temperature <= 0)
         return 0;
@@ -366,7 +375,8 @@ int phonon_flow_lsd_one_step(const PhononFlowHead *head, const float condition[5
             return 0;
         noise[i] = raw_noise[i] * scale;
     }
-    if (!phonon_flow_head_forward(head, condition, noise, 0.0f, 1.0f, velocity))
+    if (!head_forward_cancel(head, condition, noise, 0.0f, 1.0f, velocity, cancel, context) ||
+        (cancel && cancel(context)))
         return 0;
     for (size_t i = 0; i < 32; i++) {
         output[i] = noise[i] + velocity[i];
@@ -374,6 +384,12 @@ int phonon_flow_lsd_one_step(const PhononFlowHead *head, const float condition[5
             return 0;
     }
     return 1;
+}
+
+int phonon_flow_lsd_one_step(const PhononFlowHead *head, const float condition[512],
+                             const float raw_noise[32], float temperature, float output[32]) {
+    return phonon_flow_lsd_one_step_cancel(head, condition, raw_noise, temperature, output, NULL,
+                                           NULL);
 }
 
 int phonon_flow_eos_logit(const PhononPack *pack, const float state[512], float *raw_logit) {

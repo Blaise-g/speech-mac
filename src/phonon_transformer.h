@@ -4,6 +4,10 @@
 #include "phonon_pack.h"
 #include <stddef.h>
 
+/* Request-local cancellation; return nonzero to stop. Cancel-aware operations
+ * return 0 and reset cache on cancellation, never publish a successful output.
+ * NULL preserves the ordinary numerical path. No interruption within BLAS. */
+typedef int (*PhononCancelPoll)(void *context);
 #define PHONON_FLOW_LAYERS 9
 #define PHONON_FLOW_WIDTH 512
 #define PHONON_FLOW_HEADS 8
@@ -56,6 +60,14 @@ int phonon_flow_stack_step(const PhononFlowLayerWeights weights[PHONON_FLOW_LAYE
                            PhononKvCache *cache, size_t position,
                            const float input[PHONON_FLOW_WIDTH], float theta,
                            float output[PHONON_FLOW_WIDTH]);
+int phonon_flow_stack_step_cancel(const PhononFlowLayerWeights weights[PHONON_FLOW_LAYERS],
+                                  PhononKvCache *cache, size_t position, const float input[512],
+                                  float theta, float output[512], PhononCancelPoll cancel,
+                                  void *context);
+int phonon_flow_stack_prefill_cancel(const PhononFlowLayerWeights weights[PHONON_FLOW_LAYERS],
+                                     PhononKvCache *cache, const float *input, size_t length,
+                                     float theta, float output[512], PhononCancelPoll cancel,
+                                     void *context);
 int phonon_flow_condition(const PhononTensorView *speaker_embeddings,
                           const PhononTensorView *speaker_projection,
                           const PhononTensorView *duration_projection, size_t speaker_count,

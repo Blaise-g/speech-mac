@@ -1,6 +1,7 @@
 #include "phonon_transformer.h"
 #include "phonon_math.h"
 #include "phonon_q8.h"
+#include "phonon_transformer_test.h"
 
 #define ACCELERATE_NEW_LAPACK
 #include <Accelerate/Accelerate.h>
@@ -139,7 +140,9 @@ static void moments_512(const float *x, float *out) {
         float c = 128.0f / (float)total;
         float delta = s1[0][lane] - m1;
         m1 = fmaf(c, delta, m1);
-        m2 += s2[0][lane] + delta * delta * c * (float)n;
+        /* Torch's scalar AddMoments contracts the final product plus the
+         * incoming M2, then adds the running M2 separately. */
+        m2 += fmaf(delta * delta * c, (float)n, s2[0][lane]);
         n = total;
     }
     out[0] = m1;
@@ -414,9 +417,17 @@ static int flow_attention(const float query[64], const float *keys, const float 
         if (start)
             for (size_t i = 0; i < 64; i++)
                 destination[i] *= rescale;
-        cblas_sgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, 1, 64, (int)length, 1.0f, scores,
-                    (int)length, values + start * stride, (int)stride, start ? 1.0f : 0.0f,
-                    destination, 64);
+        /* Pinned Torch uses Accelerate's legacy SGEMM. Its K=1/beta=1
+         * case rounds the product before adding C; NEWLAPACK contracts it.
+         * Preserve that algebraic degeneracy without changing BLAS ABI. */
+        if (start && length == 1) {
+            for (size_t d = 0; d < 64; d++)
+                destination[d] += scores[0] * values[start * stride + d];
+        } else {
+            cblas_sgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, 1, 64, (int)length, 1.0f, scores,
+                        (int)length, values + start * stride, (int)stride, start ? 1.0f : 0.0f,
+                        destination, 64);
+        }
     }
     if (!(total > 0.0f) || !isfinite(total))
         return 0;
@@ -478,19 +489,28 @@ int phonon_flow_layer_step(const PhononFlowLayerWeights *weights, PhononKvCache 
     return 1;
 }
 
-int phonon_flow_stack_step(const PhononFlowLayerWeights weights[PHONON_FLOW_LAYERS],
-                           PhononKvCache *cache, size_t position,
-                           const float input[PHONON_FLOW_WIDTH], float theta,
-                           float output[PHONON_FLOW_WIDTH]) {
+int phonon_flow_stack_step_cancel(const PhononFlowLayerWeights weights[PHONON_FLOW_LAYERS],
+                                  PhononKvCache *cache, size_t position,
+                                  const float input[PHONON_FLOW_WIDTH], float theta,
+                                  float output[PHONON_FLOW_WIDTH], PhononCancelPoll cancel,
+                                  void *context) {
     if (!weights || !cache || !input || !output || position != cache->length ||
         position >= cache->capacity)
         return 0;
     float a[PHONON_FLOW_WIDTH], b[PHONON_FLOW_WIDTH];
     memcpy(a, input, sizeof(a));
     for (size_t layer = 0; layer < PHONON_FLOW_LAYERS; ++layer) {
+        if (cancel && cancel(context)) {
+            phonon_kv_cache_reset(cache);
+            return 0;
+        }
         if (!phonon_flow_layer_step(&weights[layer], cache, layer, position, a, theta, b))
             return 0;
         memcpy(a, b, sizeof(a));
+    }
+    if (cancel && cancel(context)) {
+        phonon_kv_cache_reset(cache);
+        return 0;
     }
     if (!phonon_kv_cache_commit_position(cache, position))
         return 0;
@@ -498,10 +518,18 @@ int phonon_flow_stack_step(const PhononFlowLayerWeights weights[PHONON_FLOW_LAYE
     return 1;
 }
 
+int phonon_flow_stack_step(const PhononFlowLayerWeights weights[PHONON_FLOW_LAYERS],
+                           PhononKvCache *cache, size_t position, const float input[512],
+                           float theta, float output[512]) {
+    return phonon_flow_stack_step_cancel(weights, cache, position, input, theta, output, NULL,
+                                         NULL);
+}
+
 /* Full-prefix CPU SDPA uses source query blocking and 512-key blocks. Scores
  * occupy at most 256*512 floats, never a quadratic full-context matrix. */
 static int prefill_attention(const float *projected, const float *keys, const float *values,
-                             size_t length, float *scores, float *destination, float *output) {
+                             size_t length, float *scores, float *destination, float *output,
+                             PhononCancelPoll cancel, void *context) {
 #pragma STDC FP_CONTRACT OFF
     size_t query_block = length >= 768 ? 256 : (length >= 192 ? 64 : 32);
     float ordered_queries[256 * 64], ordered_keys[512 * 64];
@@ -515,6 +543,8 @@ static int prefill_attention(const float *projected, const float *keys, const fl
                 totals[row] = 0.0f;
             }
             for (size_t key_start = 0; key_start < start + rows; key_start += 512) {
+                if (cancel && cancel(context))
+                    return 0;
                 size_t cols = length - key_start < 512 ? length - key_start : 512;
                 attention_head_order(keys + key_start * 512 + head * 64, cols, 512, ordered_keys);
                 cblas_sgemm(CblasRowMajor, CblasNoTrans, CblasTrans, (int)rows, (int)cols, 64, 1.0f,
@@ -554,9 +584,17 @@ static int prefill_attention(const float *projected, const float *keys, const fl
                         for (size_t d = 0; d < 64; d++)
                             destination[row * 64 + d] *= rescale;
                 }
-                cblas_sgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, (int)rows, 64, (int)cols,
-                            1.0f, scores, (int)cols, values + key_start * 512 + head * 64, 512,
-                            key_start ? 1.0f : 0.0f, destination, 64);
+                /* Same legacy K=1/beta=1 rounding as the incremental path. */
+                if (key_start && cols == 1) {
+                    for (size_t row = 0; row < rows; row++)
+                        for (size_t d = 0; d < 64; d++)
+                            destination[row * 64 + d] +=
+                                scores[row] * values[key_start * 512 + head * 64 + d];
+                } else {
+                    cblas_sgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, (int)rows, 64, (int)cols,
+                                1.0f, scores, (int)cols, values + key_start * 512 + head * 64, 512,
+                                key_start ? 1.0f : 0.0f, destination, 64);
+                }
             }
             for (size_t row = 0; row < rows; row++) {
                 if (!(totals[row] > 0.0f) || !isfinite(totals[row]))
@@ -573,6 +611,25 @@ static int prefill_attention(const float *projected, const float *keys, const fl
     }
     return 1;
 }
+
+#ifdef PHONON_PACK_TEST_API
+int phonon_attention_test(const float query[64], const float *keys, const float *values,
+                          size_t count, size_t stride, float output[64]) {
+    return flow_attention(query, keys, values, count, stride, output);
+}
+int phonon_prefill_attention_test(const float *projected, const float *keys, const float *values,
+                                  size_t count, float *output) {
+    if (!projected || !keys || !values || !output || !count || count > 8192)
+        return 0;
+    float *scratch = malloc((256 * 512 + 256 * 64) * sizeof(float));
+    if (!scratch)
+        return 0;
+    int ok = prefill_attention(projected, keys, values, count, scratch, scratch + 256 * 512, output,
+                               NULL, NULL);
+    free(scratch);
+    return ok;
+}
+#endif
 
 static int prefill_qkv(const PhononTensorView *qkv, const float *input, size_t length, float *split,
                        float *projected) {
@@ -594,9 +651,10 @@ static int prefill_qkv(const PhononTensorView *qkv, const float *input, size_t l
     return 1;
 }
 
-int phonon_flow_stack_prefill(const PhononFlowLayerWeights weights[PHONON_FLOW_LAYERS],
-                              PhononKvCache *cache, const float *input, size_t length, float theta,
-                              float output[512]) {
+int phonon_flow_stack_prefill_cancel(const PhononFlowLayerWeights weights[PHONON_FLOW_LAYERS],
+                                     PhononKvCache *cache, const float *input, size_t length,
+                                     float theta, float output[512], PhononCancelPoll cancel,
+                                     void *context) {
     if (!weights || !cache || !cache->keys || !cache->values || !input || !output || !length ||
         length > 8192 || length > cache->capacity || cache->length || !isfinite(theta) ||
         theta <= 0.0f || length > SIZE_MAX / (6144 * sizeof(float)))
@@ -618,6 +676,8 @@ int phonon_flow_stack_prefill(const PhononFlowLayerWeights weights[PHONON_FLOW_L
     memcpy(state, input, length * 512 * sizeof(float));
     int success = 0;
     for (size_t layer = 0; layer < PHONON_FLOW_LAYERS; layer++) {
+        if (cancel && cancel(context))
+            goto cleanup;
         float n1w[512], n1b[512], n2w[512], n2b[512];
         if (!vector_tensor(weights[layer].norm1_weight, n1w) ||
             !vector_tensor(weights[layer].norm1_bias, n1b) ||
@@ -627,6 +687,8 @@ int phonon_flow_stack_prefill(const PhononFlowLayerWeights weights[PHONON_FLOW_L
         for (size_t row = 0; row < length; row++)
             if (!phonon_layer_norm(state + row * 512, n1w, n1b, 512, 1e-5f, normalized + row * 512))
                 goto cleanup;
+        if (cancel && cancel(context))
+            goto cleanup;
         if (!prefill_qkv(weights[layer].qkv, normalized, length, split, projected))
             goto cleanup;
         size_t offset = layer * cache->capacity * 512;
@@ -639,7 +701,7 @@ int phonon_flow_stack_prefill(const PhononFlowLayerWeights weights[PHONON_FLOW_L
             memcpy(cache->values + offset + row * 512, v, 512 * sizeof(float));
         }
         if (!prefill_attention(projected, cache->keys + offset, cache->values + offset, length,
-                               scores, destination, attended) ||
+                               scores, destination, attended, cancel, context) ||
             !phonon_linear_batch(weights[layer].attention_out, attended, 512, 512, NULL, normalized,
                                  length))
             goto cleanup;
@@ -649,6 +711,8 @@ int phonon_flow_stack_prefill(const PhononFlowLayerWeights weights[PHONON_FLOW_L
             if (!phonon_layer_norm(residual + row * 512, n2w, n2b, 512, 1e-5f,
                                    normalized + row * 512))
                 goto cleanup;
+        if (cancel && cancel(context))
+            goto cleanup;
         if (!phonon_linear_batch(weights[layer].mlp_in, normalized, 2048, 512, NULL, mlp, length) ||
             !phonon_erf_gelu(mlp, length * 2048) ||
             !phonon_linear_batch(weights[layer].mlp_out, mlp, 512, 2048, NULL, state, length))
@@ -659,6 +723,8 @@ int phonon_flow_stack_prefill(const PhononFlowLayerWeights weights[PHONON_FLOW_L
                 goto cleanup;
         }
     }
+    if (cancel && cancel(context))
+        goto cleanup;
     memcpy(output, state + (length - 1) * 512, 512 * sizeof(float));
     cache->length = length;
     success = 1;
@@ -668,6 +734,13 @@ cleanup:
     if (!success)
         phonon_kv_cache_reset(cache);
     return success;
+}
+
+int phonon_flow_stack_prefill(const PhononFlowLayerWeights weights[PHONON_FLOW_LAYERS],
+                              PhononKvCache *cache, const float *input, size_t length, float theta,
+                              float output[512]) {
+    return phonon_flow_stack_prefill_cancel(weights, cache, input, length, theta, output, NULL,
+                                            NULL);
 }
 
 int phonon_voice_project(const float *voice_latents, size_t frames,

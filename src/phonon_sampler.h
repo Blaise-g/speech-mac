@@ -73,6 +73,10 @@ int phonon_flow_lsd_one_step(const PhononFlowHead *head, const float condition[5
                              const float raw_noise[PHONON_LATENT_WIDTH], float temperature,
                              float normalized_latent[PHONON_LATENT_WIDTH]);
 
+/* On cancellation returns 0 without publishing output. */
+int phonon_flow_lsd_one_step_cancel(const PhononFlowHead *head, const float condition[512],
+                                    const float raw_noise[32], float temperature, float output[32],
+                                    PhononCancelPoll cancel, void *context);
 typedef struct {
     size_t frame_budget;
     size_t frames_after_eos;
