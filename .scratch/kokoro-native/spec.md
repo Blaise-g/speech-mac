@@ -1,6 +1,6 @@
 # speech-mac: native Phonon migration
 
-Status: in-progress
+Status: blocked
 
 This is the active Requirement Source for the Phonon migration. It supersedes the Kokoro product and architecture requirements. The previous source is preserved in `kokoro-spec-archive.md`; tickets 00–18 and their evidence remain historical records, including their open criteria. They are not blockers for this migration.
 
@@ -111,3 +111,7 @@ This preapproved shared correction consumes repair 2 of 2 for each 23 and 24; 28
 ## CLI and compatible voices verified — 2026-10-25
 
 Ticket 29 is verified at `2f994e469a86e64f78f988850742ea76faa6253e`: native speech-mac input/output tasks, completed-WAV playback adapter, local compatible voices and native controls. Raw voices are projected once; bound emb/audio_prompt artifacts are used directly. The reproducible independent projected-voice exporter and actual CLI/ASAN/engine/native/full-suite checks passed, including byte-identical built-executable WAV output. Source assets, numerical kernels and frozen budgets were unchanged; no sound or listening acceptance was claimed. [Ticket 29](issues/29-speech-cli-voices.md) records all checks, approved test-tool Footprint and resolved review findings. Tickets 30–35 and the final whole-branch Sol/high review remain pending.
+
+## Streaming implementation saved; acceptance blocked — 2026-10-25
+
+Ticket30 implementation is committed at `8d09e66cbbff86eacdde5617e7c75d63751a784f`. Actual model/fake-device stream equality, cancellation/races, sanitizer/TSAN, preserved numerical and canonical checks pass. Successful native AudioQueue start/reclamation/drain remains unverified: new, preserved and standalone queue-muted probes fail or hang at SDK start on this host. No device failure or skip is credited as passing. A comments-only ownership clarification is preapproved as ticket30 repair1of2. [Ticket30](issues/30-progressive-playback.md) records exact evidence and the pending bounded Terminal check. Tickets31–35 and final whole-branch Sol/high review remain held; no acceptance criterion was waived.
