@@ -275,7 +275,7 @@ static float half_to_float(uint16_t bits) {
     return converted.value;
 }
 
-static int linear_batch(const PhononTensorView *weight, const float *input, size_t rows,
+int phonon_linear_batch(const PhononTensorView *weight, const float *input, size_t rows,
                         size_t columns, const float *bias, float *output, size_t batch) {
     if (!weight || !weight->data || !input || !output || !rows || !columns || !batch ||
         batch > INT_MAX || batch > SIZE_MAX / rows || batch > SIZE_MAX / columns ||
@@ -348,7 +348,7 @@ static int linear_batch(const PhononTensorView *weight, const float *input, size
 
 int phonon_linear(const PhononTensorView *weight, const float *input, size_t rows, size_t columns,
                   const float *bias, float *output) {
-    return linear_batch(weight, input, rows, columns, bias, output, 1);
+    return phonon_linear_batch(weight, input, rows, columns, bias, output, 1);
 }
 
 static int vector_tensor(const PhononTensorView *view, float output[PHONON_FLOW_WIDTH]) {
@@ -586,7 +586,7 @@ static int prefill_qkv(const PhononTensorView *qkv, const float *input, size_t l
         view.shape[0] = 512;
         view.byte_count /= 3;
         view.data = (const unsigned char *)qkv->data + part * view.byte_count;
-        if (!linear_batch(&view, input, 512, 512, NULL, split, length))
+        if (!phonon_linear_batch(&view, input, 512, 512, NULL, split, length))
             return 0;
         for (size_t row = 0; row < length; row++)
             memcpy(projected + row * 1536 + part * 512, split + row * 512, 512 * sizeof(float));
@@ -640,8 +640,8 @@ int phonon_flow_stack_prefill(const PhononFlowLayerWeights weights[PHONON_FLOW_L
         }
         if (!prefill_attention(projected, cache->keys + offset, cache->values + offset, length,
                                scores, destination, attended) ||
-            !linear_batch(weights[layer].attention_out, attended, 512, 512, NULL, normalized,
-                          length))
+            !phonon_linear_batch(weights[layer].attention_out, attended, 512, 512, NULL, normalized,
+                                 length))
             goto cleanup;
         for (size_t i = 0; i < length * 512; i++)
             residual[i] = state[i] + normalized[i];
@@ -649,9 +649,9 @@ int phonon_flow_stack_prefill(const PhononFlowLayerWeights weights[PHONON_FLOW_L
             if (!phonon_layer_norm(residual + row * 512, n2w, n2b, 512, 1e-5f,
                                    normalized + row * 512))
                 goto cleanup;
-        if (!linear_batch(weights[layer].mlp_in, normalized, 2048, 512, NULL, mlp, length) ||
+        if (!phonon_linear_batch(weights[layer].mlp_in, normalized, 2048, 512, NULL, mlp, length) ||
             !phonon_erf_gelu(mlp, length * 2048) ||
-            !linear_batch(weights[layer].mlp_out, mlp, 512, 2048, NULL, state, length))
+            !phonon_linear_batch(weights[layer].mlp_out, mlp, 512, 2048, NULL, state, length))
             goto cleanup;
         for (size_t i = 0; i < length * 512; i++) {
             state[i] += residual[i];
@@ -674,8 +674,8 @@ int phonon_voice_project(const float *voice_latents, size_t frames,
                          const PhononTensorView *projection, float *projected) {
     if (!voice_latents || !projection || !projected || frames == 0 || frames > 8192)
         return 0;
-    return linear_batch(projection, voice_latents, PHONON_FLOW_WIDTH, PHONON_FLOW_WIDTH, NULL,
-                        projected, frames);
+    return phonon_linear_batch(projection, voice_latents, PHONON_FLOW_WIDTH, PHONON_FLOW_WIDTH,
+                               NULL, projected, frames);
 }
 
 int phonon_flow_condition(const PhononTensorView *speaker_embeddings,

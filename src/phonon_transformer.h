@@ -46,6 +46,9 @@ int phonon_rope_interleaved(float *values, size_t width, size_t heads, size_t po
 /* Applies a row-major [rows, columns] tensor; Q8 stays packed at the call boundary. */
 int phonon_linear(const PhononTensorView *weight, const float *input, size_t rows, size_t columns,
                   const float *bias, float *output);
+/* Same contract over row-major [batch,columns] and [batch,rows] buffers. */
+int phonon_linear_batch(const PhononTensorView *weight, const float *input, size_t rows,
+                        size_t columns, const float *bias, float *output, size_t batch);
 int phonon_flow_layer_step(const PhononFlowLayerWeights *weights, PhononKvCache *cache,
                            size_t layer, size_t position, const float input[PHONON_FLOW_WIDTH],
                            float theta, float output[PHONON_FLOW_WIDTH]);
