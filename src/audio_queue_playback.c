@@ -6,9 +6,11 @@
 #include <dispatch/dispatch.h>
 #include <pthread.h>
 #include <stdatomic.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
 #define AUDIO_QUEUE_FRAME_BYTES ((UInt32)sizeof(float))
 #define AUDIO_QUEUE_BUFFER_BYTES (KOKORO_STREAM_BUFFER_FRAMES * AUDIO_QUEUE_FRAME_BYTES)
@@ -20,6 +22,8 @@ typedef struct {
     const KokoroAudioQueueApi *api;
     AudioQueueRef queue;
     AudioQueueBufferRef buffers[KOKORO_STREAM_BUFFER_COUNT];
+    atomic_size_t reclaimed;
+    atomic_uint_fast64_t first_reclaimed;
     atomic_bool used[KOKORO_STREAM_BUFFER_COUNT];
     atomic_bool cancelled;
     atomic_bool progress_pending;
@@ -64,6 +68,8 @@ static void signal_progress(AudioQueuePlayback *playback) {
 }
 
 static void wait_for_progress(AudioQueuePlayback *playback) {
+    if (playback->api->waiting)
+        playback->api->waiting();
     (void)dispatch_semaphore_wait(playback->progress, DISPATCH_TIME_FOREVER);
     atomic_store_explicit(&playback->progress_pending, false, memory_order_release);
 }
@@ -71,6 +77,13 @@ static void wait_for_progress(AudioQueuePlayback *playback) {
 static void buffer_available(void *user_data, AudioQueueRef queue, AudioQueueBufferRef buffer) {
     (void)queue;
     AudioQueuePlayback *playback = user_data;
+    struct timespec now;
+    (void)clock_gettime(CLOCK_MONOTONIC, &now);
+    uint_fast64_t empty = 0;
+    uint_fast64_t ns =
+        (uint_fast64_t)now.tv_sec * UINT64_C(1000000000) + (uint_fast64_t)now.tv_nsec;
+    (void)atomic_compare_exchange_strong(&playback->first_reclaimed, &empty, ns);
+    atomic_fetch_add(&playback->reclaimed, 1);
 #ifdef KOKORO_STREAM_BENCHMARK_TIMING
     unsigned int queued =
         atomic_fetch_sub_explicit(&playback->queued_buffers, 1, memory_order_acq_rel);
@@ -152,6 +165,8 @@ static KokoroStatus audio_queue_open(void *context, void **handle, KokoroError *
         return KOKORO_OUT_OF_MEMORY;
     }
     playback->api = api;
+    atomic_init(&playback->reclaimed, 0);
+    atomic_init(&playback->first_reclaimed, 0);
     atomic_init(&playback->cancelled, false);
     atomic_init(&playback->progress_pending, false);
     atomic_init(&playback->property_generation, 0);
@@ -197,7 +212,9 @@ static KokoroStatus audio_queue_open(void *context, void **handle, KokoroError *
         return KOKORO_IO_ERROR;
     }
 #ifdef KOKORO_STREAM_SILENT_OUTPUT
-    status = AudioQueueSetParameter(playback->queue, kAudioQueueParam_Volume, 0.0f);
+    status = api == &default_api
+                 ? AudioQueueSetParameter(playback->queue, kAudioQueueParam_Volume, 0.0f)
+                 : noErr;
     if (status != noErr) {
         set_audio_error(error, "set benchmark queue volume to zero", status);
         audio_queue_close(playback, NULL);
@@ -317,15 +334,15 @@ static KokoroStatus wait_for_running(AudioQueuePlayback *playback, bool running,
             set_audio_error(error, "read running state", status);
             return KOKORO_IO_ERROR;
         }
+        if (atomic_load_explicit(&playback->cancelled, memory_order_acquire)) {
+            kokoro_error_set(error, KOKORO_CANCELLED, "stream cancelled");
+            return KOKORO_CANCELLED;
+        }
         if ((is_running != 0) == running) {
             if (running) {
                 playback->running_observed = true;
             }
             return KOKORO_OK;
-        }
-        if (atomic_load_explicit(&playback->cancelled, memory_order_acquire)) {
-            kokoro_error_set(error, KOKORO_CANCELLED, "stream cancelled");
-            return KOKORO_CANCELLED;
         }
         if (atomic_load_explicit(&playback->property_generation, memory_order_acquire) !=
             generation) {
@@ -413,3 +430,9 @@ static const KokoroStreamPlaybackOps playback_ops = {
 };
 
 const KokoroStreamPlaybackOps *kokoro_audio_queue_playback_ops(void) { return &playback_ops; }
+
+void kokoro_audio_queue_reclaimed(void *handle, size_t *count, double *first) {
+    AudioQueuePlayback *playback = handle;
+    *count = atomic_load(&playback->reclaimed);
+    *first = (double)atomic_load(&playback->first_reclaimed) / 1e9;
+}

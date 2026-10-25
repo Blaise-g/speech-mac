@@ -1,6 +1,7 @@
 #define _POSIX_C_SOURCE 200809L
 #include "speech_cli.h"
 #include "speech.h"
+#include "speech_stream.h"
 #include "wav_writer.h"
 #include <dirent.h>
 #include <errno.h>
@@ -64,12 +65,13 @@ int speech_cli_run(int argc, char **argv, const SpeechCliConfig *config) {
         config && config->pack_path ? config->pack_path : "models/phonon-40m-en.kpack";
     if (argc == 2 && !strcmp(argv[1], "--help")) {
         fprintf(out,
-                "speech-mac say [--file PATH | --stdin | TEXT] [--output WAV]\n"
+                "speech-mac say [--file PATH | --stdin | TEXT] [--output WAV | --stream]\n"
                 "  --voice NAME | --voice-file PATH   compatible local voice (default: default)\n"
                 "  --model PATH --voices-dir PATH --language en --seed UINT64\n"
                 "  --duration-delta FLOAT   native duration conditioning, default 0\n"
                 "speech-mac voices [--voices-dir PATH]\n"
-                "Without --output, play the completed mono 24 kHz PCM16 WAV locally.\n");
+                "Without --output, play the completed mono 24 kHz PCM16 WAV locally.\n"
+                "--stream plays progressive frames with bounded AudioQueue buffering.\n");
         return output_status(out);
     }
     if (argc == 2 && !strcmp(argv[1], "--version")) {
@@ -82,7 +84,7 @@ int speech_cli_run(int argc, char **argv, const SpeechCliConfig *config) {
     }
     const char *text_arg = NULL, *input_path = NULL, *output_path = NULL, *name = "default",
                *explicit_voice = NULL;
-    int stdin_selected = 0, end_options = 0;
+    int stdin_selected = 0, end_options = 0, streaming = 0;
     unsigned seen = 0;
     SpeechOptions options = speech_options_default();
     for (int i = 2; i < argc; ++i) {
@@ -104,6 +106,12 @@ int speech_cli_run(int argc, char **argv, const SpeechCliConfig *config) {
                     "--duration-delta (not speed).\n",
                     arg);
             return 2;
+        }
+        if (!strcmp(arg, "--stream")) {
+            if (streaming)
+                goto invalid;
+            streaming = 1;
+            continue;
         }
         if (!strcmp(arg, "--stdin")) {
             bit = 1;
@@ -178,7 +186,7 @@ int speech_cli_run(int argc, char **argv, const SpeechCliConfig *config) {
         }
     }
     if (!strcmp(argv[1], "voices")) {
-        if (seen & ~(2U << 5) || text_arg)
+        if (seen & ~(2U << 5) || text_arg || streaming)
             goto invalid;
         DIR *dir = opendir(directory);
         if (!dir) {
@@ -210,6 +218,8 @@ int speech_cli_run(int argc, char **argv, const SpeechCliConfig *config) {
         closedir(dir);
         return output_status(out);
     }
+    if (streaming && output_path)
+        goto invalid;
     if ((!!text_arg + !!input_path + stdin_selected) > 1 || ((seen & (2U << 2)) && explicit_voice))
         goto invalid;
     if (!explicit_voice && !name_ok(name))
@@ -250,6 +260,24 @@ int speech_cli_run(int argc, char **argv, const SpeechCliConfig *config) {
     size_t count = 0;
     SpeechResult result;
     SpeechStatus status = speech_engine_create(pack, &engine);
+    if (status == SPEECH_OK && streaming) {
+        SpeechStream *stream = NULL;
+        KokoroError error = {0};
+        const KokoroStreamPlaybackOps *ops = config ? config->stream_playback : NULL;
+        KokoroStatus played =
+            ops ? speech_stream_start_with(engine, voice, text, length, &options, ops,
+                                           config->stream_context, &stream, &error)
+                : speech_stream_start(engine, voice, text, length, &options, &stream, &error);
+        if (played == KOKORO_OK)
+            played = speech_stream_wait(stream, config ? config->interrupted : NULL, &error);
+        speech_stream_free(stream);
+        free(text);
+        speech_engine_destroy(engine);
+        phonon_voice_close(voice);
+        if (played != KOKORO_OK)
+            fprintf(err, "Streaming failed (%d): %s\n", played, error.message);
+        return played == KOKORO_OK ? 0 : played == KOKORO_CANCELLED ? 130 : 1;
+    }
     if (status == SPEECH_OK)
         status =
             speech_collect(engine, voice, text, length, &options,

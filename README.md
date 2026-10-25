@@ -13,9 +13,29 @@ printf 'Hello.' | .build/speech-mac say --stdin --model /path/to/model.kpack --v
 
 The default pack path is `models/phonon-40m-en.kpack`; the default voice is `voices/default.safetensors`. Install named voices as `<name>.safetensors` in the selected `--voices-dir`; names contain ASCII letters, digits, hyphens or underscores. `voices` lists only artifacts that pass compatibility validation. The catalog is local: filenames select artifacts, and artifact metadata plus the pinned pack establish compatibility. There is no recording encoder, cloud enrollment, or runtime download.
 
-Without `--output`, the CLI writes the completed mono 24 kHz PCM16 WAV to a private temporary file, plays it using macOS `afplay`, then removes it even if playback fails. With `--output`, it writes the WAV without playing it. A single positional argument supplies text (`--` ends option parsing, so `say -- '--ipa'` supplies literal text); `--file PATH` reads UTF-8; `--stdin` or omitted text reads standard input. Inputs are limited to 1 MiB before and after normalization. Conflicting or duplicate inputs/options fail.
+Without `--output` or `--stream`, the CLI writes the completed mono 24 kHz PCM16 WAV to a private temporary file, plays it using macOS `afplay`, then removes it even if playback fails. With `--output`, it writes the WAV without playing it. A single positional argument supplies text (`--` ends option parsing, so `say -- '--ipa'` supplies literal text); `--file PATH` reads UTF-8; `--stdin` or omitted text reads standard input. Inputs are limited to 1 MiB before and after normalization. Conflicting or duplicate inputs/options fail.
 
-Supported controls are `--language en`, `--seed` (decimal 0 through 18446744073709551615, default 0), and finite `--duration-delta` (default 0), the model's native duration conditioning. `--speed`, `-s`, `--ipa`, and Kokoro voice names are unsupported; speed values are never converted. Progressive playback is a later migration step.
+Supported controls are `--language en`, `--seed` (decimal 0 through 18446744073709551615, default 0), and finite `--duration-delta` (default 0), the model's native duration conditioning. `--speed`, `-s`, `--ipa`, and Kokoro voice names are unsupported; speed values are never converted.
+
+`--stream` sends each 1,920-sample mono 24 kHz frame to AudioQueue while later frames are still being generated. Playback starts after the first submission. Three fixed playback buffers provide ordered copies and backpressure; no whole-utterance PCM queue is retained. `--stream` accepts the same text, file and stdin inputs, but conflicts with `--output`. SIGINT or SIGTERM cancels generation, wakes blocked playback, then joins and disposes the request before releasing the engine and voice. A running native numerical call may finish before cancellation is polled.
+
+```sh
+.build/speech-mac say 'Hello.' --stream --model /path/to/model.kpack --voice-file /path/to/voice.safetensors
+```
+
+First PCM readiness, buffer submission, successful running-state observation, buffer reclamation, synthesis completion and successful drain are separate monotonic events. Fake-consumer timings do not measure device or acoustic onset. Shared numerical operations still allocate bounded temporary buffers; streaming provides no allocation-free or real-time guarantee.
+
+The opt-in functional device test mutes only its new AudioQueue to volume zero before submission and start. It never changes system volume. A test-only watchdog fails the process if the SDK probe does not finish within 30 seconds. Run it from the repository root with a converted pack and compatible voice:
+
+```sh
+PHONON_NATIVE_PACK=/path/to/model.kpack \
+PHONON_DEFAULT_VOICE=/path/to/voice.safetensors \
+PHONON_STREAM_DEVICE=1 \
+make test-one TEST=tests/test_speech_stream.c \
+  CPPFLAGS='-Isrc -DKOKORO_STREAM_SILENT_OUTPUT' BUILD_DIR=.build/stream-device
+```
+
+On the development host on 2026-10-25, real 40M batch/stream PCM equality and fake-device lifecycle checks passed, but native device acceptance remains blocked: `AudioQueueStart` returned `-66681` (`kAudioQueueErr_CannotStart`). The preserved silence-only adapter also failed. Standalone queue-muted probes at 24 kHz mono and 48 kHz stereo, with larger buffers, priming and main/worker starts, timed out inside the SDK start call. Successful device start, reclamation and drain still need verification in a working audio session. Acoustic onset and listening acceptance remain unmeasured.
 
 Compatible voice schemas are finite F32 `speaker_wavs` shaped `[512,T]` or `[1,512,T]`, with raw metadata `sig=ba7a5a45`, `epoch=300`; or already projected `emb`/`audio_prompt` shaped `[T,512]` or `[1,T,512]`, with `model_ext=ba7a5a45@300`. Here `T` is 1 through 4096. Raw voices are projected exactly once; projected embeddings are used directly. An explicit conflicting signature, epoch or model extension fails. Unbound projected files are rejected; obtain an artifact with verifiable compatibility metadata. The compatible voice identity is the checkpoint's `embeddings_ext`, distinct from its full model identity `8aa279a6@100`. Arbitrary tensor names and multiple voice tensors are rejected.
 

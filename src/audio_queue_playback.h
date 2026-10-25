@@ -23,9 +23,14 @@ typedef struct {
     OSStatus (*stop)(AudioQueueRef queue, Boolean immediate);
     OSStatus (*get_property)(AudioQueueRef queue, AudioQueuePropertyID property, void *data,
                              UInt32 *data_size);
+    /* Optional observation-only test hook, immediately before a blocking wait. */
+    void (*waiting)(void);
     OSStatus (*dispose)(AudioQueueRef queue, Boolean immediate);
 } KokoroAudioQueueApi;
 
+/* Snapshot before close; callbacks may still be reclaiming buffers. Times are
+ * CLOCK_MONOTONIC seconds, zero if no callback has reclaimed a buffer. */
+void kokoro_audio_queue_reclaimed(void *playback, size_t *count, double *first);
 const KokoroStreamPlaybackOps *kokoro_audio_queue_playback_ops(void);
 const KokoroAudioQueueApi *kokoro_audio_queue_default_api(void);
 
