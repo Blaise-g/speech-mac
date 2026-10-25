@@ -94,3 +94,11 @@ Answer: creating that code is this new-feature ticket's approved work. Source: t
 - The reviewer could not find `generation_pocket_tts.py` at the requested path; it inspected the actual pinned modeling/conversion sources and the worker separately traced generation semantics. This was not a missing implementation dependency.
 
 No unresolved criterion or user escalation remains for ticket23.
+
+## Verified shared repair 2 from resident-engine integration — 2026-10-25
+
+Verified source `b3b5b6097f33351e77991101a10a1cfd4dd65f1c` carries Ticket trailers for 23,24 and 28. The ticket 28 worker and independent reviewer used GPT-6.1 Sol / low. The Coordinator approved the narrow derived shared-numerical/test/provenance Footprint, independently verified the committed result, and left frozen fixtures, budgets, pack 20 and vendor code unchanged.
+
+Long autonomous requests exposed two rounding gaps: the scalar incoming-M2 LayerNorm merge needs an explicit source FMA followed by an unfused outer add; later SDPA blocks with K=1/beta=1 need an unfused product/add matching pinned Torch legacy SGEMM. Other GEMM shapes remain unchanged; a broader accumulation candidate was rejected. Both have regressions that run without model assets, and 24 independent single-query/causal-prefill shapes match exactly. Full five-case engine parity, exact counts/batch-callback equality, all preserved component gates, normal/ASAN/O3 worker modes, Coordinator ASAN/full-suite checks and the original exact 32-frame autonomous replay pass.
+
+This is formal repair 2 of 2 for each ticket 23 and 24, both previously 1 of 2; their preapproved repair allowances are exhausted. Ticket 28 remains attempt 1/formal 0. A further post-verification repair traced to these tickets requires user escalation. The shared cancellation variants are new ticket 28 integration behavior, separately approved as Q28-1. Full causes, decisions, source hashes, review and verification evidence are recorded in [ticket 28](28-resident-engine.md). Final whole-branch GPT-6.1 Sol / high review remains future work.

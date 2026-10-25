@@ -1,6 +1,6 @@
 # speech-mac: native Phonon migration
 
-Status: ready-for-agent
+Status: in-progress
 
 This is the active Requirement Source for the Phonon migration. It supersedes the Kokoro product and architecture requirements. The previous source is preserved in `kokoro-spec-archive.md`; tickets 00–18 and their evidence remain historical records, including their open criteria. They are not blockers for this migration.
 
@@ -101,3 +101,9 @@ Other model families or platforms; additional Phonon languages in this run; mode
 ## Resolved numerical issue
 
 - **E24-1 resolved without an acceptance change.** Source commit `94e1fefa63a896a31276eaff7f715bd3c60d0449`, implement-lite / GPT-6.1 Sol / low with independent Sol/low review, matches all frozen autonomous stages and independently decoded PCM exactly. The Coordinator verified real normal/sanitizer/optimized gates, exact noise/EOS/counts, earlier pack/transformer parity and pinned source/license provenance. The repair uses source-shaped batched prefix/voice projections, source reduction/order and a private compiled NEON math boundary; ordinary builds/inference need no external SLEEF runtime, generator, CMake or network. Frozen fixtures/budgets/settings and ticket20 pack/kernel source remain unchanged. Formal repair1 counts against23 and24, each1 of2; the withdrawn protocol-change proposal was never applied. [Ticket24](issues/24-flow-sampler.md) records the full evidence, derived Footprint approvals, remaining warnings and handoff. No open Escalation remains. Ticket25 may start after this verification record is committed. Final whole-branch review still uses GPT-6.1 Sol / high and has not occurred.
+
+## Resident engine and further numerical verification — 2026-10-25
+
+Ticket 28 is verified at `b3b5b6097f33351e77991101a10a1cfd4dd65f1c`: resident native weights, one progressive request machine and bounded batch collection, with actual frontend→voice→Flow→Mimi comparisons. Long requests exposed two shared rounding gaps corrected under the existing source-equivalence contract: scalar LayerNorm M2 FMA order and generic one-key accumulating SDPA blocks. Frozen budgets and fixtures were unchanged. The Coordinator independently passed regenerated references, 24 exact attention shapes, actual five-case ASAN, all preserved native gates and canonical format→check with real fixtures.
+
+This preapproved shared correction consumes repair 2 of 2 for each 23 and 24; 28 remains attempt 1/formal 0. Details and all Worker Question/Footprint answers are in [ticket 28](issues/28-resident-engine.md). CLI/voices 29 through administration 35 remain pending. Final whole-branch GPT-6.1 Sol / high review has not occurred.
