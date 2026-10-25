@@ -182,6 +182,11 @@ phonon-native-pack:
 	@UV_CACHE_DIR=/private/tmp/kokoro-uv-cache uv run --project reference/phonon --offline --no-sync --locked python reference/phonon/native_projection_oracle.py
 
 phonon-native-check: phonon-native-pack
+	@UV_CACHE_DIR=/private/tmp/kokoro-uv-cache uv run --project reference/phonon --offline --no-sync --locked python reference/phonon/export_flow_fixture.py
+	@UV_CACHE_DIR=/private/tmp/kokoro-uv-cache uv run --project reference/phonon --offline --no-sync --locked python reference/phonon/export_sampler_fixture.py
+	@PHONON_NATIVE_PACK=$$(find .build -maxdepth 1 -name 'phonon-native-*-v1.kpack' -print -quit) \
+	 PHONON_FLOW_SAMPLER_FIXTURE=.build/phonon-flow-sampler-v1.bin $(MAKE) test-one TEST=tests/test_phonon_transformer.c
+	@UV_CACHE_DIR=/private/tmp/kokoro-uv-cache uv run --project reference/phonon --offline --no-sync --locked python reference/phonon/verify_native_generation_trace.py
 	@PHONON_NATIVE_PACK=$$(find .build -maxdepth 1 -name 'phonon-native-*-v1.kpack' -print -quit) \
 	 PHONON_Q8_ORACLE=.build/phonon-native-q8-projections-v1.bin \
 	 PHONON_BF16_ORACLE=.build/phonon-native-bf16-oracle-v1.bin $(MAKE) test-one TEST=tests/test_phonon_pack.c

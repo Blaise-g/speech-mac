@@ -1,6 +1,8 @@
+#include "phonon_sampler.h"
 #include "phonon_transformer.h"
 #include "phonon_voice.h"
 
+#include <float.h>
 #include <math.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -25,6 +27,96 @@
         }                                                                                          \
     } while (0)
 
+static int real_sampler_fixture_check(void) {
+    const char *pack_path = getenv("PHONON_NATIVE_PACK");
+    const char *fixture_path = getenv("PHONON_FLOW_SAMPLER_FIXTURE");
+    if (!pack_path && !fixture_path)
+        return 0;
+    if (!pack_path || !fixture_path)
+        return 1;
+    FILE *file = fopen(fixture_path, "rb");
+    if (!file)
+        return 1;
+    int result = 1;
+    PhononPack *pack = NULL;
+    PhononFlowHead *head = calloc(1, sizeof(*head));
+    if (!head || !phonon_pack_open(pack_path, &pack) || !phonon_flow_head_load(pack, head)) {
+        fprintf(stderr, "flow head load failed\n");
+        goto cleanup;
+    }
+    unsigned char magic[8];
+    uint32_t runs;
+    if (fread(magic, 1, 8, file) != 8 || memcmp(magic, "PHSAMP1\0", 8) ||
+        fread(&runs, sizeof(runs), 1, file) != 1 || runs != 2)
+        goto cleanup;
+    for (size_t run = 0; run < 2; run++) {
+        uint32_t frames;
+        if (fread(&frames, sizeof(frames), 1, file) != 1 || frames != (run == 0 ? 40U : 32U))
+            goto cleanup;
+        PhononStopState stop_state;
+        if (!phonon_stop_init(&stop_state, frames, run == 1 ? 3 : frames))
+            goto cleanup;
+        for (size_t frame = 0; frame < frames; frame++) {
+            float condition[512], raw[32], expected_flow[32], expected_latent[32], expected_eos;
+            float actual[32], actual_eos, normalized_expected[32];
+            int should_stop = 0;
+            if (fread(condition, sizeof(float), 512, file) != 512 ||
+                fread(raw, sizeof(float), 32, file) != 32 ||
+                fread(expected_flow, sizeof(float), 32, file) != 32 ||
+                fread(expected_latent, sizeof(float), 32, file) != 32 ||
+                fread(&expected_eos, sizeof(float), 1, file) != 1 ||
+                !phonon_flow_normalize_latent(pack, expected_latent, normalized_expected) ||
+                !phonon_flow_lsd_one_step(head, condition, raw, 0.8f, actual) ||
+                !phonon_flow_eos_logit(pack, condition, &actual_eos)) {
+                fprintf(stderr, "flow sample or EOS projection failed run=%zu frame=%zu\n", run,
+                        frame);
+                goto cleanup;
+            }
+            for (size_t i = 0; i < 32; i++) {
+                if (fabsf(expected_flow[i] - normalized_expected[i]) >
+                    1e-5f + 1e-3f * fabsf(normalized_expected[i])) {
+                    fprintf(stderr,
+                            "normalization seam mismatch run=%zu frame=%zu channel=%zu "
+                            "normalized=%.9g flow=%.9g denorm=%.9g\n",
+                            run, frame, i, normalized_expected[i], expected_flow[i],
+                            expected_latent[i]);
+                    goto cleanup;
+                }
+                double err = fabs((double)actual[i] - expected_flow[i]);
+                if (err > 1e-5 + 1e-3 * fabs((double)expected_flow[i])) {
+                    fprintf(stderr,
+                            "sampler mismatch run=%zu frame=%zu channel=%zu got=%.9g ref=%.9g\n",
+                            run, frame, i, actual[i], expected_flow[i]);
+                    goto cleanup;
+                }
+            }
+            if (fabsf(actual_eos - expected_eos) > 1e-5f + 1e-3f * fabsf(expected_eos)) {
+                fprintf(stderr, "EOS mismatch run=%zu frame=%zu got=%.9g ref=%.9g\n", run, frame,
+                        actual_eos, expected_eos);
+                goto cleanup;
+            }
+            if (!phonon_stop_after_frame(&stop_state, actual_eos, run == 0 ? FLT_MAX : 4.0f,
+                                         &should_stop))
+                goto cleanup;
+            if (run == 1 && should_stop != (frame == 31))
+                goto cleanup;
+        }
+        if (run == 1 && (stop_state.reason != PHONON_STOP_EOS || stop_state.frames_generated != 32))
+            goto cleanup;
+        if (run == 0 && (stop_state.reason != PHONON_STOP_FRAME_BUDGET || stop_state.eos_seen))
+            goto cleanup;
+    }
+    if (fgetc(file) != EOF)
+        goto cleanup;
+    fprintf(stderr, "real Q8 one-step flow head parity: 40 fixed + 32 natural frames passed\n");
+    result = 0;
+cleanup:
+    free(head);
+    phonon_pack_close(pack);
+    fclose(file);
+    return result;
+}
+
 static int real_prefix_check(void) {
     int result = 1;
     FILE *file = NULL, *condition_file = NULL;
@@ -38,9 +130,9 @@ static int real_prefix_check(void) {
                *fixture_path = getenv("PHONON_FLOW_FIXTURE"),
                *voice_path = getenv("PHONON_DEFAULT_VOICE"),
                *condition_path = getenv("PHONON_CONDITION_FIXTURE");
-    if (!pack_path && !fixture_path)
+    if (!fixture_path)
         return 0;
-    CHECK(pack_path && fixture_path && voice_path && condition_path);
+    CHECK(pack_path && voice_path && condition_path);
     file = fopen(fixture_path, "rb");
     CHECK(file);
     unsigned char header[24];
@@ -204,7 +296,228 @@ cleanup:
         }                                                                                          \
     } while (0)
 
+static int real_generation_fixture_check(void) {
+    const char *pack_path = getenv("PHONON_NATIVE_PACK");
+    const char *sampler_path = getenv("PHONON_FLOW_SAMPLER_FIXTURE");
+    if (!sampler_path)
+        return 0;
+    const char *prefix_path = ".build/phonon-flow-prefix-v1.bin";
+    if (!pack_path)
+        return 1;
+    int result = 1;
+    FILE *prefix_file = NULL, *sampler_file = NULL;
+    PhononPack *pack = NULL;
+    int32_t *ids = NULL;
+    float *voice = NULL, *expected_voice = NULL, *latents = NULL, *states = NULL;
+    float *embedded = NULL, *projected = NULL, *prefix = NULL;
+    prefix_file = fopen(prefix_path, "rb");
+    sampler_file = fopen(sampler_path, "rb");
+    if (!prefix_file || !sampler_file || !phonon_pack_open(pack_path, &pack))
+        goto cleanup;
+    unsigned char header[24];
+    uint32_t tokens, voice_frames, width, expected_states;
+    if (fread(header, 1, sizeof(header), prefix_file) != sizeof(header) ||
+        memcmp(header, "PHFLOW1\0", 8))
+        goto cleanup;
+    memcpy(&tokens, header + 8, 4);
+    memcpy(&voice_frames, header + 12, 4);
+    memcpy(&width, header + 16, 4);
+    memcpy(&expected_states, header + 20, 4);
+    if (!tokens || tokens > 8192 || !voice_frames || voice_frames > tokens || width != 512 ||
+        expected_states < tokens)
+        goto cleanup;
+    ids = malloc((size_t)tokens * sizeof(*ids));
+    voice = malloc((size_t)voice_frames * 512 * sizeof(float));
+    expected_voice = malloc((size_t)voice_frames * 512 * sizeof(float));
+    latents = malloc((size_t)40 * 32 * sizeof(float));
+    states = malloc((size_t)expected_states * 512 * sizeof(float));
+    embedded = malloc((size_t)tokens * 512 * sizeof(float));
+    projected = malloc((size_t)voice_frames * 512 * sizeof(float));
+    prefix = malloc((size_t)tokens * 512 * sizeof(float));
+    float bos_expected[512], condition[512];
+    if (!ids || !voice || !expected_voice || !latents || !states || !embedded || !projected ||
+        !prefix)
+        goto cleanup;
+    if (fread(ids, sizeof(*ids), tokens, prefix_file) != tokens ||
+        fread(voice, sizeof(float), (size_t)voice_frames * 512, prefix_file) !=
+            (size_t)voice_frames * 512 ||
+        fread(expected_voice, sizeof(float), (size_t)voice_frames * 512, prefix_file) !=
+            (size_t)voice_frames * 512 ||
+        fread(bos_expected, sizeof(float), 512, prefix_file) != 512 ||
+        fread(latents, sizeof(float), (size_t)(expected_states - tokens + 1) * 32, prefix_file) !=
+            (size_t)(expected_states - tokens + 1) * 32 ||
+        fread(states, sizeof(float), (size_t)expected_states * 512, prefix_file) !=
+            (size_t)expected_states * 512)
+        goto cleanup;
+    PhononTensorView storage[PHONON_FLOW_LAYERS][8], speakers, speaker_projection,
+        duration_projection, voice_projection;
+    PhononFlowLayerWeights layers[PHONON_FLOW_LAYERS];
+    if (!phonon_flow_load_layers(pack, storage, layers) ||
+        !phonon_pack_tensor(
+            pack, "flow_lm.condition_provider.conditioners.num_speakers.embed.weight", &speakers) ||
+        !phonon_pack_tensor(
+            pack, "flow_lm.condition_provider.conditioners.num_speakers.output_proj.weight",
+            &speaker_projection) ||
+        !phonon_pack_tensor(
+            pack, "flow_lm.condition_provider.conditioners.duration_delta.output_proj.weight",
+            &duration_projection) ||
+        !phonon_pack_tensor(
+            pack, "flow_lm.condition_provider.conditioners.speaker_wavs.output_proj.weight",
+            &voice_projection) ||
+        !phonon_flow_condition(&speakers, &speaker_projection, &duration_projection, 1, 0.0f,
+                               condition) ||
+        !phonon_flow_embed_tokens(pack, ids, tokens, embedded) ||
+        !phonon_voice_project(voice, voice_frames, &voice_projection, projected))
+        goto cleanup;
+    float bos[512];
+    if (!phonon_flow_embed_bos(pack, condition, bos) ||
+        !phonon_flow_prepare_prefix(ids, tokens, embedded, 5, 4, projected, voice_frames, bos,
+                                    prefix)) {
+        fprintf(stderr, "closed-loop prefix construction failed\n");
+        goto cleanup;
+    }
+    for (size_t i = 0; i < 512; i++)
+        if (fabsf(bos[i] - bos_expected[i]) > 1e-5f + 1e-3f * fabsf(bos_expected[i])) {
+            fprintf(stderr, "closed-loop BOS mismatch channel=%zu got=%.9g expected=%.9g\n", i,
+                    bos[i], bos_expected[i]);
+            goto cleanup;
+        }
+    unsigned char sampler_magic[8];
+    uint32_t runs;
+    if (fread(sampler_magic, 1, 8, sampler_file) != 8 || memcmp(sampler_magic, "PHSAMP1\0", 8) ||
+        fread(&runs, sizeof(runs), 1, sampler_file) != 1 || runs != 2)
+        goto cleanup;
+    float replay_draws[32 * 32], expected_latents[32 * 32], expected_eos[32];
+    for (size_t run = 0; run < 2; run++) {
+        uint32_t frames;
+        if (fread(&frames, sizeof(frames), 1, sampler_file) != 1 ||
+            frames != (run == 0 ? 40U : 32U))
+            goto cleanup;
+        for (size_t frame = 0; frame < frames; frame++) {
+            float saved_condition[512], raw[32], integrated[32], output[32], eos;
+            if (fread(saved_condition, sizeof(float), 512, sampler_file) != 512 ||
+                fread(raw, sizeof(float), 32, sampler_file) != 32 ||
+                fread(integrated, sizeof(float), 32, sampler_file) != 32 ||
+                fread(output, sizeof(float), 32, sampler_file) != 32 ||
+                fread(&eos, sizeof(float), 1, sampler_file) != 1)
+                goto cleanup;
+            if (run == 1) {
+                memcpy(replay_draws + frame * 32, raw, sizeof(raw));
+                memcpy(expected_latents + frame * 32, output, sizeof(output));
+                expected_eos[frame] = eos;
+            }
+        }
+    }
+    PhononNoiseSource replay;
+    PhononGenerationConfig config = {.frame_budget = 32,
+                                     .frames_after_eos = 3,
+                                     .eos_threshold = 4.0f,
+                                     .temperature = 0.8f,
+                                     .rope_theta = 10000.0f};
+    PhononGenerationResult generated;
+    float actual[32 * 32], trace_conditions[32 * 512], trace_normalized[32 * 32], trace_eos[32];
+    PhononGenerationTrace trace = {.capacity = 32,
+                                   .conditions = trace_conditions,
+                                   .normalized_latents = trace_normalized,
+                                   .eos_logits = trace_eos};
+    if (!phonon_noise_replay(&replay, replay_draws, 32 * 32)) {
+        fprintf(stderr, "closed-loop replay setup failed\n");
+        goto cleanup;
+    }
+    if (!phonon_flow_generate(pack, layers, condition, prefix, tokens, &replay, &config, actual, 32,
+                              &trace, &generated)) {
+        fprintf(stderr, "closed-loop generator failed after %zu frames\n",
+                generated.frames_generated);
+        goto cleanup;
+    }
+    if (generated.frames_generated != 32 || generated.stop_reason != PHONON_STOP_EOS ||
+        replay.replay_cursor != 32 * 32) {
+        fprintf(stderr, "closed-loop stop/replay mismatch frames=%zu reason=%d draws=%zu\n",
+                generated.frames_generated, generated.stop_reason, replay.replay_cursor);
+        goto cleanup;
+    }
+    double max_abs = 0.0;
+    size_t budget_exceedances = 0;
+    for (size_t i = 0; i < 32 * 32; i++) {
+        double error = fabs((double)actual[i] - expected_latents[i]);
+        if (error > max_abs)
+            max_abs = error;
+        if (error > 1e-5 + 1e-3 * fabs((double)expected_latents[i]))
+            budget_exceedances++;
+    }
+    fprintf(stderr,
+            "closed-loop Q8 generation observed max_abs=%.9g budget_exceedances=%zu/1024; stop=32 "
+            "EOS+3\n",
+            max_abs, budget_exceedances);
+    FILE *trace_output = fopen(".build/phonon-flow-generated-trace-v1.bin", "wb");
+    if (!trace_output)
+        goto cleanup;
+    const unsigned char trace_magic[8] = {'P', 'H', 'G', 'E', 'N', '1', 0, 0};
+    uint32_t trace_frames = 32;
+    int trace_ok =
+        fwrite(trace_magic, 1, sizeof(trace_magic), trace_output) == sizeof(trace_magic) &&
+        fwrite(&trace_frames, sizeof(trace_frames), 1, trace_output) == 1;
+    for (size_t frame = 0; frame < 32 && trace_ok; frame++) {
+        trace_ok =
+            fwrite(trace.conditions + frame * 512, sizeof(float), 512, trace_output) == 512 &&
+            fwrite(replay_draws + frame * 32, sizeof(float), 32, trace_output) == 32 &&
+            fwrite(trace.normalized_latents + frame * 32, sizeof(float), 32, trace_output) == 32 &&
+            fwrite(trace.eos_logits + frame, sizeof(float), 1, trace_output) == 1 &&
+            fwrite(actual + frame * 32, sizeof(float), 32, trace_output) == 32;
+    }
+    fclose(trace_output);
+    if (!trace_ok || fabsf(generated.last_eos_logit - expected_eos[31]) >
+                         1e-5f + 1e-3f * fabsf(expected_eos[31]))
+        goto cleanup;
+    config.frame_budget = 1;
+    config.eos_threshold = FLT_MAX;
+    float seeded_first[32], seeded_repeat[32], seeded_other[32];
+    PhononNoiseSource seeded_a, seeded_b, seeded_c;
+    CHECK(phonon_noise_seed(&seeded_a, UINT64_C(987654321)) &&
+          phonon_noise_seed(&seeded_b, UINT64_C(987654321)) &&
+          phonon_noise_seed(&seeded_c, UINT64_C(123456789)));
+    CHECK(phonon_flow_generate(pack, layers, condition, prefix, tokens, &seeded_a, &config,
+                               seeded_first, 1, NULL, &generated));
+    CHECK(generated.frames_generated == 1 && generated.stop_reason == PHONON_STOP_FRAME_BUDGET);
+    CHECK(phonon_flow_generate(pack, layers, condition, prefix, tokens, &seeded_c, &config,
+                               seeded_other, 1, NULL, &generated));
+    CHECK(phonon_flow_generate(pack, layers, condition, prefix, tokens, &seeded_b, &config,
+                               seeded_repeat, 1, NULL, &generated));
+    CHECK(memcmp(seeded_first, seeded_repeat, sizeof(seeded_first)) == 0);
+    CHECK(memcmp(seeded_first, seeded_other, sizeof(seeded_first)) != 0);
+
+    config.frame_budget = 33;
+    config.eos_threshold = FLT_MAX;
+    phonon_noise_reset(&replay);
+    float partial_output[33 * 32];
+    if (phonon_flow_generate(pack, layers, condition, prefix, tokens, &replay, &config,
+                             partial_output, 33, NULL, &generated) ||
+        generated.frames_generated != 32 || generated.stop_reason != PHONON_STOP_NONE)
+        goto cleanup;
+    fprintf(
+        stderr,
+        "closed-loop Q8 generation completed: 32 frames, EOS+3 tail; replay exhaustion rejected\n");
+    result = 0;
+cleanup:
+    free(ids);
+    free(voice);
+    free(expected_voice);
+    free(latents);
+    free(states);
+    free(embedded);
+    free(projected);
+    free(prefix);
+    phonon_pack_close(pack);
+    if (prefix_file)
+        fclose(prefix_file);
+    if (sampler_file)
+        fclose(sampler_file);
+    return result;
+}
+
 int main(void) {
+    CHECK(real_sampler_fixture_check() == 0);
+    CHECK(real_generation_fixture_check() == 0);
     float x[] = {1.0f, -2.0f, 3.0f}, w[] = {2.0f, 0.5f, -1.0f}, y[3];
     CHECK(phonon_rms_norm(x, w, 3, 1e-5f, y));
     float inv = 1.0f / sqrtf((14.0f / 3.0f) + 1e-5f);
