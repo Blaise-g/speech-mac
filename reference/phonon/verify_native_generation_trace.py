@@ -56,11 +56,15 @@ def main() -> None:
     with torch.inference_mode():
         torch_condition = torch.from_numpy(conditions.copy())
         torch_noise = torch.from_numpy(noise.copy()) * np.sqrt(0.8)
-        times_start = torch.zeros((32, 1), dtype=torch.float32)
-        times_end = torch.ones((32, 1), dtype=torch.float32)
-        hf_velocity = model.flow_head(torch_noise, torch_condition, times=[times_start, times_end])
-        hf_normalized = (torch_noise + hf_velocity).cpu().numpy()
-        hf_eos = model.eos_head(torch_condition).reshape(-1).cpu().numpy()
+        # Generation invokes the head once per frame at B1. A B32 diagnostic
+        # changes BLAS reduction shapes and is not its identical-input operator.
+        hf_normalized = torch.cat([
+            model.sample_latent(torch_condition[i:i+1], torch_noise[i:i+1], 1)
+            for i in range(32)
+        ]).cpu().numpy()
+        hf_eos = torch.cat([
+            model.eos_head(torch_condition[i:i+1]) for i in range(32)
+        ]).reshape(-1).cpu().numpy()
     flow_budget = STAGE_BUDGETS["flow_integration"]
     eos_budget = STAGE_BUDGETS["eos_logits"]
     head_ok, head_max, head_bad = within(native_normalized, hf_normalized, flow_budget)

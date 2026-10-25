@@ -1,4 +1,5 @@
 #include "phonon_sampler.h"
+#include "phonon_math.h"
 
 #include <math.h>
 #include <string.h>
@@ -222,24 +223,45 @@ static int affine(const PhononTensorView *weight, const PhononTensorView *bias, 
     return vector(bias, b, rows) && phonon_linear(weight, input, rows, cols, b, output);
 }
 
-static float silu(float x) { return x / (1.0f + expf(-x)); }
+/* PyTorch 2.7.1 SumKernel.cpp: four interleaved NEON vectors, two
+ * 16-group cascade chunks for this model's 512-wide rows. Keep binary32
+ * additions in the source reduction order rather than a serial sum. */
+static float mean_512(const float input[512]) {
+    float sums[4][4] = {{0}};
+    for (size_t chunk = 0; chunk < 2; chunk++) {
+        float partial[4][4] = {{0}};
+        for (size_t group = 0; group < 16; group++)
+            for (size_t vector = 0; vector < 4; vector++)
+                for (size_t lane = 0; lane < 4; lane++)
+                    partial[vector][lane] += input[chunk * 256 + group * 16 + vector * 4 + lane];
+        for (size_t vector = 0; vector < 4; vector++)
+            for (size_t lane = 0; lane < 4; lane++)
+                sums[vector][lane] += partial[vector][lane];
+    }
+    for (size_t vector = 1; vector < 4; vector++)
+        for (size_t lane = 0; lane < 4; lane++)
+            sums[0][lane] += sums[vector][lane];
+    float sum = 0.0f;
+    for (size_t lane = 0; lane < 4; lane++)
+        sum += sums[0][lane];
+    return sum / 512.0f;
+}
 
 static int flow_layer_norm(const float *input, const float *weight, const float *bias,
                            float output[512]) {
-    float sum = 0.0f;
     for (size_t i = 0; i < 512; i++) {
         if (!isfinite(input[i]) || (weight && !isfinite(weight[i])) || (bias && !isfinite(bias[i])))
             return 0;
-        sum += input[i];
     }
-    float mean = sum / 512.0f;
-    float variance_sum = 0.0f;
+    float mean = mean_512(input);
+    /* ReduceOps.cpp std_var_all_cpu uses double centered squares around
+     * the separately computed float mean, then rounds the variance. */
+    double variance_sum = 0.0;
     for (size_t i = 0; i < 512; i++) {
-        float centered = input[i] - mean;
-        float square = centered * centered;
-        variance_sum += square;
+        double centered = (double)input[i] - mean;
+        variance_sum += centered * centered;
     }
-    float variance = variance_sum / 512.0f;
+    float variance = (float)(variance_sum / 512.0);
     float inverse = 1.0f / sqrtf(variance + 1e-6f);
     for (size_t i = 0; i < 512; i++) {
         float centered = input[i] - mean;
@@ -261,23 +283,19 @@ static int time_embedding(const PhononFlowHead *head, size_t which, float value,
         return 0;
     for (size_t i = 0; i < 128; i++) {
         phase[i] = value * freqs[i];
-        embedding[i] = cosf(phase[i]);
-        embedding[i + 128] = sinf(phase[i]);
     }
+    phonon_math_sincos(phase, 128, embedding, embedding + 128);
     if (!affine(&head->time_weight[which][0], &head->time_bias[which][0], embedding, 512, 256,
                 hidden))
         return 0;
-    for (size_t i = 0; i < 512; i++)
-        hidden[i] = silu(hidden[i]);
+    phonon_math_silu(hidden, 512);
     if (!affine(&head->time_weight[which][1], &head->time_bias[which][1], hidden, 512, 512, out) ||
         !vector(&head->time_alpha[which], alpha, 512))
         return 0;
-    float squares = 0.0f;
-    for (size_t i = 0; i < 512; i++) {
-        float square = out[i] * out[i];
-        squares += square;
-    }
-    float mean_square = squares / 512.0f;
+    float squares[512];
+    for (size_t i = 0; i < 512; i++)
+        squares[i] = out[i] * out[i];
+    float mean_square = mean_512(squares);
     float inverse = 1.0f / sqrtf(mean_square + 1e-5f);
     for (size_t i = 0; i < 512; i++) {
         float weighted = alpha[i] * out[i];
@@ -298,8 +316,8 @@ int phonon_flow_head_forward(const PhononFlowHead *head, const float condition[5
     for (size_t i = 0; i < 512; i++)
         y[i] += 0.5f * (time_s[i] + time_t[i]);
     for (size_t block = 0; block < PHONON_FLOW_HEAD_BLOCKS; block++) {
-        for (size_t i = 0; i < 512; i++)
-            normalized[i] = silu(y[i]);
+        memcpy(normalized, y, sizeof(normalized));
+        phonon_math_silu(normalized, 512);
         if (!affine(&head->block_ada_weight[block], &head->block_ada_bias[block], normalized, 1536,
                     512, modulation) ||
             !vector(&head->block_norm_weight[block], norm_w, 512) ||
@@ -314,8 +332,7 @@ int phonon_flow_head_forward(const PhononFlowHead *head, const float condition[5
         if (!affine(&head->block_mlp_weight[block][0], &head->block_mlp_bias[block][0], h, 512, 512,
                     first))
             return 0;
-        for (size_t i = 0; i < 512; i++)
-            first[i] = silu(first[i]);
+        phonon_math_silu(first, 512);
         if (!affine(&head->block_mlp_weight[block][1], &head->block_mlp_bias[block][1], first, 512,
                     512, second))
             return 0;
@@ -324,8 +341,8 @@ int phonon_flow_head_forward(const PhononFlowHead *head, const float condition[5
             x[i] = x[i] + gated;
         }
     }
-    for (size_t i = 0; i < 512; i++)
-        normalized[i] = silu(y[i]);
+    memcpy(normalized, y, sizeof(normalized));
+    phonon_math_silu(normalized, 512);
     if (!affine(&head->final_ada_weight, &head->final_ada_bias, normalized, 1024, 512,
                 modulation) ||
         !flow_layer_norm(x, NULL, NULL, h))
@@ -411,12 +428,10 @@ int phonon_flow_generate(const PhononPack *pack,
     if (!head || !state || !phonon_kv_cache_init(&cache, prefix_length + config->frame_budget) ||
         !phonon_flow_head_load(pack, head))
         goto cleanup;
-    for (size_t position = 0; position < prefix_length; position++) {
-        if (!phonon_flow_stack_step(layers, &cache, position, prefix_embeddings + position * 512,
-                                    config->rope_theta, state) ||
-            !phonon_flow_output_norm(pack, state))
-            goto cleanup;
-    }
+    if (!phonon_flow_stack_prefill(layers, &cache, prefix_embeddings, prefix_length,
+                                   config->rope_theta, state) ||
+        !phonon_flow_output_norm(pack, state))
+        goto cleanup;
     PhononStopState stop;
     if (!phonon_stop_init(&stop, config->frame_budget, config->frames_after_eos))
         goto cleanup;

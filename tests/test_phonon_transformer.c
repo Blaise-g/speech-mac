@@ -1,3 +1,4 @@
+#include "phonon_q8.h"
 #include "phonon_sampler.h"
 #include "phonon_transformer.h"
 #include "phonon_voice.h"
@@ -264,6 +265,25 @@ static int real_prefix_check(void) {
             }
         }
     }
+    /* The authoritative oracle primes the complete prefix in one call. Check
+     * its final state and all subsequent teacher-forced cache consumers too. */
+    phonon_kv_cache_reset(&cache);
+    CHECK(phonon_flow_stack_prefill(layers, &cache, prefix, tokens, 10000.0f, state));
+    CHECK(cache.length == tokens && phonon_flow_output_norm(pack, state));
+    for (size_t j = 0; j < 512; j++)
+        CHECK(fabsf(state[j] - expected[(tokens - 1) * 512 + j]) <=
+              1e-5f + 1e-3f * fabsf(expected[(tokens - 1) * 512 + j]));
+    for (size_t step = 0; step < incremental; step++) {
+        float latent_input[512], normalized_latent[32];
+        CHECK(phonon_flow_normalize_latent(pack, latents + step * 32, normalized_latent));
+        CHECK(phonon_flow_embed_latent(pack, normalized_latent, condition, latent_input));
+        CHECK(phonon_flow_stack_step(layers, &cache, tokens + step, latent_input, 10000.0f, state));
+        CHECK(phonon_flow_output_norm(pack, state));
+        for (size_t j = 0; j < 512; j++)
+            CHECK(fabsf(state[j] - expected[(tokens + step) * 512 + j]) <=
+                  1e-5f + 1e-3f * fabsf(expected[(tokens + step) * 512 + j]));
+    }
+    fprintf(stderr, "real batched Q8 prefill and %zu incremental positions passed\n", incremental);
     fprintf(stderr, "real pinned Q8 cached parity: prefill=%u incremental=%zu max_abs=%.9g\n",
             tokens, incremental, max_error);
     result = 0;
@@ -533,12 +553,34 @@ int main(void) {
     CHECK(phonon_erf_gelu(g, 3));
     CHECK(fabsf(g[0] - (-0.15865526f)) < 1e-6f);
     CHECK(g[1] == 0.0f && fabsf(g[2] - 0.8413447f) < 1e-6f);
+    /* Locked Torch 2.7.1 CPU exact-GELU NEON groups plus a scalar tail.
+     * Hex values retain the independently computed binary32 results exactly. */
+    float neon_gelu[] = {-1.2345f, 0.12345f, 2.34567f, -0.75f, 1.0f, -1.0f, 0.0f, 0.5f, 0.25f};
+    const float neon_expected[] = {
+        -0x1.125648p-3f, 0x1.15aa60p-4f, 0x1.2964fep+1f, -0x1.5c197ap-3f, 0x1.aec4bcp-1f,
+        -0x1.44ed10p-3f, 0.0f,           0x1.62075cp-2f, 0x1.3289a2p-3f};
+    CHECK(phonon_erf_gelu(neon_gelu, 9));
+    CHECK(memcmp(neon_gelu, neon_expected, sizeof(neon_gelu)) == 0);
     float q[] = {1.0f, 0.0f, 0.0f, 1.0f};
     CHECK(phonon_rope_interleaved(q, 4, 1, 1, 10000.0f));
     CHECK(fabsf(q[0] - cosf(1.0f)) < 1e-6f);
     CHECK(fabsf(q[1] - sinf(1.0f)) < 1e-6f);
     CHECK(fabsf(q[2] + sinf(0.01f)) < 1e-6f);
     CHECK(fabsf(q[3] - cosf(0.01f)) < 1e-6f);
+    /* Pinned HF float32 frequency/phase boundaries, interleaved pair1
+     * of a 64-wide head; includes the last supported cache position. */
+    const size_t rope_positions[] = {1, 139, 8191};
+    const float rope_expected[3][2] = {{1.072541714f, 0.315680861f},
+                                       {-1.112550020f, -0.110599607f},
+                                       {-1.111756921f, -0.118306905f}};
+    for (size_t i = 0; i < 3; i++) {
+        float row[64] = {0};
+        row[2] = 1.0f;
+        row[3] = -0.5f;
+        CHECK(phonon_rope_interleaved(row, 64, 1, rope_positions[i], 10000.0f));
+        CHECK(fabsf(row[2] - rope_expected[i][0]) < 3e-7f);
+        CHECK(fabsf(row[3] - rope_expected[i][1]) < 3e-7f);
+    }
     CHECK(!phonon_rope_interleaved(q, 4, 3, 0, 10000.0f));
     CHECK(real_prefix_check() == 0);
     PhononKvCache cache;
@@ -572,6 +614,52 @@ int main(void) {
     float input[] = {3.0f, 2.0f}, output[2];
     CHECK(phonon_linear(&matrix, input, 2, 2, NULL, output));
     CHECK(output[0] == -1.0f && output[1] == 7.0f);
+    /* Pinned Torch 2.7.1 F.linear on contiguous [1,1,32], with all-one
+     * BF16 weights and repeated [1e8,1,-1e8,1], returns [0,0.25].
+     * A double dot followed by bias returns [16,16.25], so this catches
+     * accidentally changing the source SGEMM reduction/affine boundary. */
+    uint16_t cancellation_weights[64];
+    float cancellation_input[32], cancellation_bias[2] = {0.0f, 0.25f};
+    for (size_t i = 0; i < 64; i++)
+        cancellation_weights[i] = 0x3f80;
+    for (size_t i = 0; i < 32; i++)
+        cancellation_input[i] = i % 4 == 0 ? 1e8f : (i % 4 == 2 ? -1e8f : 1.0f);
+    PhononTensorView cancellation = {.dtype = PHONON_PACK_BF16,
+                                     .rank = 2,
+                                     .shape = {2, 32},
+                                     .data = cancellation_weights,
+                                     .byte_count = sizeof(cancellation_weights)};
+    CHECK(phonon_linear(&cancellation, cancellation_input, 2, 32, cancellation_bias, output));
+    CHECK(output[0] == 0.0f && output[1] == 0.25f);
+    cancellation_bias[0] = NAN;
+    CHECK(!phonon_linear(&cancellation, cancellation_input, 2, 32, cancellation_bias, output));
+    cancellation_bias[0] = 0.0f;
+    cancellation_weights[0] = 0x7f80;
+    CHECK(!phonon_linear(&cancellation, cancellation_input, 2, 32, cancellation_bias, output));
+    cancellation_weights[0] = 0x3f80;
+    cancellation.byte_count--;
+    CHECK(!phonon_linear(&cancellation, cancellation_input, 2, 32, cancellation_bias, output));
+    PhononQ8Block cancellation_q8[2] = {{0}};
+    for (size_t row = 0; row < 2; row++) {
+        cancellation_q8[row].scale_bits = 0x3c00;
+        for (size_t col = 0; col < 32; col++)
+            cancellation_q8[row].values[col] = 1;
+    }
+    cancellation.dtype = PHONON_PACK_Q8_0;
+    cancellation.data = cancellation_q8;
+    cancellation.byte_count = sizeof(cancellation_q8);
+    CHECK(phonon_linear(&cancellation, cancellation_input, 2, 32, cancellation_bias, output));
+    CHECK(output[0] == 0.0f && output[1] == 0.25f);
+    for (size_t i = 0; i < 32; i++)
+        cancellation_input[i] = 1.0f;
+    cancellation_q8[0].scale_bits = 0x0001; /* smallest binary16 subnormal */
+    cancellation_q8[1].scale_bits = 0x8000; /* negative zero */
+    CHECK(phonon_linear(&cancellation, cancellation_input, 2, 32, NULL, output));
+    CHECK(output[0] == 0x1p-19f && output[1] == 0.0f);
+    cancellation_q8[0].scale_bits = 0x7c00; /* infinity */
+    CHECK(!phonon_linear(&cancellation, cancellation_input, 2, 32, NULL, output));
+    cancellation_q8[0].scale_bits = 0x7e00; /* NaN */
+    CHECK(!phonon_linear(&cancellation, cancellation_input, 2, 32, NULL, output));
     uint16_t speakers[32 * 16] = {0}, speaker_proj[512 * 16] = {0}, duration_proj[512 * 128] = {0};
     speakers[16] = 0x3f80;
     speaker_proj[0] = 0x4000;
@@ -657,6 +745,27 @@ int main(void) {
                                  .norm1_bias = &nb,
                                  .norm2_weight = &nw,
                                  .norm2_bias = &nb};
+    /* A BF16 identity voice projection anchors independent variable frame
+     * counts without relying on the transformer implementation as an oracle. */
+    for (size_t i = 0; i < 512; i++)
+        zero[1][i * 512 + i] = 0x3f80;
+    float voice_input[7 * 512], voice_output[7 * 512];
+    for (size_t i = 0; i < 7 * 512; i++)
+        voice_input[i] = (float)((int)(i % 61) - 30) / 32.0f;
+    const size_t voice_counts[] = {1, 2, 7};
+    for (size_t count = 0; count < 3; count++) {
+        CHECK(phonon_voice_project(voice_input, voice_counts[count], &views[1], voice_output));
+        for (size_t i = 0; i < voice_counts[count] * 512; i++)
+            CHECK(voice_output[i] == voice_input[i]);
+    }
+    CHECK(!phonon_voice_project(voice_input, 0, &views[1], voice_output));
+    CHECK(!phonon_voice_project(voice_input, 8193, &views[1], voice_output));
+    views[1].byte_count--;
+    CHECK(!phonon_voice_project(voice_input, 2, &views[1], voice_output));
+    views[1].byte_count++;
+    voice_input[0] = NAN;
+    CHECK(!phonon_voice_project(voice_input, 2, &views[1], voice_output));
+    memset(zero[1], 0, counts[1] * sizeof(uint16_t));
     float state[512], next[512];
     for (size_t i = 0; i < 512; ++i)
         state[i] = (float)i / 512.0f;
@@ -675,6 +784,41 @@ int main(void) {
     CHECK(phonon_flow_stack_step(stack, &layer_cache, 1, state, 10000.0f, next));
     CHECK(layer_cache.length == 2);
     phonon_kv_cache_destroy(&layer_cache);
+    /* Zero attention/MLP projections make every layer the identity, independent
+     * of prefix batching. Exercise cache ownership, commit and failure boundaries. */
+    float prefill_input[2 * 512], prefill_output[512];
+    memcpy(prefill_input, state, sizeof(state));
+    for (size_t i = 0; i < 512; i++)
+        prefill_input[512 + i] = -(float)i / 256.0f;
+    PhononKvCache prefill_a, prefill_b;
+    CHECK(phonon_kv_cache_init(&prefill_a, 2));
+    CHECK(phonon_kv_cache_init(&prefill_b, 2));
+    CHECK(
+        !phonon_flow_stack_prefill(stack, &prefill_a, prefill_input, 0, 10000.0f, prefill_output));
+    CHECK(
+        !phonon_flow_stack_prefill(stack, &prefill_a, prefill_input, 3, 10000.0f, prefill_output));
+    CHECK(!phonon_flow_stack_prefill(stack, &prefill_a, prefill_input, 8193, 10000.0f,
+                                     prefill_output));
+    CHECK(phonon_flow_stack_prefill(stack, &prefill_a, prefill_input, 2, 10000.0f, prefill_output));
+    CHECK(prefill_a.length == 2 && prefill_b.length == 0);
+    for (size_t i = 0; i < 512; i++)
+        CHECK(prefill_output[i] == prefill_input[512 + i]);
+    CHECK(
+        !phonon_flow_stack_prefill(stack, &prefill_a, prefill_input, 1, 10000.0f, prefill_output));
+    CHECK(prefill_a.length == 2);
+    phonon_kv_cache_reset(&prefill_a);
+    prefill_output[0] = 123.0f;
+    prefill_input[0] = NAN;
+    CHECK(
+        !phonon_flow_stack_prefill(stack, &prefill_a, prefill_input, 2, 10000.0f, prefill_output));
+    CHECK(prefill_a.length == 0 && prefill_output[0] == 123.0f);
+    prefill_input[0] = 0.0f;
+    CHECK(phonon_flow_stack_prefill(stack, &prefill_a, prefill_input, 1, 10000.0f, prefill_output));
+    CHECK(prefill_a.length == 1);
+    CHECK(phonon_flow_stack_step(stack, &prefill_a, 1, state, 10000.0f, prefill_output));
+    CHECK(prefill_a.length == 2 && prefill_b.length == 0);
+    phonon_kv_cache_destroy(&prefill_a);
+    phonon_kv_cache_destroy(&prefill_b);
     /* Nonzero value and output paths make causal attention observably depend on the cache. */
     zero[0][1024U * 512U] = 0x3f80; /* V[0,0] */
     zero[1][0] = 0x3f80;            /* output[0,0] */

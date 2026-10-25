@@ -34,7 +34,8 @@ int phonon_kv_cache_append(PhononKvCache *cache, size_t layer, size_t position, 
 /* Advance sequence length once after all nine layers have appended a token. */
 int phonon_kv_cache_commit_position(PhononKvCache *cache, size_t position);
 
-/* Stable, allocation-free numerical primitives shared by the Flow-LM. */
+/* Stable numerical primitives shared by the Flow-LM. Linear projections own
+ * and free bounded transient expanded weights; the other primitives do not allocate. */
 int phonon_rms_norm(const float *input, const float *weight, size_t width, float epsilon,
                     float *output);
 int phonon_layer_norm(const float *input, const float *weight, const float *bias, size_t width,
@@ -56,6 +57,13 @@ int phonon_flow_condition(const PhononTensorView *speaker_embeddings,
                           const PhononTensorView *speaker_projection,
                           const PhononTensorView *duration_projection, size_t speaker_count,
                           float duration_delta, float output[PHONON_FLOW_WIDTH]);
+/* Prefill an empty cache with length<=capacity/8192 prefix rows. Input is borrowed;
+ * scratch is call-owned. Success commits the entire prefix and returns its last
+ * unnormalized state. Failure leaves output untouched and resets a started cache. */
+int phonon_flow_stack_prefill(const PhononFlowLayerWeights weights[PHONON_FLOW_LAYERS],
+                              PhononKvCache *cache, const float *input, size_t length, float theta,
+                              float output[512]);
+
 int phonon_voice_project(const float *voice_latents, size_t frames,
                          const PhononTensorView *projection, float *projected);
 int phonon_flow_prepare_prefix(const int32_t *ids, size_t tokens, const float *token_embeddings,
