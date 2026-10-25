@@ -1,0 +1,18 @@
+[project]
+name = "phonon-40m-reference"
+version = "0.1.0"
+description = "Pinned development-only Phonon 40M reference probes"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+  "numpy==2.2.6",
+  "safetensors==0.8.0",
+  "sentencepiece==0.2.1",
+  "protobuf==6.33.1",
+  "torch==2.7.1",
+  "transformers @ git+https://github.com/huggingface/transformers.git@50e35cc0ca18ec19b80653690de553e6decf74f5",
+  "gguf==0.19.0",
+  "accelerate==1.15.0",
+]
+
+[tool.uv]
+package = false
