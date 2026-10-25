@@ -244,9 +244,12 @@ static SpeechStatus synthesize(const SpeechEngine *e, const PhononVoice *voice, 
     if (!projected || !phonon_noise_seed(&noise, o->seed) ||
         !phonon_flow_condition(&e->speakers, &e->speaker_projection, &e->duration_projection, 1,
                                o->duration_delta, condition) ||
-        !phonon_voice_project(phonon_voice_latents(voice), frames, &e->voice_projection,
-                              projected) ||
         !phonon_pcm_state_create(e->pcm, &pcm))
+        goto done;
+    if (phonon_voice_is_projected(voice))
+        memcpy(projected, phonon_voice_latents(voice), frames * 512 * sizeof(float));
+    else if (!phonon_voice_project(phonon_voice_latents(voice), frames, &e->voice_projection,
+                                   projected))
         goto done;
     for (size_t i = 0; i < plan.count; i++) {
         phonon_pcm_state_reset(pcm);

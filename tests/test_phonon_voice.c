@@ -132,6 +132,40 @@ int main(void) {
     CHECK(!phonon_voice_open(path, &voice) && voice == NULL);
     CHECK(write_raw(path, bad_model_ext, 2, 0));
     CHECK(!phonon_voice_open(path, &voice) && voice == NULL);
+    /* Source loader distinguishes names/layout, never width alone. */
+    const char *names[] = {"emb", "audio_prompt"};
+    for (size_t kind = 0; kind < 2; ++kind) {
+        for (int rank = 2; rank <= 3; ++rank) {
+            char projected[512];
+            snprintf(projected, sizeof(projected),
+                     "{\"__metadata__\":{\"model_ext\":\"ba7a5a45@300\"},\"%s\":{\"dtype\":\"F32\","
+                     "\"shape\":%s,\"data_offsets\":[0,4096]}}",
+                     names[kind], rank == 2 ? "[2,512]" : "[1,2,512]");
+            CHECK(write_raw(path, projected, 2, 0));
+            CHECK(phonon_voice_open(path, &voice));
+            CHECK(phonon_voice_is_projected(voice));
+            CHECK(phonon_voice_frames(voice) == 2);
+            CHECK(phonon_voice_latents(voice)[1] == .001f);
+            CHECK(phonon_voice_latents(voice)[512] == .512f);
+            phonon_voice_close(voice);
+            CHECK(write_raw(path, projected, 2, 1));
+            CHECK(!phonon_voice_open(path, &voice));
+        }
+    }
+    const char *invalid_projected[] = {
+        "{\"emb\":{\"dtype\":\"F32\",\"shape\":[2,512],\"data_offsets\":[0,4096]}}",
+        "{\"__metadata__\":{\"model_ext\":\"8aa279a6@100\"},\"emb\":{\"dtype\":\"F32\",\"shape\":["
+        "2,512],\"data_offsets\":[0,4096]}}",
+        "{\"__metadata__\":{\"model_ext\":\"ba7a5a45@300\",\"sig\":\"wrong\"},\"emb\":{\"dtype\":"
+        "\"F32\",\"shape\":[2,512],\"data_offsets\":[0,4096]}}",
+        "{\"__metadata__\":{\"model_ext\":\"ba7a5a45@300\"},\"emb\":{\"dtype\":\"F32\",\"shape\":["
+        "512,2],\"data_offsets\":[0,4096]}}",
+        "{\"__metadata__\":{\"model_ext\":\"ba7a5a45@300\"},\"unknown\":{\"dtype\":\"F32\","
+        "\"shape\":[2,512],\"data_offsets\":[0,4096]}}"};
+    for (size_t i = 0; i < sizeof(invalid_projected) / sizeof(invalid_projected[0]); ++i) {
+        CHECK(write_raw(path, invalid_projected[i], 2, 0));
+        CHECK(!phonon_voice_open(path, &voice) && !voice);
+    }
     remove(path);
     puts("phonon voice safetensors compatibility: ok");
     return 0;

@@ -12,7 +12,9 @@ LDLIBS ?= -framework AudioToolbox -framework Accelerate
 APP_SOURCES := $(shell find src -type f -name '*.c' -print 2>/dev/null | sort)
 MAIN_SOURCES := $(filter %/main.c,$(APP_SOURCES))
 TEST_SOURCES := $(shell find tests -type f -name 'test_*.c' -print 2>/dev/null | sort)
-ENGINE_SOURCES := $(filter-out %/main.c,$(APP_SOURCES))
+ENGINE_SOURCES := $(filter-out %/main.c %/speech_main.c,$(APP_SOURCES))
+SPEECH_SOURCES := src/speech_main.c $(ENGINE_SOURCES)
+LEGACY_SOURCES := src/main.c $(ENGINE_SOURCES)
 C_SOURCES := $(shell find src tests benchmarks -type f -name '*.c' -print 2>/dev/null | sort)
 FORMAT_FILES := $(shell find src tests benchmarks -type f \( -name '*.c' -o -name '*.h' \) -print 2>/dev/null | sort)
 
@@ -69,7 +71,7 @@ typecheck: source-discovery
 	fi
 
 build: source-discovery
-	@if [ -z "$(APP_SOURCES)" ]; then \
+	@set -e; if [ -z "$(APP_SOURCES)" ]; then \
 	  echo 'Build skipped: no runtime C sources yet.'; \
 	elif [ -z "$(MAIN_SOURCES)" ]; then \
 	  mkdir -p $(BUILD_DIR)/obj; \
@@ -82,7 +84,8 @@ build: source-discovery
 	  echo 'Built .build/libkokoro.a; the CLI entrypoint is scheduled for a later ticket.'; \
 	else \
 	  mkdir -p $(BUILD_DIR); \
-	  $(CLANG) $(CPPFLAGS) $(BASE_CFLAGS) $(OPT_CFLAGS) $(APP_SOURCES) $(LDLIBS) -o $(BUILD_DIR)/kokoro; \
+	  $(CLANG) $(CPPFLAGS) $(BASE_CFLAGS) $(OPT_CFLAGS) $(LEGACY_SOURCES) $(LDLIBS) -o $(BUILD_DIR)/kokoro; \
+	  $(CLANG) $(CPPFLAGS) $(BASE_CFLAGS) $(OPT_CFLAGS) $(SPEECH_SOURCES) $(LDLIBS) -o $(BUILD_DIR)/speech-mac; \
 	fi
 
 benchmark-build: source-discovery

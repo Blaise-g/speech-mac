@@ -13,6 +13,7 @@
 
 struct PhononVoice {
     size_t frames;
+    int projected;
     float *latents;
 };
 
@@ -323,7 +324,7 @@ static int parse_metadata(Json *j, Metadata *m) {
     }
 }
 
-static int parse_shape(Json *j, size_t *frames) {
+static int parse_shape(Json *j, size_t *frames, int projected) {
     if (j->p == j->end || *j->p++ != '[')
         return 0;
     uint64_t values[3] = {0};
@@ -340,10 +341,10 @@ static int parse_shape(Json *j, size_t *frames) {
             return 0;
     }
     uint64_t t;
-    if (n == 3 && values[0] == 1 && values[1] == VOICE_WIDTH)
-        t = values[2];
-    else if (n == 2 && values[0] == VOICE_WIDTH)
-        t = values[1];
+    if (n == 3 && values[0] == 1 && values[projected ? 2 : 1] == VOICE_WIDTH)
+        t = values[projected ? 1 : 2];
+    else if (n == 2 && values[projected ? 1 : 0] == VOICE_WIDTH)
+        t = values[projected ? 0 : 1];
     else
         return 0;
     if (!t || t > VOICE_MAX_FRAMES)
@@ -367,7 +368,7 @@ static int parse_offsets(Json *j, uint64_t *start, uint64_t *end) {
     return 1;
 }
 
-static int parse_tensor(Json *j, Tensor *t) {
+static int parse_tensor(Json *j, Tensor *t, int projected) {
     if (j->p == j->end || *j->p++ != '{')
         return 0;
     ws(j);
@@ -388,7 +389,7 @@ static int parse_tensor(Json *j, Tensor *t) {
             t->have_dtype = 1;
             t->dtype_ok = eq(value, "F32");
         } else if (eq(key, "shape")) {
-            if (t->have_shape || !parse_shape(j, &t->frames))
+            if (t->have_shape || !parse_shape(j, &t->frames, projected))
                 return 0;
             t->have_shape = 1;
             t->shape_ok = 1;
@@ -412,7 +413,7 @@ static int parse_tensor(Json *j, Tensor *t) {
     }
 }
 
-static int parse_header(const unsigned char *data, size_t n, size_t *frames) {
+static int parse_header(const unsigned char *data, size_t n, size_t *frames, int *projected) {
     if (memchr(data, 0, n))
         return 0;
     Json j = {data, data + n};
@@ -435,8 +436,9 @@ static int parse_header(const unsigned char *data, size_t n, size_t *frames) {
             if (have_metadata || !parse_metadata(&j, &metadata))
                 return 0;
             have_metadata = 1;
-        } else if (eq(key, "speaker_wavs")) {
-            if (have_tensor || !parse_tensor(&j, &tensor))
+        } else if (eq(key, "speaker_wavs") || eq(key, "emb") || eq(key, "audio_prompt")) {
+            *projected = !eq(key, "speaker_wavs");
+            if (have_tensor || !parse_tensor(&j, &tensor, *projected))
                 return 0;
             have_tensor = 1;
         } else
@@ -451,8 +453,10 @@ static int parse_header(const unsigned char *data, size_t n, size_t *frames) {
         ws(&j);
     }
     ws(&j);
-    if (j.p != j.end || !have_metadata || !metadata.have_sig || !metadata.have_epoch ||
-        !metadata.sig_ok || !metadata.epoch_ok ||
+    if (j.p != j.end || !have_metadata ||
+        (!*projected && (!metadata.have_sig || !metadata.have_epoch)) ||
+        (metadata.have_sig && !metadata.sig_ok) || (metadata.have_epoch && !metadata.epoch_ok) ||
+        (*projected && !metadata.have_model_ext) ||
         (metadata.have_model_ext && !metadata.model_ext_ok) || !have_tensor)
         return 0;
     *frames = tensor.frames;
@@ -509,7 +513,8 @@ int phonon_voice_open(const char *path, PhononVoice **result) {
         return 0;
     }
     size_t frames = 0;
-    if (!parse_header(bytes + 8, (size_t)header_size, &frames)) {
+    int projected = 0;
+    if (!parse_header(bytes + 8, (size_t)header_size, &frames, &projected)) {
         free(bytes);
         return 0;
     }
@@ -531,10 +536,12 @@ int phonon_voice_open(const char *path, PhononVoice **result) {
         return 0;
     }
     voice->frames = frames;
+    voice->projected = projected;
     const unsigned char *data = bytes + data_start;
     for (size_t channel = 0; channel < VOICE_WIDTH; ++channel) {
         for (size_t frame = 0; frame < frames; ++frame) {
-            size_t source = (channel * frames + frame) * 4;
+            size_t source =
+                (projected ? frame * VOICE_WIDTH + channel : channel * frames + frame) * 4;
             uint32_t bits = (uint32_t)data[source] | (uint32_t)data[source + 1] << 8 |
                             (uint32_t)data[source + 2] << 16 | (uint32_t)data[source + 3] << 24;
             float value;
@@ -551,3 +558,5 @@ int phonon_voice_open(const char *path, PhononVoice **result) {
     *result = voice;
     return 1;
 }
+
+int phonon_voice_is_projected(const PhononVoice *voice) { return voice && voice->projected; }

@@ -1,3 +1,28 @@
+# speech-mac CLI (Phonon migration)
+
+`make build` produces `.build/speech-mac` for native Phonon 40M English and `.build/kokoro` for separately checking the legacy implementation during migration. The Phonon command needs only local assets and native macOS libraries at runtime. See [Phonon reference setup](reference/phonon/README.md) for the pinned model and native pack conversion.
+
+```sh
+.build/speech-mac --help
+.build/speech-mac --version
+.build/speech-mac voices --voices-dir /path/to/voices
+.build/speech-mac say 'Hello.' --model /path/to/model.kpack --voices-dir /path/to/voices --output hello.wav
+.build/speech-mac say --file text.txt --model /path/to/model.kpack --voice-file /path/to/voice.safetensors --output file.wav
+printf 'Hello.' | .build/speech-mac say --stdin --model /path/to/model.kpack --voice-file /path/to/voice.safetensors --output stdin.wav
+```
+
+The default pack path is `models/phonon-40m-en.kpack`; the default voice is `voices/default.safetensors`. Install named voices as `<name>.safetensors` in the selected `--voices-dir`; names contain ASCII letters, digits, hyphens or underscores. `voices` lists only artifacts that pass compatibility validation. The catalog is local: filenames select artifacts, and artifact metadata plus the pinned pack establish compatibility. There is no recording encoder, cloud enrollment, or runtime download.
+
+Without `--output`, the CLI writes the completed mono 24 kHz PCM16 WAV to a private temporary file, plays it using macOS `afplay`, then removes it even if playback fails. With `--output`, it writes the WAV without playing it. A single positional argument supplies text (`--` ends option parsing, so `say -- '--ipa'` supplies literal text); `--file PATH` reads UTF-8; `--stdin` or omitted text reads standard input. Inputs are limited to 1 MiB before and after normalization. Conflicting or duplicate inputs/options fail.
+
+Supported controls are `--language en`, `--seed` (decimal 0 through 18446744073709551615, default 0), and finite `--duration-delta` (default 0), the model's native duration conditioning. `--speed`, `-s`, `--ipa`, and Kokoro voice names are unsupported; speed values are never converted. Progressive playback is a later migration step.
+
+Compatible voice schemas are finite F32 `speaker_wavs` shaped `[512,T]` or `[1,512,T]`, with raw metadata `sig=ba7a5a45`, `epoch=300`; or already projected `emb`/`audio_prompt` shaped `[T,512]` or `[1,T,512]`, with `model_ext=ba7a5a45@300`. Here `T` is 1 through 4096. Raw voices are projected exactly once; projected embeddings are used directly. An explicit conflicting signature, epoch or model extension fails. Unbound projected files are rejected; obtain an artifact with verifiable compatibility metadata. The compatible voice identity is the checkpoint's `embeddings_ext`, distinct from its full model identity `8aa279a6@100`. Arbitrary tensor names and multiple voice tensors are rejected.
+
+Automated playback checks use a callback stub and inspect the completed WAV and temporary permissions/cleanup. Real-model CLI checks are opt-in through `PHONON_CLI_PACK`, `PHONON_DEFAULT_VOICE` and `PHONON_PROJECTED_VOICE`; they save audition WAVs but do not play sound. Listening acceptance remains separate from numerical validation.
+
+The following sections describe the legacy implementation pending its removal.
+
 # Kokoro native for macOS
 
 Native C inference for Kokoro-82M v1.0, targeting Apple Silicon macOS. The initial runtime will use Accelerate. Python is reserved for reference checks and weight conversion; it will not be part of the shipped inference path.
