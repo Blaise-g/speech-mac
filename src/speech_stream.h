@@ -12,11 +12,17 @@ typedef struct {
     size_t submitted_samples, reclaimed_buffers;
     double first_reclaimed;
 } SpeechStreamMetrics;
-/* Engine, voice, text, options.language/cancel_context and playback context remain
- * borrowed and immutable until wait/free returns. Options itself is copied.
+/* Engine, voice, text and options.language remain borrowed and immutable through
+ * producer completion. The borrowed playback ops table must stay valid and
+ * unmodified through completion. Options values are copied.
+ * cancel_context and playback_context storage remain borrowed and alive through
+ * producer completion. Their state may be mutable; callers synchronize concurrent
+ * external access. Cancellation callbacks run only on the producer, including
+ * numerical work.
  * Playback submit must copy PCM before returning. No whole-utterance PCM queue.
- * One control owner calls wait/free; cancel may run concurrently with that owner.
- * Cancellation callbacks run only on the producer, including numerical work. */
+ * One control owner calls wait/free; cancel may overlap wait. Before free, callers
+ * must prevent new external cancel calls and join or otherwise synchronize all
+ * existing cancel callers. Keep the stream handle alive while any call uses it. */
 KokoroStatus speech_stream_start(const SpeechEngine *, const PhononVoice *, const char *, size_t,
                                  const SpeechOptions *, SpeechStream **, KokoroError *);
 /* Playback-only injection: inference always runs the actual resident engine. */
