@@ -1,171 +1,98 @@
-# Native Kokoro inference for macOS
+# speech-mac: native Phonon migration
 
 Status: ready-for-agent
 
+This is the active Requirement Source for the Phonon migration. It supersedes the Kokoro product and architecture requirements. The previous source is preserved in `kokoro-spec-archive.md`; tickets 00–18 and their evidence remain historical records, including their open criteria. They are not blockers for this migration.
+
+## Run preferences
+
+- Use the orchestrate workflow and present a concrete Run Plan for approval before implementation.
+- Rename the project, CLI, and GitHub repository to `speech-mac`.
+- Start with the largest published Phonon size, the linked English 40M model. Additional language variants are deferred.
+- Remove Kokoro support. Retain the current user-facing tasks with Phonon-specific options replacing Kokoro-specific options.
+- Use readable, fast native C in the spirit of antirez / Salvatore Sanfilippo's inference projects, optimized for Apple Silicon macOS.
+- Accept named and local voice selection, language controls where supported, a seed, and the model's native speaking-rate control.
+- The user can supply model downloads or a locally saved Hugging Face access token as needed.
+- On 2026-10-25 the user approved the complete Run Plan for tickets 19–35, including the final GitHub rename, branch push, and one pull request to main.
+- The user's approval says: "use implement lite with effort low for all". Use `implement-lite` with low effort for every implementation and fix worker, retaining the project's GPT-6 Luna model. This overrides the earlier xhigh instruction. Run independent reviews at low effort as well.
+
 ## Problem Statement
 
-Build a fast, working Kokoro text-to-speech implementation for macOS on Apple Silicon, with readable C inference in the spirit of antirez's inference projects. Prioritize getting correct speech working and measuring performance; polish can follow.
+The repository is tied to Kokoro, but the user wants the same local speech-generation workflows using Phonon 40M English. The name and maintained interfaces should describe a macOS speech tool. The replacement must produce correct speech and use the Mac efficiently, with measurements supporting optimization claims.
 
 ## Decisions
 
-- Implement Kokoro-82M v1.0 inference directly in C. Embedding an existing inference runtime does not meet the agreed objective.
-- Target macOS on Apple Silicon first. Additional platforms are deferred to keep the initial delivery focused.
-- Permit Accelerate, Apple frameworks, and a small Objective-C bridge. Start with Accelerate; add Metal only where profiling justifies it.
-- Permit Python for reference validation and weight conversion, but not as a shipped inference dependency.
-- Accept ordinary English text using eSpeak NG initially. Differences from the official Misaki pronunciation frontend are acceptable; reproducing Misaki is deferred.
-- Also accept prepared phonemes so model correctness can be assessed independently of pronunciation differences.
-- Use one voice for initial validation and generate WAV audio through a CLI. Keep model weights resident in the reusable engine for repeated requests.
-- Prioritize short replies and first-audio latency, then sustained generation speed. Establish numerical targets from measurements, not assumptions.
-- Require reference comparisons and intelligible audio without obvious artifacts. Packaging and interface polish may be deferred; correctness may not.
-- User specifies GPT-6 Luna at xhigh effort with implement-lite for implementation workers. Setup is one worker applying project-setup. This explicit profile overrides the orchestration skill's normal implementation-profile selection.
+- Use `speech-mac` for the maintained project and command. A model-specific name was rejected because the user wants a general project identity. General naming does not require a plugin system or speculative support for other models.
+- Use `gradium/phonon-40m-en` initially. The 31M model was rejected because the user requested the largest version. Multilingual and other single-language checkpoints are outside this first migration.
+- Replace the Kokoro backend completely by the end of the run. Do not ship a compatibility backend. Preserve useful platform and I/O behavior when it passes the new requirements; do not preserve obsolete model code merely for reuse.
+- Keep shipped inference native C17 on Apple Silicon, with explicit ownership and narrow numerical/platform interfaces. Python is permitted for development reference checks and conversion. Wrapping Gradium's Rust runtime or using an embedded inference runtime would not meet the native-C objective. Existing standards favor Accelerate/NEON first and allow Metal only when profiling justifies it.
+- Preserve positional text, UTF-8 files, standard input, completed WAV output, local playback, streaming playback, and a reusable engine with resident model weights. Generation must deliver progressive audio according to the new model rather than depend on the former sentence-completion boundary.
+- Replace Kokoro's phoneme frontend, IPA vocabulary, style artifacts, voice names, and speed semantics with the target model's text, voice, and generation semantics. Reject obsolete options clearly and document migration. Do not advertise unsupported controls or silently reinterpret the old speed scale.
+- Support the default voice, compatible installed named voices, and compatible local voice artifacts. Voice cloning/design through a cloud service and direct cloning from recordings are outside scope.
+- Measure correctness before optimizing. Preserve documented numerical budgets, replayable generation inputs, and streaming/batch equivalence where applicable. Report first PCM readiness, playback events, and acoustic onset separately.
+- Keep model assets ignored and independently licensed. Access is needed for real-model checks. A browser download supplied by the user is acceptable; do not substitute 31M or mark skipped checks as passing 40M validation.
 
 ## Scope
 
-Local development foundation and tracker; reproducible reference and conversion tools; complete native C model inference; English frontend and phoneme input; reusable resident-model engine; WAV CLI; correctness and listening checks; cold and warm performance measurement; targeted optimization supported by measurements.
+- Replace model asset/reference tooling, inference, frontend, and model-specific tests for Phonon 40M English.
+- Deliver the current CLI and resident-engine tasks under the new identity, including voices, supported generation controls, error handling, streaming, cancellation, and bounded buffering.
+- Update build/check tooling, documentation, glossary, architecture records, tracker guidance, and maintained examples for the migration.
+- Establish reproducible correctness and Apple Silicon performance results, then apply and measure useful optimizations.
+- Rename the GitHub repository as a separately sequenced administrative step, preserving history and verifying remote/CI behavior. The Run Plan must name the exact action and timing.
+- Preserve historical tracker/evidence records with their historical identity. Remove Kokoro from supported runtime paths, dependencies, commands, and maintained setup instructions.
 
 ## Out of Scope
 
-Additional languages or platforms, broad voice coverage, polished packaging, elaborate APIs, live playback and incremental audio delivery in the first milestone, model training, remote publication, merging, and deployment.
+Other model families or platforms; additional Phonon languages in this run; model training; hosted speech services; voice cloning/design APIs; a GUI; speculative abstraction frameworks; merging and deployment.
 
 ## Acceptance
 
-- A documented local build runs the model on Apple Silicon without Python in the runtime inference path.
-- The CLI turns ordinary English text into a valid WAV using the initial supported voice.
-- Direct phoneme inputs can be compared against the official reference with identical model inputs and recorded numerical tolerances.
-- Reference checks cover meaningful intermediate outputs as needed to isolate errors; final audio is checked for intelligibility and artifacts.
-- Repeated requests reuse loaded weights through the engine.
-- Cold start, warm synthesis time, generated audio duration, and throughput are measured on an identified Mac; first-audio latency is reported with its exact output semantics.
-- Measured bottlenecks guide optimization, with correctness checked after changes.
-- Verification reports distinguish executed checks, empty suites, blocked checks, and unverified listening judgments.
+- A documented build produces `speech-mac` on Apple Silicon. Inference and the ordinary text frontend require no Python, Rust, eSpeak, Core ML, or embedded model runtime at execution time.
+- The pinned 40M English model, tokenizer, configuration, and default voice are verified and reproducible. Manually supplied artifacts are checked against authoritative provenance before use. Required license notices and access instructions are documented.
+- Ordinary English text works from positional input, a UTF-8 file, and standard input. WAV output is valid mono 24 kHz audio. Default playback and progressive streaming work; cancellation, long input, malformed input, and resource cleanup have meaningful checks.
+- Voice discovery/selection and local compatible voice files work. Supported generation options are documented and validated. Removed Kokoro-specific options fail with actionable guidance.
+- Repeated requests reuse loaded weights, reset request state correctly, and do not leak generation state between voices or requests. Streaming buffers and model context have explicit bounds or limits.
+- Reference comparisons cover deterministic inputs, meaningful intermediate outputs, and final audio. Random inputs can be replayed rather than assuming different runtimes share a PRNG. Tolerances and stop/flush semantics are explicit. Listening evidence is distinguished from numerical checks and user listening acceptance.
+- Benchmarks identify the Mac, model/config/voice revisions, source/build, generation settings, sample counts, raw timings, cold/warm state, first PCM readiness, throughput/RTF, and memory. Playback timing is kept distinct from synthesized PCM availability and acoustic onset.
+- Optimization is measured against a correct baseline on the same host/workload, with unchanged correctness budgets. Only gains beyond observed variation are claimed; unsuccessful attempts and remaining bottlenecks are reported candidly.
+- Run `make format` then `make check`, relevant locked-uv reference checks, independent changed-path review before commits, and whole-branch review. Missing model/device checks remain explicit blockers or open acceptance criteria.
+- Maintained code/build/reference dependencies and setup no longer support Kokoro. Project/CLI identity is consistent; the planned GitHub rename and remote/CI checks are verified if authorized in the Run Plan. Historical records remain attributable to their original runs.
 
 ## Glossary and ADRs
 
-Use the foundation's glossary and decision records where present. Here, frontend means conversion from English text into phonemes; inference means conversion from phonemes, voice style, and speed into audio; resident engine means weights remain loaded across synthesis requests. No other domain decisions are implied.
+- Read `GLOSSARY.md`, `CODING_STANDARDS.md`, and `docs/adr/0001-native-inference.md`. Replace their Kokoro-specific active definitions as part of the migration, preserving historical decision context.
+- The new frontend normalizes and tokenizes ordinary text. A voice conditions generation using a compatible local artifact. A resident engine holds model weights across requests; request-specific generation and decoder state must be reset or explicitly retained by the API contract.
+- Primary technical sources: https://huggingface.co/gradium/phonon-40m-en and https://github.com/gradium-ai/xn-ptts. Architectural references: https://github.com/antirez/qwen-asr and https://github.com/antirez/voxtral.c.
+- Planning-time model revision: `cc738b7e4d182c2ba1bafb8062aa4846af000637`. Verify and pin the artifacts actually used; do not assume current-main browser downloads match without verification.
+- Shared user download location: `/Volumes/Code/Personal/speech-mac-models/phonon-40m-en/`. Keep it outside worktrees so cleanup cannot remove it.
+
+## Planning evidence
+
+- Base: `67e66a3486c68aa2ad2c0ce33b0e01eda8d12669`, confirmed against GitHub's default branch through the API on 2026-10-25. No open pull requests were returned at entry.
+- Worktree-parent and Git-common-directory write probes passed. Launcher preflight passed the base hook, with ignored model-backed checks explicitly skipped in its staged snapshot.
+- Pinned 40M access initially returned HTTP 403, then returned HTTP 200 after the user saved a replacement local token on 2026-10-25. Eight required artifacts were downloaded and verified against revision-specific authoritative sizes and LFS SHA-256 or Git blob IDs. The manifest is `/Volumes/Code/Personal/speech-mac-models/phonon-40m-en/local-verification.json`. Real-model inference and parity have not yet been executed.
+- The initial cleanup fetch timed out. Cleanup succeeded using the exact API-confirmed base SHA, removing two clean merged historical worktrees and their branches. Main-checkout ignored cache symlinks into an old worktree were found dangling after cleanup. The locked reference environment and hash-verified original assets/native packs were rebuilt under main's ignored `.local-cache/`; both links now point there. Main's tracked tree remains unchanged.
+- A per-command `gh auth git-credential` helper made `git ls-remote` succeed at the exact base without changing global configuration. GitHub returned HTTP 404 for the proposed `Blaise-g/speech-mac` target at preflight; recheck before renaming.
 
 ## Implementation Decisions
 
-- Implement the inference graph in readable C17, using Accelerate behind narrow numerical-operation seams when it serves the accepted Apple Silicon target. Do not embed a model runtime; Python remains development-only for reference, fixture, and weight conversion work.
-- Use the official Kokoro-82M v1.0 config and checkpoint as the model contract. Pin immutable revisions and hashes in the reference/conversion work before producing fixtures. Use `af_heart` for the initial reference and add the requested `am_adam` as an English voice artifact in ticket 10; keep eSpeak NG in the English frontend boundary.
-- Treat the module boundaries in tickets 02–08 as the stable backend seams. Use a versioned C-readable weight pack produced from official weights, stored outside Git, and load it into a resident engine that accepts prepared phonemes, voice style, and speed and returns mono 24 kHz audio.
-- Add no Metal path or abstraction in advance. A separate ticket can be proposed only if the measured profile demonstrates a suitable bottleneck and likely benefit.
+1. Pin source/runtime/model/artifact/voice revisions and hashes above. Actual config: nine-layer Flow-LM512/heads8/FFN2048, flow-depth6/width512/latent32, RMS-time norm, erf-GELU, temp.8/one LSD step/EOS4; Mimi float two-layer512/heads8/context250, ratios6,5,4,12.5Hz→24k. Speaker encoder unnecessary for precomputed local voices; required speaker projection and compatibility metadata `ba7a5a45@300` retained. Development oracle may execute pinned Rust; shipped runtime may not.
+2. Native C17 boundaries: checked packed assets; English normalization+Unigram frontend; numerical kernels; voice/condition priming; cached Flow-LM; replayable flow sampler; bounded Mimi; one resident request machine; CLI/WAV/platform playback. Reject speculative plugin framework, embedded Rust/Python/eSpeak/CoreML and sentence-complete streaming.
+3. Preserve published Q8 transformer encodings plus required floats; version/hash/layout explicit. Correct packed CPU path first, Accelerate/NEON behind narrow seams. No unsupported Q4, experimental Mimi Q8 or Metal. Read actual downloaded tensor types before implementation promises.
+4. Match pinned default English normalization/tokenizer semantics natively. Ordered bounded fitting preserves input or errors. Validate en, seed and duration_delta; do not advertise extra speculative controls. Old Kokoro speed scale is removed, not reinterpreted.
+5. Installed named/default/local compatible voices are local inputs with manifest/catalog/metadata validation. No cloud service, audio-recording encoder or runtime network requirement. All mutable generation/decoder/DSP state resets between requests; weights stay resident. Public buffer ownership, callbacks, cancellation, drain and limits are explicit.
+6. Reference gate19 identifies trained Mimi context semantics and independent pinned correct oracle (or minimal provenance-bearing patch). Freeze decoder budgets only after reconciliation. Include >250-position/uneven-batch fixtures. Never use buggy pinned output silently as truth or loosen tolerances to hide context/tail defects. Record intentional upstream differences.
+7. Expand Phonon alongside legacy only for independently checkable intermediate commits, then migrate tasks and delete maintained legacy support. Preserve historical identity/evidence. speech-mac API/CLI/build identity is maintained; final separate remote rename uses exact action above, with no local root move.
+8. Implementation Workers: implement-lite/gpt-6-luna/low local override; record starting SHA. Defect-revealing tests, format then check and relevant locked-uv reference checks, independent changed-path review before Ticket-trailed commits, whole-branch independent review at acceptance. No behavior means explicitly empty test suite.
+
+
+9. Every implementation and fix worker resolves to `implement-lite` / `gpt-6-luna` / `low`, per the user's 2026-10-25 approval; this overrides local xhigh guidance without changing global configuration. Reviews also use Luna/low.
 
 ## Testing Decisions
 
-- Before native C inference work, set per-stage and final-audio numerical budgets from repeated-reference behavior and documented float-precision rationale. Test each C module at its stable input/output seam against oracle fixtures using those fixed budgets; a miss triggers diagnosis and a fix, with budget changes requiring independent evidence and written rationale. Test shape, masking, alignment, length, error, and finite-value invariants separately where exact numeric equality is not the right assertion.
-- Test the assembled engine using the highest available seam: direct phoneme-to-waveform reference comparison, controlled excitation for reproducibility, repeat requests against one resident engine, and CLI WAV inspection. Ticket 09 records audition artifacts; ticket 14 holds final human listening acceptance so pending listening does not block technical follow-on tickets.
-- Run `make format` followed by `make check` and an independent review before each commit. The English frontend gets token/ID tests and CLI checks for positional text, UTF-8 file, standard input, IPA bypass, voice selection, and long input across sentence-aware chunks; benchmark and optimization tickets record the exact Mac/workload and use repeated paired measurements. Ticket 12 continues to define first-audio latency as availability of the complete in-memory waveform, with WAV write completion reported separately. Set any performance acceptance bound from observed baseline variation, never from an assumed number.
-
-## User scope amendment — 2026-10-11
-
-The user requests a minimal useful CLI: `kokoro say` with positional text, `-f/--file` UTF-8 text file, or stdin; `-v/--voice`, `-s/--speed`, `-o/--output`, `--ipa`, `--list-voices`, help/version. Use completed-WAV macOS playback when no output is requested. Process long input without silent truncation. Support the initial English voices af_heart and am_adam. This supersedes the original one-voice and playback-deferral scope for tickets 10–11. Streaming, daemon mode, quantization and broad voice/language coverage remain deferred at the user’s request to keep the first release simple. Reference performance/size claims are not native implementation promises.
-
-## Whole-branch review — 2026-10-12
-
-Reviewed base `963ce48eb1da6f6b067588b067e6d325313bcf93` through `b69274b9cfc5abc32567f39353131536822cdfa6`. Report-only review covered Correctness, Spec, Standards, Reuse, Quality and Efficiency. Generated binaries and full lock records were not visually inspected; their producers, consumers, manifests and provenance were reviewed. No configured Git remote exists, so forge overlap is not applicable.
-
-| Id | Finding | Applied / rejected / deferred | Reason | Verified by |
-| --- | --- | --- | --- | --- |
-| R-1 | Public voice-style row size could overflow when multiplying by sizeof(float). | applied | Check full F32 row size before multiplication; reject crafted [2^54+1,1,256] view. | `a36e879e63d2fafff8d210346ced578e02b0589b`; coordinator parser regression passed; worker full real-model check passed. |
-
-Review summary: one accepted correctness finding fixed, no remaining accepted findings. Earlier ticket06 helper-sharing question requires no refactor: stage weights/shapes/layouts differ and no concrete benefit justifies a larger common layer for this release. Tickets13/14 remain open as recorded.
-
-## User follow-up — CoreML comparison and streaming plan, 2026-10-12
-
-### Problem statement
-
-Compare the working native C implementation with the already-installed Jud/kokoro-coreml CLI using the user's example `kokoro say "hello from the terminal"` and representative longer input. Measure speed and computational resources, preserve a baseline for future improvements, and then plan streaming. Do not assume C is faster or more efficient merely because of the implementation language.
-
-### Decisions and scope
-
-- Use the installed CoreML executable `/opt/homebrew/bin/kokoro` (observed version0.11.2) and the current native release binary; do not upgrade or replace the existing installation. Pin executable/source/model provenance where observable.
-- Compare matched voice, speed and text, plus identical prepared IPA when both interfaces support it. Report generated durations and frontend/precision/output-format differences.
-- Repeat runs and separate cold fresh-process CLI, existing resident/native-engine, and CoreML resident/daemon modes. Do not label a daemon client-only CPU/RSS sample as the entire inference service's resource usage. No OS/model cache purge.
-- Record end-to-end latency, audio throughput, CPU seconds, peak process RSS and model asset sizes where measurable. State GPU/ANE attribution and memory-accounting limits instead of inventing total hardware efficiency.
-- Benchmark without speaker playback; write outputs into project-owned or temporary paths. Any benchmark-started daemon must be cleaned up and original state restored; do not stop a pre-existing user daemon or change persistent launch settings.
-- Retain raw results and a comparison report with repeatable commands and a run/provenance schema so future improvements can be compared without losing historical baselines.
-- After the comparison, produce a minimal native streaming plan with requirements, proposed interface, chunks/playback/backpressure/cancellation, first-audio metrics and acceptance tests. Stream means playback begins after the first synthesized chunk while later chunks are still being produced. Implementation is not authorized by this request; this follow-up delivers the plan only.
-- Preserve current simple CLI and accuracy constraints. A daemon, Metal backend, quantization or wider language support remains separate future work unless measurements justify a later proposal.
-
-### Acceptance
-
-A benchmark report distinguishes measured results from source claims, includes the exact installed version and native revision, documents cold/warm/resource scopes, and says which implementation wins for each workload without presuming a winner. Data and rerun commands support future comparison. The streaming plan follows the measured latency/resource bottlenecks and names a small first delivery plus deferred work.
-
-The user explicitly requested this follow-up, so the existing run is extended by tickets15 comparison then16 streaming plan, with the same Luna xhigh worker profile and local branch/worktree/no remote publication. Original13 optimization and14 listening remain open rather than blocking the new comparison.
-
-## Implementation Decisions
-
-- Ticket 15 compares the installed `/opt/homebrew/bin/kokoro` v0.11.2 executable with the native release build from the current run. Do not upgrade or replace the installed tool. Preserve every raw comparison run under new `artifacts/15-coreml-comparison*` paths, with executable/source/model/build provenance and rerun commands; leave ticket 12 artifacts intact. Record CLI, resident-engine, and daemon modes only where their interfaces support them, and identify whether CPU/RSS samples cover the client, service, or both.
-- Reuse ticket 12's native benchmark driver and reporting conventions, adding only comparison-specific runner/report code or minor native-driver instrumentation when required. Distinguish OS-reported peak RSS from interval-sampled RSS, and daemon-lifetime resource use from per-request CPU deltas. Treat unavailable GPU/ANE and associated memory attribution as an explicit measurement limit rather than a blocker.
-- Match the exact short user example and a representative longer input at `af_heart`, speed `1.0`; compare identical prepared IPA only where both CLIs support that input. Keep pronunciation frontend, numeric precision, output sample format, and audio format differences visible. Report fresh-process state without purging operating-system or model caches. Do not assume a winner, or claim GPU/ANE or total hardware efficiency when the metric cannot observe it.
-- Ticket 16 produces a design document only. The first proposed slice is opt-in, sentence-aware chunk playback using the existing frontend's input bounds and resident engine; one model request still produces each complete audio chunk. The design names the smallest playback API and bounded buffer supported by ticket 15 measurements, documents ownership, ordering, backpressure, cancellation and error cleanup, and leaves the existing completed-WAV default intact. A daemon, Metal, quantization, wider language support, and within-request incremental decoding require separate evidence and scope.
-
-## Testing Decisions
-
-- Ticket 15 adds focused Python report/parser tests using the locked `uv` environment and fixtures or stubs, not a live CoreML model or daemon. Tests cover sample/provenance preservation, mismatched workloads or measurement modes, unknown metric and process scopes, and per-workload outcomes without an assumed global winner. The device benchmark is separately reported with exact commands and retains all raw repeats.
-- Ticket 16's design specifies future defect-revealing tests at the highest useful engine/playback seams: ordered chunk completeness and batch equivalence under the existing fixed numerical budget; bounded-buffer producer backpressure; cancellation during synthesis and while waiting; playback of the first chunk before later chunks finish; error cleanup; and repeated engine requests. It adds no streaming implementation or runtime test in this planning extension.
-
-## Architectural standard reaffirmed — 2026-10-12
-
-The user reaffirmed antirez's [qwen-asr](https://github.com/antirez/qwen-asr) and [voxtral.c](https://github.com/antirez/voxtral.c) as the continuing structural standard. Keep native C inference, explicit weight/numerical/model/CLI boundaries, a small reusable API, and narrow platform adapters. Their ASR algorithms are references for structure; Kokoro retains its own TTS graph. The standard is recorded in `CODING_STANDARDS.md` and mapped to the current modules in `docs/streaming-plan.md`. CoreML is a comparison target, not the native runtime architecture.
-
-The user also confirmed further Apple Silicon optimization after streaming. Keep the saved comparison baseline, profile the resulting C path, and prioritize measured Accelerate/NEON opportunities. An isolated Metal path needs a suitable measured bottleneck and separate scope. Preserve the fixed accuracy budgets and report gains against observed variation; no backend or speedup is assumed.
-
-## Follow-up per-ticket review triage — 2026-10-12
-
-| Id | Finding | Applied / rejected / deferred | Reason | Verified by |
-| --- | --- | --- | --- | --- |
-| T15-R1 | Daemon startup/resource failure could escape cleanup. | applied | Cleanup checks ownership before stopping; preserve foreign processes. | `fc8f34e`; coordinator 20 comparison tests, including lifecycle failures, passed. |
-| T15-R2 | External output paths failed after measurements. | applied | Reject unsupported paths before starting the benchmark. | `fc8f34e`; output-path regression passed. |
-| T15-R3 | Provenance mismatch/preservation lacked regression coverage. | applied | Exercise mismatch rejection and raw-record preservation. | `fc8f34e`; provenance regressions passed. |
-| T15-R4 | Mach ticks were named/converted as nanoseconds. | applied | Use host125/3 timebase, retain original capture and tick values, document correction. | `fc8f34e`; conversion tests and coordinator original-hash/report recomputation passed. |
-| T15-R5 | Daemon records were duplicated under each workload. | applied | Retain one top-level daemon record. | `fc8f34e`; artifact review and report recomputation passed. |
-| T15-R6 | Resident throughput used mismatched frontend timing scopes. | applied | Compare waveform-ready timing for both tools. | `fc8f34e`; scope regression and raw-report recomputation passed. |
-| T16-C01 | Buffer reuse did not establish successful playback drain. | applied | Graceful stop plus running-state notification defines completion. | `715a19e`; static design review. |
-| T16-C02 | Cancellation result and completion race were undefined. | applied | Proposed appended cancellation status; first terminal result wins under lock. | `715a19e`; static design review. |
-| T16-C03 | Callback timing overstated audio consumption/rendering. | applied | Name reclamation separately; render/acoustic timing unavailable without independent evidence. | `715a19e`; static design review. |
-
-No remaining accepted per-ticket findings. Ticket15 benchmark is verified; ticket16 design is verified. Original13 optimization and14 listening remain open. Streaming runtime code and device acceptance are not implemented by the design ticket.
-
-## Final follow-up integration review — 2026-10-12
-
-Review covered `602cd584675f8fccb7fd81523538342d5c0271bc` through `15bfa9a2e1d4f4dbce4b12e0f6f066059f2960a5`, with whole-branch context from the earlier base963ce48 review and separately verified voice-size overflow fix. All six lenses were applied. Unchanged graph/fixture coverage was carried forward; new benchmark producers, selected structured records, report claims and cross-ticket CLI/frontend/resident-engine boundaries were examined. Large raw JSON, binary fixtures/model payloads and unchanged generated lock records were not visually read in full; coordinator recomputed the report/outcomes, sample counts and original-capture hash. `git remote -v` has no remotes, so no forge overlap query applies.
-
-| Id | Finding | Applied / rejected / deferred | Reason | Verified by |
-| --- | --- | --- | --- | --- |
-| F-R1 | Startup exception/interruption could bypass owned-daemon cleanup. | applied | Capture the guarded launcher through interruption; recover only explicit PID evidence and signal the verified owned PID directly. Report unknown ownership or failed stop rather than touching foreign processes. | `0ec22215643a9407c67f0bdd2db818cc55a714ae`; coordinator 30 focused tests passed, independent fix review clear, unchanged historical artifacts verified. |
-
-One applied integration finding, no remaining accepted findings. Earlier nine follow-up per-ticket findings remain applied as recorded above. The installed CLI's startup/cleanup lifecycle was smoke-tested; one task-owned hung process required coordinator force termination after exact executable/start-time verification. Final escalated status is stopped and its matching stale metadata is removed. No installation, model assets or persistent launch settings were changed. These lifecycle checks do not alter the benchmark results or establish hardware energy efficiency.
-
-## Authorized streaming implementation — 2026-10-12
-
-The user requested and merged native [PR1](https://github.com/Blaise-g/kokoro-mac/pull/1) after its exact-head CI check passed; the subsequent [merged-main CI run](https://github.com/Blaise-g/kokoro-mac/actions/runs/38265891128) also succeeded. The verified main merge commit is `81aad9657d00d63a352c5e52affe4f07f1b91ab2`; remote setup and its private-repository CI limitation are documented in `docs/remote-setup.md`.
-
-The user approved both stages in `docs/streaming-plan.md`. Tickets 17 and 18 run in order on `feat/kokoro-streaming` from the verified merge commit. Implementation workers use `implement-lite · xhigh · gpt-6-luna`; one repository worker and its reviewer run at a time, with project Python commands through locked `uv`. Pushing the completed branch and opening a PR are authorized; merging that PR needs a separate approval.
-
-## Implementation Decisions — Streaming run
-
-- Add opt-in `--stream` playback over the existing resident engine and fully prepared sentence/context-bounded frontend chunks. Preserve the completed-WAV default and all existing text, file, stdin, IPA, voice, and speed behavior; reject `--stream -o/--output` for this first delivery. Full input validation and chunk preparation finish before synthesis; incremental input and within-request decoding remain deferred.
-- Preserve each configured seed plus the chunk index (default seed `104729`) and the existing style row `token_count - 3`. Keep chunk order, mono 24 kHz float output, and all fixed numerical budgets. Use a narrow AudioQueue adapter with three 4096-frame buffers and one producer holding at most one complete model-chunk waveform; busy buffers apply backpressure.
-- Define stream ownership and terminal results explicitly: the stream borrows the engine and immutable chunks until wait/join completes, appends `KOKORO_CANCELLED` without renumbering existing statuses, and preserves the first terminal result. Normal completion waits for AudioQueue's stopped state after graceful drain; cancellation and errors stop playback immediately and join the producer before releasing borrowed data. Signal handlers only set a signal-safe flag; normal control flow performs cancellation and AudioQueue work.
-- After streaming correctness, record the specified monotonic playback events and attempt a bounded, profile-guided Apple Silicon optimization. Preserve ticket 15's historical artifacts, use new dated run artifacts, and make no performance claim without fixed-budget parity and paired before/after results that exceed contemporaneous variation. Ticket 12 and 15 remain context, not a fixed threshold. Metal, quantization, daemon mode, precision changes, and unrelated scope are excluded.
-
-## Testing Decisions — Streaming run
-
-- Ticket 17 adds deterministic fake-consumer coverage for stream/batch float parity, complete ordered samples, full-buffer producer wait/resume, and actual first-PCM consumption/reclamation while final-chunk synthesis is deliberately blocked. Cover cancellation during synthesis, buffer wait, and drain; startup/enqueue/drain/synthesis error cleanup; repeated engine requests; and supported/rejected CLI options. Callbacks do not run inference or wait. Device lifecycle checks may submit silence; do not run an unintended audible speaker benchmark. Report any listening result separately.
-- Ticket 18 records monotonic CLI-entry times for first complete chunk, first buffer accepted, successful playback-start request, and first buffer reclaimed. Report medians/ranges for ticket 15's short and paragraph inputs at `af_heart`, plus `am_adam` coverage; separate synthesis CPU from playback wall time/backpressure, and record generated duration, queue bound, underruns, exact input/voice/configured seed, build/source/host provenance, and rerun commands. An API event or reclaimed buffer never proves rendered or acoustic onset; mark acoustic timing unavailable without independent evidence.
-- Preserve ticket 15's comparison history and write new immutable dated artifacts. Compare any optimization through paired runs on the same host and workload, derive the acceptance threshold from contemporaneous before/after variation, and recheck the existing numerical budgets. Read ticket 13's sine-approximation investigation before selecting a candidate. If no safe improvement clears observed variation, keep its optimization criterion open with the evidence and reason; do not claim the ticket complete. Any Python report tooling uses the locked `uv` environment; deterministic report tests and device measurements are reported separately.
-
-## Final streaming integration review — 2026-10-12
-
-Whole-branch report-only review examined `81aad9657d00d63a352c5e52affe4f07f1b91ab2..88f3f3d95c88c629184e23fbdb645c267f02a3dd` with Correctness, Standards and Spec. All changed paths were examined; no paths were omitted. Forge overlap was none from the coordinator's successful open-PR query. The reviewer's sandbox GitHub lookup was unavailable; it used the coordinator's evidence. Ticket 17 requirements were met, and ticket 18's timing/conditional-open outcome matched the approved plan.
-
-| Id | Finding | Applied / rejected / deferred | Reason | Verified by |
-| --- | --- | --- | --- | --- |
-| R1 | Direct benchmark-helper invocation without streaming could launch ordinary `afplay` playback. | applied | The helper sets its existing ordinary player path to `/usr/bin/false`; the entry-point regression uses a no-audio CLI stub. Production CLI playback is unchanged. | `ceb0854e42ec8e3b05fecaf952faf4539b4061ed`; full real-model `make check`, independent fix review, coordinator focused C regression |
-| R2 | Unsupported output paths could collect device samples before a late relative-path error. | applied | Preflight rejects output paths outside the repository artifacts directory before creating directories or collecting provenance/device samples. | `ceb0854e42ec8e3b05fecaf952faf4539b4061ed`; nine locked-`uv` fixtures passed independently |
-
-Two applied findings, zero rejected or deferred findings, and no remaining accepted findings. The separate disposal question was not a finding: the installed SDK guarantees no further callbacks after `AudioQueueDispose` returns when called outside a callback. No speculative disposal change was made.
-
-The fix worker used `implement-lite · xhigh · gpt-6-luna` and its one independent six-lens reviewer. Red-proof mutations for both defects failed the intended tests and were reversed. Coordinator verified the commit trailer, clean tree, unchanged original ticket 18 records, unchanged ticket 15/09 artifacts and model graph, raw validation, byte-for-byte report regeneration, and post-review source identity. Device smoke was skipped in this helper-only fix; earlier real silence/muted device evidence remains separate. The new post-review build record contains no performance samples.
-
-Ticket 17 is verified. Ticket 18 timing is verified; its safe-optimization criterion stays open because the bounded candidate failed numerical parity and its diagnostic gains did not clear observed variation. Original tickets 13 and 14 retain their prior open reasons. No unresolved approval rejection, active task daemon, or deployment is part of this delivery.
+1. Fixture manifest records config/model/voice/reference hashes/revisions, normalized text/IDs/prefix conditions, exact random draws, backbone/flow/raw EOS/latents, raw decoder/postprocessed PCM and sample counts. Separate fixed stage float/Q8 budgets based on repeated oracle behavior. Shape/mask/length/finite/error invariants supplement highest useful numerical seam. Equal seeds are not a cross-runtime PRNG contract.
+2. Exact normalizer/tokenizer corpus: English structures, Unicode/byte fallback/whitespace/unknowns, prompt/chunk fitting, source parity, empty/malformed inputs; prove runtime needs no child interpreter/tokenizer. Test actual algorithms, never hardcoded fixture dispatch.
+3. Transformer prefill/incremental, Mimi framewise/whole/uneven partitions cross >250 context positions and cache wrap. Repeat requests, voice alternation, text boundaries, budgets and resets. Same replayed inputs for stream and batch; fixed waveform tolerance plus exact count/stop/tail semantics. Distinguish DSP drain from EOS tail; no added silence to conceal dropped output.
+4. Q8 loaded blocks and matvec/matmul compared to published tensor reference and complete graph. Malformed/truncated/unsupported formats rejected. Quantization error against float source separated from port error. Synthetic fixtures run CI without gated weights; full40M checks must execute for acceptance, never count skips as passing.
+5. Engine/CLI/fake playback cover every task, compatibility/controls, bounded ownership, cancellation during numerical work/buffer waits, ordering/backpressure/drain/errors. Real AudioQueue checks queue-muted only; fake consumer labelled; acoustic onset unknown without measurement. Generate audition files, keep user listening status separate.
+6. Benchmarks record exact host/build/model/quant/voice/settings, repeats/counts/cold/warm, firstPCM/synthesis/playback scopes and raw timings. Paired same-host optimizations report spread and rejected attempts. No cache purge, system-volume changes or unsolicited speech; historical Kokoro measurements are not relabelled.
