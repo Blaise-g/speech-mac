@@ -170,7 +170,7 @@ int phonon_conv_process(PhononConvState *s, const float *x, size_t n, float *y, 
     }
     return 1;
 }
-static void elu(float *x, size_t n) {
+void phonon_conv_elu(float *x, size_t n) {
     size_t end = n - n % 4;
     for (size_t i = 0; i < end; i += 4) {
         float e[4];
@@ -225,12 +225,12 @@ int phonon_residual_process(PhononResidualState *s, const float *x, size_t n, fl
         return 0;
     for (size_t t = 0; t < n; t++) {
         memcpy(s->activated, x + t * channels, channels * sizeof(float));
-        elu(s->activated, channels);
+        phonon_conv_elu(s->activated, channels);
         if (!phonon_conv_process(s->first, s->activated, 1, s->hidden, 1)) {
             s->failed = 1;
             return 0;
         }
-        elu(s->hidden, hidden);
+        phonon_conv_elu(s->hidden, hidden);
         if (!phonon_conv_process(s->second, s->hidden, 1, s->result, 1)) {
             s->failed = 1;
             return 0;

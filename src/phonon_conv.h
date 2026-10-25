@@ -28,6 +28,11 @@ void phonon_conv_state_reset(PhononConvState *state);
 int phonon_conv_process(PhononConvState *state, const float *input, size_t positions, float *output,
                         size_t capacity);
 
+/* In-place pinned Torch ELU, exp(x)-1 for nonpositive values. Borrowed
+ * finite buffer of count floats; no allocation, same vector/scalar arithmetic
+ * as the residual operator. Caller validates finite input and output. */
+void phonon_conv_elu(float *values, size_t count);
+
 /* Pinned residual seam: identity + Conv1(ELU(Conv3(ELU(input))));
  * hidden width = channels/2. Models are borrowed and must outlive the state. */
 typedef struct PhononResidualState PhononResidualState;
