@@ -40,6 +40,14 @@ static uint32_t u32(const unsigned char *p) {
 static uint64_t u64(const unsigned char *p) {
     return (uint64_t)u32(p) | (uint64_t)u32(p + 4) << 32;
 }
+static void digest_to_hex(const unsigned char digest[32], char output[65]) {
+    static const char digits[] = "0123456789abcdef";
+    for (size_t i = 0; i < 32; i++) {
+        output[i * 2] = digits[digest[i] >> 4];
+        output[i * 2 + 1] = digits[digest[i] & 0x0fU];
+    }
+    output[64] = '\0';
+}
 static size_t product(const uint64_t *shape, unsigned int rank) {
     size_t result = 1;
     for (unsigned int i = 0; i < rank; i++) {
@@ -62,9 +70,7 @@ static int check_hash(const unsigned char *p, size_t n, const unsigned char *exp
     char got[65], wanted[65];
     if (!kokoro_sha256_hex(p, n, got))
         return 0;
-    for (size_t i = 0; i < 32; i++)
-        sprintf(wanted + 2 * i, "%02x", expected[i]);
-    wanted[64] = 0;
+    digest_to_hex(expected, wanted);
     return strcmp(got, wanted) == 0;
 }
 static void free_pack(PhononPack *pack) {
@@ -114,12 +120,8 @@ static int phonon_pack_open_impl(const char *path, PhononPack **result, int requ
         return 0;
     }
     char source_hex[65], config_hex[65];
-    for (size_t i = 0; i < 32; i++) {
-        sprintf(source_hex + i * 2, "%02x", b[32 + i]);
-        sprintf(config_hex + i * 2, "%02x", b[64 + i]);
-    }
-    source_hex[64] = 0;
-    config_hex[64] = 0;
+    digest_to_hex(b + 32, source_hex);
+    digest_to_hex(b + 64, config_hex);
     if (strcmp(source_hex, model_digest) || strcmp(config_hex, config_digest)) {
         free_pack(pack);
         return 0;
