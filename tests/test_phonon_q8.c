@@ -27,6 +27,32 @@ int main(void) {
     assert(!phonon_q8_dot(blocks, input, 63, &value));
     assert(!phonon_q8_matvec(blocks, input, 1, 63, output));
     assert(!phonon_q8_dot(NULL, input, 32, &value));
+    PhononQ8Block rows[4] = {{.scale_bits = 0x3800U},
+                             {.scale_bits = 0x4000U},
+                             {.scale_bits = 0x3800U},
+                             {.scale_bits = 0x4000U}};
+    float asymmetric[64], row_output[2];
+    for (size_t i = 0; i < 32; i++) {
+        asymmetric[i] = 1.0f;
+        asymmetric[i + 32] = 2.0f;
+        rows[0].values[i] = 1;
+        rows[1].values[i] = 2;
+        rows[2].values[i] = -1;
+        rows[3].values[i] = 3;
+    }
+    assert(phonon_q8_matvec(rows, asymmetric, 2, 64, row_output));
+    assert(row_output[0] == 272.0f && row_output[1] == 368.0f);
+    assert(!phonon_q8_matvec(rows, asymmetric, 2, 64, asymmetric));
+    assert(!phonon_q8_matvec(rows, asymmetric, 2, 64, (float *)(void *)rows));
+    blocks[0].scale_bits = 0x7c00U;
+    assert(!phonon_q8_dot(blocks, input, 32, &value));
+    blocks[0].scale_bits = 0x0001U;
+    for (size_t i = 0; i < 32; i++)
+        blocks[0].values[i] = 1;
+    assert(phonon_q8_dot(blocks, input, 32, &value));
+    assert(value == 0x1p-19f);
+    input[0] = INFINITY;
+    assert(!phonon_q8_dot(blocks, input, 32, &value));
     puts("phonon Q8 kernel tests passed");
     return 0;
 }

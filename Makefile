@@ -16,7 +16,7 @@ ENGINE_SOURCES := $(filter-out %/main.c,$(APP_SOURCES))
 C_SOURCES := $(shell find src tests benchmarks -type f -name '*.c' -print 2>/dev/null | sort)
 FORMAT_FILES := $(shell find src tests benchmarks -type f \( -name '*.c' -o -name '*.h' \) -print 2>/dev/null | sort)
 
-.PHONY: help setup dev format format-check lint typecheck build test test-one check-fast check clean source-discovery benchmark-build benchmark stream-benchmark-build stream-benchmark phonon-reference-check
+.PHONY: help setup dev format format-check lint typecheck build test test-one check-fast check clean source-discovery benchmark-build benchmark stream-benchmark-build stream-benchmark phonon-reference-check phonon-native-pack phonon-native-check
 
 help:
 	@printf '%s\n' \
@@ -131,7 +131,7 @@ test: source-discovery
 	  for source in $(TEST_SOURCES); do \
 	    name=$$(basename "$$source" .c); \
 	    binary=$(BUILD_DIR)/tests/$$name; \
-	    $(CLANG) $(CPPFLAGS) $(BASE_CFLAGS) $(TEST_CFLAGS) "$$source" $(ENGINE_SOURCES) $(LDLIBS) -o "$$binary"; \
+	    $(CLANG) $(CPPFLAGS) $(BASE_CFLAGS) $(TEST_CFLAGS) -DPHONON_PACK_TEST_API "$$source" $(ENGINE_SOURCES) $(LDLIBS) -o "$$binary"; \
 	    "$$binary"; \
 	  done; \
 	fi
@@ -154,7 +154,7 @@ test-one: source-discovery
 	  mkdir -p $(BUILD_DIR)/tests; \
 	  name=$${test_name%.c}; \
 	  binary=$(BUILD_DIR)/tests/$$name; \
-	  $(CLANG) $(CPPFLAGS) $(BASE_CFLAGS) $(TEST_CFLAGS) "$$test_dir/$$test_name" $(ENGINE_SOURCES) $(LDLIBS) -o "$$binary"; \
+	  $(CLANG) $(CPPFLAGS) $(BASE_CFLAGS) $(TEST_CFLAGS) -DPHONON_PACK_TEST_API "$$test_dir/$$test_name" $(ENGINE_SOURCES) $(LDLIBS) -o "$$binary"; \
 	  "$$binary"
 
 source-discovery:
@@ -176,3 +176,12 @@ phonon-reference-check:
 	@UV_CACHE_DIR=/private/tmp/kokoro-uv-cache uv run --project reference/phonon --offline --no-sync --locked python reference/phonon/oracle.py verify-temporal
 	@UV_CACHE_DIR=/private/tmp/kokoro-uv-cache uv run --project reference/phonon --offline --no-sync --locked python reference/phonon/oracle.py verify-q8
 	@UV_CACHE_DIR=/private/tmp/kokoro-uv-cache uv run --project reference/phonon --offline --no-sync --locked python -m unittest discover -s reference/phonon/tests
+
+phonon-native-pack:
+	@UV_CACHE_DIR=/private/tmp/kokoro-uv-cache uv run --project reference/phonon --offline --no-sync --locked python reference/phonon/native_pack.py
+	@UV_CACHE_DIR=/private/tmp/kokoro-uv-cache uv run --project reference/phonon --offline --no-sync --locked python reference/phonon/native_projection_oracle.py
+
+phonon-native-check: phonon-native-pack
+	@PHONON_NATIVE_PACK=$$(find .build -maxdepth 1 -name 'phonon-native-*-v1.kpack' -print -quit) \
+	 PHONON_Q8_ORACLE=.build/phonon-native-q8-projections-v1.bin \
+	 PHONON_BF16_ORACLE=.build/phonon-native-bf16-oracle-v1.bin $(MAKE) test-one TEST=tests/test_phonon_pack.c

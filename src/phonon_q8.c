@@ -1,5 +1,6 @@
 #include "phonon_q8.h"
 
+#include <limits.h>
 #include <math.h>
 #include <stdint.h>
 
@@ -33,9 +34,14 @@ static float half_to_float(uint16_t bits) {
 }
 
 int phonon_q8_dot(const PhononQ8Block *blocks, const float *input, size_t elements, float *result) {
-    if (blocks == NULL || input == NULL || result == NULL || elements == 0 || elements % 32 != 0) {
+    if (blocks == NULL || input == NULL || result == NULL || elements == 0 || elements % 32 != 0 ||
+        elements / 32 > SIZE_MAX / sizeof(*blocks) || elements > SIZE_MAX / sizeof(*input)) {
         return 0;
     }
+    size_t block_bytes = elements / 32 * sizeof(*blocks), input_bytes = elements * sizeof(*input);
+    uintptr_t block_start = (uintptr_t)blocks, input_start = (uintptr_t)input;
+    if (block_start > UINTPTR_MAX - block_bytes || input_start > UINTPTR_MAX - input_bytes)
+        return 0;
     float sum = 0.0f;
     for (size_t block = 0; block < elements / 32; block++) {
         float scale = half_to_float(blocks[block].scale_bits);
@@ -49,6 +55,8 @@ int phonon_q8_dot(const PhononQ8Block *blocks, const float *input, size_t elemen
         }
         sum += scale * partial;
     }
+    if (!isfinite(sum))
+        return 0;
     *result = sum;
     return 1;
 }
@@ -56,9 +64,26 @@ int phonon_q8_dot(const PhononQ8Block *blocks, const float *input, size_t elemen
 int phonon_q8_matvec(const PhononQ8Block *weights, const float *input, size_t rows, size_t columns,
                      float *output) {
     if (weights == NULL || input == NULL || output == NULL || rows == 0 || columns == 0 ||
-        columns % 32 != 0 || rows > SIZE_MAX / (columns / 32))
+        columns % 32 != 0 || rows > SIZE_MAX / (columns / 32) ||
+        columns > SIZE_MAX / sizeof(*input) || rows > SIZE_MAX / sizeof(*output))
+        return 0;
+    uintptr_t input_start = (uintptr_t)input, output_start = (uintptr_t)output;
+    size_t input_bytes = columns * sizeof(*input), output_bytes = rows * sizeof(*output);
+    if (input_start > UINTPTR_MAX - input_bytes || output_start > UINTPTR_MAX - output_bytes ||
+        (input_start < output_start + output_bytes && output_start < input_start + input_bytes))
         return 0;
     size_t blocks_per_row = columns / 32;
+    if (rows > SIZE_MAX / blocks_per_row)
+        return 0;
+    size_t block_count = rows * blocks_per_row;
+    if (block_count > SIZE_MAX / sizeof(*weights))
+        return 0;
+    size_t weight_bytes = block_count * sizeof(*weights);
+    uintptr_t weights_start = (uintptr_t)weights;
+    if (weights_start > UINTPTR_MAX - weight_bytes ||
+        (weights_start < output_start + output_bytes &&
+         output_start < weights_start + weight_bytes))
+        return 0;
     for (size_t row = 0; row < rows; row++) {
         if (!phonon_q8_dot(weights + row * blocks_per_row, input, columns, output + row))
             return 0;
