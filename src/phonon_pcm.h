@@ -22,8 +22,10 @@ size_t phonon_pcm_samples(const PhononPCMState *state);
  * gain/limiter, so final equals raw. Pass only retained frames (mask prefix): EOS
  * tail is generated upstream. Causal left padding/right crop is inside operators;
  * there is no first-sample delay to remove at this boundary.
- * State owns bounded caches/scratch, never a whole utterance; processing allocates
- * nothing. Limit 8192 frames. Invalid arguments/nonfinite input leave state intact.
+ * PCM/Mimi caches and scratch are bounded; no whole-utterance buffering. SEANet
+ * processing uses preallocated state, but Mimi calls shared linear kernels that
+ * transiently allocate/free expanded weights. Complete decoding is not allocation
+ * free. Limit 8192 frames. Invalid arguments/nonfinite input leave state intact.
  * Arithmetic failure poisons state until reset, outputs may hold a partial prefix.
  * Empty input is a no-op before finish. Process after finish fails, including empty.
  */
