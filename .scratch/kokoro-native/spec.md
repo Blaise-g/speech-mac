@@ -1,6 +1,6 @@
 # speech-mac: native Phonon migration
 
-Status: in-progress
+Status: blocked
 
 This is the active Requirement Source for the Phonon migration. It supersedes the Kokoro product and architecture requirements. The previous source is preserved in `kokoro-spec-archive.md`; tickets 00–18 and their evidence remain historical records, including their open criteria. They are not blockers for this migration.
 
@@ -125,3 +125,7 @@ E30-1 is resolved without an acceptance change. The user ran the prepared silent
 ## Maintained Kokoro support removed — 2026-10-26
 
 Ticket 31 is verified at `43eb085d6cffbaa8287dc63d30ae323b66b05917`: the maintained runtime/build/APIs/docs are speech-mac-only, legacy graph/frontend/artifacts/reference dependencies and active benchmark runners are removed, and historical evidence/licenses are retained. The Coordinator applied the root-owned tracker-guidance update after independent source verification. Fresh build/removal/dependency audits, actual engine/stream sanitizers, full real-fixture checks, locked reference/native replay and independent six-lens review passed without changing frozen budgets or numerical behavior. [Ticket31](issues/31-remove-kokoro.md) records source/report recovery, naming decisions, all evidence and explicit device/listening limits. No Escalation is open. Ticket 32 may begin after this record is committed; measurements, optimization, integration acceptance, GitHub rename and final GPT-6.1 Sol/high whole-branch review remain pending.
+
+## Baseline committed; current queue timing pending — 2026-10-26
+
+Ticket32 source `0f7ea8eab3e52f3b388ed810de0a3f71218935e9` and evidence `054355f35e2645f6bc53115be14114c71d5cbc5a` deliver repeated real 40M fresh/resident baselines, source/provenance/CPU/RSS/stage profiles and unplayed audition WAVs. Worker and Coordinator software/reference/frozen replay/full-fixture checks pass; repeated normal/profile F32 output is identical. Shared linear expansion is a measured candidate for ticket33; no optimization is claimed. E32-1 remains open: the current tool-context queue-muted timing probe fails at AudioQueueStart -66681. The reviewed helper `sh /private/tmp/speech-mac-32-terminal-timing.sh` collects the required current raw events in the user's Terminal during an idle window. [Ticket32](issues/32-phonon-baseline.md) records exact evidence, validation and limits. Earlier ticket30 functional success is not reused as ticket32 timing. Ticket32 and dependent tickets33–35 remain held until that evidence or an explicit user-approved plan change; final GPT-6.1 Sol/high whole-branch review remains pending. Acoustic onset/listening are not established.
