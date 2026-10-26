@@ -31,3 +31,5 @@ The [before/after readbacks](../artifacts/35-repository-rename-20261026/README.m
 ## Public setup follow-up, 2026-10-26
 
 The requested publication changes the repository to public after the setup and documentation review. The private-plan limitations above are dated historical evidence. Public visibility permits additional protection features but does not enable any of them; this follow-up does not change branch protections, rulesets or required checks. The coordinator records the live visibility and CI readback after publication.
+
+The setup source and final High review are complete, and PR4's source check passed. The agent environment rejected the requested public visibility/description command before execution because it requires approval while the session uses `AskForApproval=Never`. A live readback still reports private visibility and the previous description. Public visibility, the new description and anonymous-access verification remain pending; the user has the exact manual command. No protection/ruleset setting was changed.
