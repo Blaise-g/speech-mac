@@ -1,0 +1,2 @@
+Missing required acceptance fixture: /private/tmp/speech-mac-34-intentionally-missing/default-voice.safetensors
+EXPECTED_MISSING_FIXTURE_EXIT=2

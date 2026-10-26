@@ -1,0 +1,3 @@
+xcrun clang -Isrc -std=c17 -Wall -Wextra -Wpedantic -Werror -O2 -DSPEECH_STREAM_SILENT_OUTPUT benchmarks/phonon_queue.c $(find src -name '*.c' ! -name speech_main.c -print | sort) -framework AudioToolbox -framework Accelerate -o .build/34-current-queue
+# The assistant executed the following in exec_command tty=true, after idle coordination:
+.build/34-current-queue /Volumes/Code/Personal/kokoro-mac/.worktrees/phonon-migration-planning/.build/phonon-native-f6acc8f43cb296be-v1.kpack /Volumes/Code/Personal/speech-mac-models/phonon-40m-en/default-voice.safetensors
