@@ -26,15 +26,15 @@ Worker Profile: medium; implement-lite / gpt-6.1-sol / low (user clarification 2
 
 ## Acceptance criteria
 
-- [ ] locked-uv benchmark/report with raw repetitions of short reply/structured text/long input, cold fresh-process and warm resident modes, source/build/model/quant/voice/settings/hardware provenance
-- [ ] Measure first PCM, total synthesis, RTF, CPU/RSS with scopes and stage profile
-- [ ] Separate muted AudioQueue from fake-consumer timing
-- [ ] acoustic onset unavailable without independent capture
-- [ ] Produce audition files for user listening
-- [ ] no autoplay/cache purge/system volume changes
-- [ ] Complete the approved slice checks and keep unavailable model/device checks explicit.
+- [x] locked-uv benchmark/report with raw repetitions of short reply/structured text/long input, cold fresh-process and warm resident modes, source/build/model/quant/voice/settings/hardware provenance
+- [x] Measure first PCM, total synthesis, RTF, CPU/RSS with scopes and stage profile
+- [x] Separate muted AudioQueue from fake-consumer timing
+- [x] acoustic onset unavailable without independent capture
+- [x] Produce audition files for user listening
+- [x] no autoplay/cache purge/system volume changes
+- [x] Complete the approved slice checks and keep unavailable model/device checks explicit.
 
-Status: in-progress
+Status: done
 
 ## Implementation and partial verification — 2026-10-26
 
@@ -95,3 +95,13 @@ Log `.build/phonon-queue-terminal-timing.log`, preserved at `/private/tmp/speech
 Before this success, the Coordinator also tried the same reviewed helper through a private `.command` wrapper opened by Terminal.app. That automated launch failed with AudioQueueStart -66681/child4/validation1; it was not a manual user run. Its exact output is preserved at `/private/tmp/speech-mac-32-terminal-app-failed.log`, SHA256 `1be234c04bdfb66a7a4566dc8b7eafa765aa3f272bf037739bfcabfd21044fc2`. The earlier direct-tool failure remains separately preserved in the committed artifact. Why those attempts failed and the subsequent PTY run succeeded is not established; no service restart, device/volume change, numerical repair or diagnostic matrix was applied.
 
 The current measurement satisfies E32-1 without a plan waiver; no Escalation remains open. Ticket32 now resumes only its original evidence-integration scope: preserve failed attempts, add the successful raw timing with truthful execution context, update report/verification, independently review artifacts and commit. Source 0f7ea8e, prior compute baselines and numerical/software gates are unchanged; formal ticket32 repair count remains 0. The initial blocked atomic report was archived at `/private/tmp/speech-mac-32-initial-blocked.report.md` before resuming. Ticket32 is not marked complete until the integrated evidence is verified; tickets33–35 still wait for that completion record. Final whole-branch Sol/high review remains pending.
+
+### Verified completion — 2026-10-26
+
+The same Sol/low worker completed original-scope evidence integration in attempt2 at `8c1458bc1517f0c081e58c84237fa5416f710aa1`, with Ticket32 trailer and clean tree. Source `0f7ea8e` and original baseline evidence `054355f` are unchanged. Formal repair count remains 0; this was environment/evidence continuation. The final canonical atomic report is attempt2/status done and preserves the archived initial blocked report's history.
+
+Five artifact paths changed: `queue-assistant-pty.json`, exact successful raw log, exact prior automated Terminal.app failure log, report and verification. The successful assistant PTY context, pins, four success markers, current raw events/counts and null acoustic onset are integrated. The original tool failure remains separate. All original compute/profile/warmup/text/WAV bytes remain unchanged. Independent Sol/low SingleReviewer applied all six lenses to every changed artifact and found none. Worker format→check and staged hook passed; no executable edit or remeasurement occurred.
+
+The Coordinator independently checked the exact artifact-only footprint, compared both integrated logs byte-for-byte with immutable captures and their recorded SHA256s, parsed the successful JSON and verified all pins/markers/finite ordering/76800 samples/40 frames/40 reclaims. The existing benchmark validator passes; every prior compute/profile/warmup/text/WAV/agent-failure byte is identical to evidence 054355f. Executable, test, reference, tracker, vendor, fixture and budget source is unchanged; format-check, whitespace and clean-tree checks pass. Prior full actual-fixture, reference, frozen and sanitizer gates above remain applicable; no broad repeat was needed for artifact prose/data.
+
+Ticket32 is verified on `feat/phonon-migration` at `8c1458bc1517f0c081e58c84237fa5416f710aa1`. Result commits: `0f7ea8eab3e52f3b388ed810de0a3f71218935e9`, `054355f35e2645f6bc53115be14114c71d5cbc5a`, `8c1458bc1517f0c081e58c84237fa5416f710aa1`. No Escalation remains open. Ticket33 may start after this completion record is reviewed and committed. Listening remains pending; acoustic onset is unavailable; prior SDK failure cause remains unknown. Optimization, final integration acceptance, GitHub rename and final whole-branch GPT-6.1 Sol/high review remain future work.
