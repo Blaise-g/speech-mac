@@ -11,6 +11,8 @@ import statistics
 import subprocess
 import time
 
+from verify_assets import verified_pins
+
 ROOT = Path(__file__).resolve().parents[2]
 WORKLOADS = {
     "short": "Hello there. I am ready to help you today.",
@@ -80,14 +82,13 @@ def run(args: argparse.Namespace) -> None:
         raise SystemExit("--repeats must be between 5 and 19 (plus one resident warmup)")
     if command("git", "status", "--porcelain", "--untracked-files=normal"):
         raise SystemExit("Commit reviewed benchmark code before final measurements")
-    out = args.output.resolve()
-    out.mkdir(parents=True, exist_ok=False)
     pack, voice = args.pack.resolve(), args.voice.resolve()
     model_dir = Path(os.environ["PHONON_MODEL_DIR"])
-    assets = json.loads((model_dir / "local-verification.json").read_text())
-    for asset in assets["files"]:
-        if digest(model_dir / asset["filename"]) != asset["sha256"]:
-            raise ValueError("source model artifact hash mismatch: " + asset["filename"])
+    assets = verified_pins(model_dir)
+    # Fail all required input reads before consuming a new output destination.
+    pack_digest, voice_digest = digest(pack), digest(voice)
+    out = args.output.resolve()
+    out.mkdir(parents=True, exist_ok=False)
     normal, profile = build(False), build(True)
     provenance = {
         "source_commit": command("git", "rev-parse", "HEAD"), "source_dirty": False,
@@ -95,7 +96,7 @@ def run(args: argparse.Namespace) -> None:
         "memory_bytes": int(command("sysctl", "-n", "hw.memsize")), "os_build": command("sw_vers"),
         "compiler": command("xcrun", "clang", "--version"), "flags": FLAGS,
         "binary_sha256": digest(normal), "profile_binary_sha256": digest(profile),
-        "pack_path": str(pack), "pack_sha256": digest(pack), "voice_path": str(voice), "voice_sha256": digest(voice),
+        "pack_path": str(pack), "pack_sha256": pack_digest, "voice_path": str(voice), "voice_sha256": voice_digest,
         "source_assets": assets,
         "model_revision": "cc738b7e4d182c2ba1bafb8062aa4846af000637", "quantization": {"Q8_0": 36, "BF16": 173},
         "model_id": "8aa279a6@100", "voice_model_ext": "ba7a5a45@300",

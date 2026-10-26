@@ -4,6 +4,15 @@ import copy
 import importlib.util
 from pathlib import Path
 import unittest
+import hashlib
+import json
+import os
+import sys
+import tempfile
+from unittest.mock import patch
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+import verify_assets
 
 spec = importlib.util.spec_from_file_location("benchmark", Path(__file__).resolve().parents[1] / "benchmark.py")
 benchmark = importlib.util.module_from_spec(spec)
@@ -21,6 +30,40 @@ class BenchmarkValidation(unittest.TestCase):
                         voice_open_s=.01, samples=19200, frames=10, chunks=1,
                         rss_high_water_bytes=1000000, output_duration_s=.8, rtf=.25,
                         pcm_f32_sha256="d"*64, profiled=False, consumer="synchronous_memory_copy"))
+
+    def test_portable_pin_preflight(self):
+        # The download contract installs pins' paths, never a local manifest.
+        for state in ("valid", "missing", "corrupt", "forged"):
+            with self.subTest(state=state), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                assets = root / "assets"
+                assets.mkdir()
+                data = b"pinned model"
+                pins = root / "pins.json"
+                pins.write_text(json.dumps({"model": {"revision": "cc738b7e4d182c2ba1bafb8062aa4846af000637"},
+                    "mimi": {"revision": "33519be1a8e61c6fa00c6e154e2d38e76a367919"},
+                    "files": [{"repo": "test/model", "revision": "pinned", "path": "model.gguf",
+                               "size_bytes": len(data), "sha256": hashlib.sha256(data).hexdigest()}]}))
+                if state != "missing":
+                    (assets / "model.gguf").write_bytes(data if state == "valid" else b"bad")
+                if state == "forged":
+                    (assets / "local-verification.json").write_text(json.dumps({"files": []}))
+                pack, voice = root / "pack", root / "voice"
+                pack.write_bytes(b"pack")
+                voice.write_bytes(b"voice")
+                args = argparse.Namespace(repeats=5, output=root / "output", pack=pack, voice=voice)
+                with patch.dict(os.environ, PHONON_MODEL_DIR=str(assets)), patch.object(
+                        verify_assets, "PINS", pins), patch.object(benchmark, "command", return_value=""), patch.object(
+                        benchmark, "build", side_effect=RuntimeError("measurement boundary")) as build:
+                    if state == "valid":
+                        with self.assertRaisesRegex(RuntimeError, "measurement boundary"):
+                            benchmark.run(args)
+                        build.assert_called_once_with(False)
+                    else:
+                        with self.assertRaisesRegex(SystemExit, "asset"):
+                            benchmark.run(args)
+                        build.assert_not_called()
+                        self.assertFalse(args.output.exists())
 
     def test_unsupported_repeats_fail_before_measurement(self):
         for repeats in (4, 20):

@@ -5,14 +5,14 @@ Historical numbered Kokoro reports remain in `artifacts/` with their original id
 Run the native Phonon baseline from a clean committed checkout with verified local assets:
 
 ```sh
-PHONON_MODEL_DIR=/Volumes/Code/Personal/speech-mac-models/phonon-40m-en \
+export PHONON_MODEL_DIR="$HOME/speech-mac-models/phonon-40m-en"
 uv run --project reference/phonon --offline --no-sync --locked \
   python reference/phonon/benchmark.py \
   --pack .build/phonon-native-f6acc8f43cb296be-v1.kpack \
-  --voice /Volumes/Code/Personal/speech-mac-models/phonon-40m-en/default-voice.safetensors \
+  --voice "$PHONON_MODEL_DIR/default-voice.safetensors" \
   --output .build/phonon-baseline-new
 ```
 
-The output directory must be new. Five repetitions per workload/mode are the default; supported counts are 5–19. Reserve the host for one measurement writer and do not run tests or other benchmarks concurrently. The driver writes every measured repetition to `raw.json`, retained excluded warmups, a summary report and unplayed audition WAVs. It builds separate release and profile binaries, verifies source-asset hashes, and rejects differing F32 PCM across repetitions and profile/release builds. Fresh process does not mean a cold OS cache.
+The driver verifies source assets against committed `reference/phonon/pins.json` before creating output; no machine-local verification manifest is required. Follow the [asset setup](../reference/phonon/README.md#asset-setup) first. The output directory must be new. Five repetitions per workload/mode are the default; supported counts are 5–19. Reserve the host for one measurement writer and do not run tests or other benchmarks concurrently. The driver writes every measured repetition to `raw.json`, retained excluded warmups, a summary report and unplayed audition WAVs. It builds separate release and profile binaries, verifies source-asset hashes, and rejects differing F32 PCM across repetitions and profile/release builds. Fresh process does not mean a cold OS cache.
 
 `phonon_queue.c` is a separate bounded real-device probe. Build all engine sources with `-DSPEECH_STREAM_SILENT_OUTPUT`; an ordinary build refuses device access. It changes only the new queue's volume, emits observed queue events, and cannot measure acoustic onset. Fake-consumer stream tests remain separate. Device/listening acceptance requires its own evidence; do not infer either from synthesis timings or numerical parity.
