@@ -14,7 +14,7 @@ typedef struct {
     void *play_context;
     const volatile sig_atomic_t *interrupted;
     /* Optional playback-only seam; NULL uses the native AudioQueue adapter. */
-    const KokoroStreamPlaybackOps *stream_playback;
+    const SpeechStreamPlaybackOps *stream_playback;
     void *stream_context;
 } SpeechCliConfig;
 int speech_cli_run(int argc, char **argv, const SpeechCliConfig *config);

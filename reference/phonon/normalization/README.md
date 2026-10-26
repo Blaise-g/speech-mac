@@ -5,7 +5,7 @@
 Run the reproducible differential check from the repository root:
 
 ```sh
-UV_CACHE_DIR=/private/tmp/kokoro-uv-cache uv run --project reference/phonon --offline --no-sync --locked python reference/phonon/normalization/compare.py
+UV_CACHE_DIR=/private/tmp/speech-mac-uv-cache uv run --project reference/phonon --offline --no-sync --locked python reference/phonon/normalization/compare.py
 ```
 
 The script runs the pinned Rust oracle and the native C probe on every fixture, then checks both against the checked-in expected output. The oracle is a development tool only.

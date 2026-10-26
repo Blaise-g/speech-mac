@@ -15,7 +15,7 @@ from safetensors import safe_open
 from safetensors.torch import load_file, save_file
 
 ROOT=Path(__file__).resolve().parents[2]
-ASSETS=Path(os.environ.get('PHONON_MODEL_DIR','/Volumes/Code/Personal/speech-mac-models/phonon-40m-en'))
+ASSETS=Path(os.environ.get('PHONON_MODEL_DIR','models/phonon-40m-en'))
 PINS=json.loads((Path(__file__).parent/'pins.json').read_text())
 GGUF_PIN=next(item for item in PINS['files'] if item['path']=='model.q8.gguf')
 CONVERTER_VERSION='gguf-full-tensor-expansion-v2'

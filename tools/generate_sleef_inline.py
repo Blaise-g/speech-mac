@@ -1,6 +1,6 @@
 """Reproduce the pinned native math header; development only, never a build step.
 
-UV_CACHE_DIR=/private/tmp/kokoro-uv-cache uv run --project reference/phonon \
+UV_CACHE_DIR=/private/tmp/speech-mac-uv-cache uv run --project reference/phonon \
   --offline --no-sync --locked python tools/generate_sleef_inline.py [--archive PATH]
 """
 from pathlib import Path

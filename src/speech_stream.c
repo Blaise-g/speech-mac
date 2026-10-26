@@ -1,7 +1,7 @@
 #include "speech_stream.h"
 
 #include "audio_queue_playback.h"
-#include "kokoro_internal.h"
+#include "speech_error_internal.h"
 #include "stream_benchmark.h"
 #ifdef PHONON_PACK_TEST_API
 #include "speech_stream_test.h"
@@ -23,8 +23,8 @@ struct SpeechStream {
     bool producer_finished;
     bool cancelled;
     bool terminal;
-    KokoroStatus status;
-    KokoroError error;
+    SpeechIOStatus status;
+    SpeechError error;
     size_t playback_users;
     const SpeechEngine *engine;
     const PhononVoice *voice;
@@ -37,19 +37,19 @@ struct SpeechStream {
     SpeechStreamTestProducer test_producer;
 #endif
     bool started;
-    KokoroStatus playback_status;
-    const KokoroStreamPlaybackOps *playback_ops;
+    SpeechIOStatus playback_status;
+    const SpeechStreamPlaybackOps *playback_ops;
     void *playback_context;
     void *playback;
 };
 
-static bool valid_playback_ops(const KokoroStreamPlaybackOps *ops) {
+static bool valid_playback_ops(const SpeechStreamPlaybackOps *ops) {
     return ops != NULL && ops->open != NULL && ops->submit != NULL && ops->start != NULL &&
            ops->drain != NULL && ops->wake != NULL && ops->abort != NULL && ops->close != NULL;
 }
 
-static void set_terminal_locked(SpeechStream *stream, KokoroStatus status,
-                                const KokoroError *error) {
+static void set_terminal_locked(SpeechStream *stream, SpeechIOStatus status,
+                                const SpeechError *error) {
     if (stream->terminal) {
         return;
     }
@@ -59,12 +59,12 @@ static void set_terminal_locked(SpeechStream *stream, KokoroStatus status,
         stream->error = *error;
         stream->error.code = status;
     } else {
-        kokoro_error_set(&stream->error, status,
-                         status == KOKORO_CANCELLED ? "stream cancelled" : NULL);
+        speech_error_set(&stream->error, status,
+                         status == SPEECH_IO_CANCELLED ? "stream cancelled" : NULL);
     }
 }
 
-static void set_terminal(SpeechStream *stream, KokoroStatus status, const KokoroError *error) {
+static void set_terminal(SpeechStream *stream, SpeechIOStatus status, const SpeechError *error) {
     pthread_mutex_lock(&stream->mutex);
     set_terminal_locked(stream, status, error);
     pthread_cond_broadcast(&stream->condition);
@@ -121,19 +121,19 @@ static int submit_pcm(void *context, const float *pcm, size_t count, const Speec
         stream->metrics.first_pcm = timestamp();
     if (count != SPEECH_FRAME_SAMPLES)
         return 2;
-    KokoroError error = {0};
+    SpeechError error = {0};
     stream->playback_status = stream->playback_ops->submit(stream->playback, pcm, count, &error);
-    if (stream->playback_status != KOKORO_OK) {
+    if (stream->playback_status != SPEECH_IO_OK) {
         set_terminal(stream, stream->playback_status, &error);
         return 2;
     }
     if (!stream->metrics.first_submission)
         stream->metrics.first_submission = timestamp();
     stream->metrics.submitted_samples += count;
-    KOKORO_STREAM_BENCHMARK_RECORD(KOKORO_STREAM_BENCHMARK_BUFFER_ACCEPTED, count);
+    SPEECH_STREAM_BENCHMARK_RECORD(SPEECH_STREAM_BENCHMARK_BUFFER_ACCEPTED, count);
     if (!stream->started) {
         stream->playback_status = stream->playback_ops->start(stream->playback, &error);
-        if (stream->playback_status != KOKORO_OK) {
+        if (stream->playback_status != SPEECH_IO_OK) {
             set_terminal(stream, stream->playback_status, &error);
             return 2;
         }
@@ -145,10 +145,10 @@ static int submit_pcm(void *context, const float *pcm, size_t count, const Speec
 
 static void *stream_producer(void *argument) {
     SpeechStream *stream = argument;
-    KokoroError error = {0};
+    SpeechError error = {0};
     void *playback = NULL;
-    KokoroStatus result = stream->playback_ops->open(stream->playback_context, &playback, &error);
-    if (result != KOKORO_OK) {
+    SpeechIOStatus result = stream->playback_ops->open(stream->playback_context, &playback, &error);
+    if (result != SPEECH_IO_OK) {
         set_terminal(stream, result, &error);
         goto done;
     }
@@ -156,7 +156,7 @@ static void *stream_producer(void *argument) {
     SpeechOptions options = stream->options;
     options.cancel = request_cancel;
     options.cancel_context = stream;
-    KOKORO_STREAM_BENCHMARK_RECORD(KOKORO_STREAM_BENCHMARK_SYNTHESIS_BEGIN, 0);
+    SPEECH_STREAM_BENCHMARK_RECORD(SPEECH_STREAM_BENCHMARK_SYNTHESIS_BEGIN, 0);
     stream->metrics.synthesis_begin = timestamp();
     SpeechStatus status;
 #ifdef PHONON_PACK_TEST_API
@@ -168,42 +168,42 @@ static void *stream_producer(void *argument) {
         status = speech_synthesize(stream->engine, stream->voice, stream->text, stream->length,
                                    &options, submit_pcm, stream, &stream->progress);
     stream->metrics.synthesis_end = timestamp();
-    KOKORO_STREAM_BENCHMARK_RECORD(KOKORO_STREAM_BENCHMARK_SYNTHESIS_END, 0);
+    SPEECH_STREAM_BENCHMARK_RECORD(SPEECH_STREAM_BENCHMARK_SYNTHESIS_END, 0);
     if (status == SPEECH_CANCELLED)
-        result = KOKORO_CANCELLED;
+        result = SPEECH_IO_CANCELLED;
     else if (status != SPEECH_OK) {
-        result = stream->playback_status != KOKORO_OK ? stream->playback_status
-                 : status == SPEECH_INVALID           ? KOKORO_INVALID_ARGUMENT
-                 : status == SPEECH_LIMIT             ? KOKORO_CONTEXT_TOO_LONG
-                                                      : KOKORO_IO_ERROR;
-        kokoro_error_set(&error, result, "stream synthesis failed (speech status %d)", status);
+        result = stream->playback_status != SPEECH_IO_OK ? stream->playback_status
+                 : status == SPEECH_INVALID              ? SPEECH_IO_INVALID_ARGUMENT
+                 : status == SPEECH_LIMIT                ? SPEECH_IO_CONTEXT_TOO_LONG
+                                                         : SPEECH_IO_ERROR;
+        speech_error_set(&error, result, "stream synthesis failed (speech status %d)", status);
         set_terminal(stream, result, &error);
     }
-    if (result == KOKORO_OK && !stream->started)
-        result = KOKORO_IO_ERROR;
-    if (result == KOKORO_OK) {
+    if (result == SPEECH_IO_OK && !stream->started)
+        result = SPEECH_IO_ERROR;
+    if (result == SPEECH_IO_OK) {
         result = stream->playback_ops->drain(playback, &error);
-        if (result == KOKORO_OK) {
+        if (result == SPEECH_IO_OK) {
             /* Publish drain only if cancellation has not won the terminal state.
              * A later cancellation may still win before close completes. */
             pthread_mutex_lock(&stream->mutex);
             if (stream->cancelled)
-                result = KOKORO_CANCELLED;
+                result = SPEECH_IO_CANCELLED;
             else {
                 stream->metrics.drained = timestamp();
-                KOKORO_STREAM_BENCHMARK_RECORD(KOKORO_STREAM_BENCHMARK_DRAIN_COMPLETE, 0);
+                SPEECH_STREAM_BENCHMARK_RECORD(SPEECH_STREAM_BENCHMARK_DRAIN_COMPLETE, 0);
             }
             pthread_mutex_unlock(&stream->mutex);
         }
     }
-    if (result != KOKORO_OK)
+    if (result != SPEECH_IO_OK)
         stream->playback_ops->abort(playback);
-    if (stream->playback_ops == kokoro_audio_queue_playback_ops())
-        kokoro_audio_queue_reclaimed(playback, &stream->metrics.reclaimed_buffers,
+    if (stream->playback_ops == speech_audio_queue_playback_ops())
+        speech_audio_queue_reclaimed(playback, &stream->metrics.reclaimed_buffers,
                                      &stream->metrics.first_reclaimed);
     clear_playback(stream, playback);
-    KokoroStatus closed = stream->playback_ops->close(playback, &error);
-    if (result == KOKORO_OK)
+    SpeechIOStatus closed = stream->playback_ops->close(playback, &error);
+    if (result == SPEECH_IO_OK)
         result = closed;
     set_terminal(stream, result, &error);
 done:
@@ -214,33 +214,33 @@ done:
     return NULL;
 }
 
-static KokoroStatus start_request(const SpeechEngine *engine, const PhononVoice *voice,
-                                  const char *text, size_t length, const SpeechOptions *options,
-                                  const KokoroStreamPlaybackOps *playback_ops,
-                                  void *playback_context, SpeechStream **stream_out,
-                                  KokoroError *error
+static SpeechIOStatus start_request(const SpeechEngine *engine, const PhononVoice *voice,
+                                    const char *text, size_t length, const SpeechOptions *options,
+                                    const SpeechStreamPlaybackOps *playback_ops,
+                                    void *playback_context, SpeechStream **stream_out,
+                                    SpeechError *error
 #ifdef PHONON_PACK_TEST_API
-                                  ,
-                                  SpeechStreamTestProducer test_producer
+                                    ,
+                                    SpeechStreamTestProducer test_producer
 #endif
 ) {
     if (!stream_out)
-        return KOKORO_INVALID_ARGUMENT;
+        return SPEECH_IO_INVALID_ARGUMENT;
     *stream_out = NULL;
     if (!engine || !voice || !text || !length || length > SPEECH_MAX_INPUT_BYTES ||
         !valid_playback_ops(playback_ops))
-        return KOKORO_INVALID_ARGUMENT;
+        return SPEECH_IO_INVALID_ARGUMENT;
     SpeechStream *stream = calloc(1, sizeof(*stream));
     if (!stream)
-        return KOKORO_OUT_OF_MEMORY;
+        return SPEECH_IO_OUT_OF_MEMORY;
     if (pthread_mutex_init(&stream->mutex, NULL)) {
         free(stream);
-        return KOKORO_IO_ERROR;
+        return SPEECH_IO_ERROR;
     }
     if (pthread_cond_init(&stream->condition, NULL)) {
         pthread_mutex_destroy(&stream->mutex);
         free(stream);
-        return KOKORO_IO_ERROR;
+        return SPEECH_IO_ERROR;
     }
 #ifdef PHONON_PACK_TEST_API
     stream->test_producer = test_producer;
@@ -257,19 +257,20 @@ static KokoroStatus start_request(const SpeechEngine *engine, const PhononVoice 
         pthread_cond_destroy(&stream->condition);
         pthread_mutex_destroy(&stream->mutex);
         free(stream);
-        kokoro_error_set(error, KOKORO_IO_ERROR, "cannot start stream producer: %s",
+        speech_error_set(error, SPEECH_IO_ERROR, "cannot start stream producer: %s",
                          strerror(code));
-        return KOKORO_IO_ERROR;
+        return SPEECH_IO_ERROR;
     }
     stream->producer_started = true;
     *stream_out = stream;
-    return KOKORO_OK;
+    return SPEECH_IO_OK;
 }
 
-KokoroStatus speech_stream_start_with(const SpeechEngine *engine, const PhononVoice *voice,
-                                      const char *text, size_t length, const SpeechOptions *options,
-                                      const KokoroStreamPlaybackOps *ops, void *context,
-                                      SpeechStream **stream, KokoroError *error) {
+SpeechIOStatus speech_stream_start_with(const SpeechEngine *engine, const PhononVoice *voice,
+                                        const char *text, size_t length,
+                                        const SpeechOptions *options,
+                                        const SpeechStreamPlaybackOps *ops, void *context,
+                                        SpeechStream **stream, SpeechError *error) {
     return start_request(engine, voice, text, length, options, ops, context, stream, error
 #ifdef PHONON_PACK_TEST_API
                          ,
@@ -278,22 +279,22 @@ KokoroStatus speech_stream_start_with(const SpeechEngine *engine, const PhononVo
     );
 }
 #ifdef PHONON_PACK_TEST_API
-KokoroStatus speech_stream_test_start(const SpeechOptions *options,
-                                      const KokoroStreamPlaybackOps *ops, void *context,
-                                      SpeechStream **stream, SpeechStreamTestProducer producer) {
+SpeechIOStatus speech_stream_test_start(const SpeechOptions *options,
+                                        const SpeechStreamPlaybackOps *ops, void *context,
+                                        SpeechStream **stream, SpeechStreamTestProducer producer) {
     if (!producer)
-        return KOKORO_INVALID_ARGUMENT;
+        return SPEECH_IO_INVALID_ARGUMENT;
     /* Test handles are never dereferenced by the controlled producer. */
     return start_request((const SpeechEngine *)(uintptr_t)1, (const PhononVoice *)(uintptr_t)1,
                          "synthetic", 9, options, ops, context, stream, NULL, producer);
 }
 #endif
 
-KokoroStatus speech_stream_start(const SpeechEngine *engine, const PhononVoice *voice,
-                                 const char *text, size_t length, const SpeechOptions *options,
-                                 SpeechStream **stream, KokoroError *error) {
+SpeechIOStatus speech_stream_start(const SpeechEngine *engine, const PhononVoice *voice,
+                                   const char *text, size_t length, const SpeechOptions *options,
+                                   SpeechStream **stream, SpeechError *error) {
     return speech_stream_start_with(engine, voice, text, length, options,
-                                    kokoro_audio_queue_playback_ops(), NULL, stream, error);
+                                    speech_audio_queue_playback_ops(), NULL, stream, error);
 }
 
 void speech_stream_cancel(SpeechStream *stream) {
@@ -303,8 +304,8 @@ void speech_stream_cancel(SpeechStream *stream) {
     pthread_mutex_lock(&stream->mutex);
     stream->cancelled = true;
     if (!stream->terminal) {
-        kokoro_error_set(&stream->error, KOKORO_CANCELLED, "stream cancelled");
-        set_terminal_locked(stream, KOKORO_CANCELLED, &stream->error);
+        speech_error_set(&stream->error, SPEECH_IO_CANCELLED, "stream cancelled");
+        set_terminal_locked(stream, SPEECH_IO_CANCELLED, &stream->error);
     }
     void *playback = stream->playback;
     if (playback != NULL) {
@@ -333,11 +334,11 @@ static struct timespec wait_deadline(void) {
     return deadline;
 }
 
-KokoroStatus speech_stream_wait(SpeechStream *stream, const volatile sig_atomic_t *interrupted,
-                                KokoroError *error) {
+SpeechIOStatus speech_stream_wait(SpeechStream *stream, const volatile sig_atomic_t *interrupted,
+                                  SpeechError *error) {
     if (stream == NULL) {
-        kokoro_error_set(error, KOKORO_INVALID_ARGUMENT, "stream is required");
-        return KOKORO_INVALID_ARGUMENT;
+        speech_error_set(error, SPEECH_IO_INVALID_ARGUMENT, "stream is required");
+        return SPEECH_IO_INVALID_ARGUMENT;
     }
     pthread_mutex_lock(&stream->mutex);
     while (!stream->producer_finished) {
@@ -350,18 +351,18 @@ KokoroStatus speech_stream_wait(SpeechStream *stream, const volatile sig_atomic_
         struct timespec deadline = wait_deadline();
         int wait_error = pthread_cond_timedwait(&stream->condition, &stream->mutex, &deadline);
         if (wait_error != 0 && wait_error != ETIMEDOUT) {
-            KokoroError wait_failure = {0};
-            kokoro_error_set(&wait_failure, KOKORO_IO_ERROR, "cannot wait for stream producer: %s",
+            SpeechError wait_failure = {0};
+            speech_error_set(&wait_failure, SPEECH_IO_ERROR, "cannot wait for stream producer: %s",
                              strerror(wait_error));
-            set_terminal_locked(stream, KOKORO_IO_ERROR, &wait_failure);
+            set_terminal_locked(stream, SPEECH_IO_ERROR, &wait_failure);
             stream->cancelled = true;
             pthread_mutex_unlock(&stream->mutex);
             speech_stream_cancel(stream);
             pthread_mutex_lock(&stream->mutex);
         }
     }
-    KokoroStatus status = stream->status;
-    KokoroError stream_error = stream->error;
+    SpeechIOStatus status = stream->status;
+    SpeechError stream_error = stream->error;
     pthread_mutex_unlock(&stream->mutex);
 
     int join_error = 0;
@@ -376,9 +377,9 @@ KokoroStatus speech_stream_wait(SpeechStream *stream, const volatile sig_atomic_
             pthread_mutex_unlock(&stream->mutex);
         }
     }
-    if (join_error != 0 && status == KOKORO_OK) {
-        status = KOKORO_IO_ERROR;
-        kokoro_error_set(&stream_error, status, "cannot join stream producer: %s",
+    if (join_error != 0 && status == SPEECH_IO_OK) {
+        status = SPEECH_IO_ERROR;
+        speech_error_set(&stream_error, status, "cannot join stream producer: %s",
                          strerror(join_error));
     }
     if (error != NULL) {

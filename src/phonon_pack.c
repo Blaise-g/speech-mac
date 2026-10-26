@@ -68,7 +68,7 @@ static int has_text(const unsigned char *p, size_t n, const char *needle) {
 }
 static int check_hash(const unsigned char *p, size_t n, const unsigned char *expected) {
     char got[65], wanted[65];
-    if (!kokoro_sha256_hex(p, n, got))
+    if (!speech_sha256_hex(p, n, got))
         return 0;
     digest_to_hex(expected, wanted);
     return strcmp(got, wanted) == 0;
@@ -149,7 +149,7 @@ static int phonon_pack_open_impl(const char *path, PhononPack **result, int requ
     }
     if (require_pinned_index) {
         char observed_index[65];
-        if (!kokoro_sha256_hex(b + entry_start, (size_t)index_size, observed_index) ||
+        if (!speech_sha256_hex(b + entry_start, (size_t)index_size, observed_index) ||
             strcmp(observed_index, tensor_index_digest)) {
             free_pack(pack);
             return 0;

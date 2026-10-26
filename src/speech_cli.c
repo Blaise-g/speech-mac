@@ -262,21 +262,21 @@ int speech_cli_run(int argc, char **argv, const SpeechCliConfig *config) {
     SpeechStatus status = speech_engine_create(pack, &engine);
     if (status == SPEECH_OK && streaming) {
         SpeechStream *stream = NULL;
-        KokoroError error = {0};
-        const KokoroStreamPlaybackOps *ops = config ? config->stream_playback : NULL;
-        KokoroStatus played =
+        SpeechError error = {0};
+        const SpeechStreamPlaybackOps *ops = config ? config->stream_playback : NULL;
+        SpeechIOStatus played =
             ops ? speech_stream_start_with(engine, voice, text, length, &options, ops,
                                            config->stream_context, &stream, &error)
                 : speech_stream_start(engine, voice, text, length, &options, &stream, &error);
-        if (played == KOKORO_OK)
+        if (played == SPEECH_IO_OK)
             played = speech_stream_wait(stream, config ? config->interrupted : NULL, &error);
         speech_stream_free(stream);
         free(text);
         speech_engine_destroy(engine);
         phonon_voice_close(voice);
-        if (played != KOKORO_OK)
+        if (played != SPEECH_IO_OK)
             fprintf(err, "Streaming failed (%d): %s\n", played, error.message);
-        return played == KOKORO_OK ? 0 : played == KOKORO_CANCELLED ? 130 : 1;
+        return played == SPEECH_IO_OK ? 0 : played == SPEECH_IO_CANCELLED ? 130 : 1;
     }
     if (status == SPEECH_OK)
         status =
@@ -306,9 +306,9 @@ int speech_cli_run(int argc, char **argv, const SpeechCliConfig *config) {
                 close(fd);
         }
     }
-    KokoroError error;
-    int ok = file && kokoro_wav_write_pcm16_stream(file, pcm, count, SPEECH_SAMPLE_RATE, &error) ==
-                         KOKORO_OK;
+    SpeechError error;
+    int ok = file && speech_wav_write_pcm16_stream(file, pcm, count, SPEECH_SAMPLE_RATE, &error) ==
+                         SPEECH_IO_OK;
     if (file && fclose(file))
         ok = 0;
     free(pcm);

@@ -3,7 +3,7 @@
 #include <CommonCrypto/CommonDigest.h>
 #include <stdint.h>
 
-int kokoro_sha256_hex(const unsigned char *data, size_t length, char output[65]) {
+int speech_sha256_hex(const unsigned char *data, size_t length, char output[65]) {
     CC_SHA256_CTX context;
     unsigned char digest[CC_SHA256_DIGEST_LENGTH];
     if (CC_SHA256_Init(&context) != 1) {

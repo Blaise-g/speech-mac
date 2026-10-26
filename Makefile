@@ -10,15 +10,13 @@ CPPFLAGS ?= -Isrc
 LDLIBS ?= -framework AudioToolbox -framework Accelerate
 
 APP_SOURCES := $(shell find src -type f -name '*.c' -print 2>/dev/null | sort)
-MAIN_SOURCES := $(filter %/main.c,$(APP_SOURCES))
 TEST_SOURCES := $(shell find tests -type f -name 'test_*.c' -print 2>/dev/null | sort)
-ENGINE_SOURCES := $(filter-out %/main.c %/speech_main.c,$(APP_SOURCES))
+ENGINE_SOURCES := $(filter-out %/speech_main.c,$(APP_SOURCES))
 SPEECH_SOURCES := src/speech_main.c $(ENGINE_SOURCES)
-LEGACY_SOURCES := src/main.c $(ENGINE_SOURCES)
 C_SOURCES := $(shell find src tests benchmarks -type f -name '*.c' -print 2>/dev/null | sort)
 FORMAT_FILES := $(shell find src tests benchmarks -type f \( -name '*.c' -o -name '*.h' \) -print 2>/dev/null | sort)
 
-.PHONY: help setup dev format format-check lint typecheck build test test-one check-fast check clean source-discovery benchmark-build benchmark stream-benchmark-build stream-benchmark phonon-reference-check phonon-native-pack phonon-native-check english-normalization-probe
+.PHONY: help setup dev format format-check lint typecheck build test test-one check-fast check clean source-discovery phonon-reference-check phonon-native-pack phonon-native-check english-normalization-probe
 
 help:
 	@printf '%s\n' \
@@ -29,8 +27,6 @@ help:
 	  'make test                          build and run the full C test suite' \
 	  'make check-fast                    format check, lint, typecheck, and tests' \
 	  'make check                         run the full local check sequence' \
-	  'make benchmark                     run the repeated native baseline (release -O2)' \
-	  'make stream-benchmark               run muted native streaming measurements' \
 	  'make clean                         remove local build artifacts'
 
 setup:
@@ -71,59 +67,8 @@ typecheck: source-discovery
 	fi
 
 build: source-discovery
-	@set -e; if [ -z "$(APP_SOURCES)" ]; then \
-	  echo 'Build skipped: no runtime C sources yet.'; \
-	elif [ -z "$(MAIN_SOURCES)" ]; then \
-	  mkdir -p $(BUILD_DIR)/obj; \
-	  set -e; \
-	  for source in $(APP_SOURCES); do \
-	    object=$(BUILD_DIR)/obj/$$(basename "$$source" .c).o; \
-	    $(CLANG) $(CPPFLAGS) $(BASE_CFLAGS) $(OPT_CFLAGS) -c "$$source" -o "$$object"; \
-	  done; \
-	  ar rcs $(BUILD_DIR)/libkokoro.a $(BUILD_DIR)/obj/*.o; \
-	  echo 'Built .build/libkokoro.a; the CLI entrypoint is scheduled for a later ticket.'; \
-	else \
-	  mkdir -p $(BUILD_DIR); \
-	  $(CLANG) $(CPPFLAGS) $(BASE_CFLAGS) $(OPT_CFLAGS) $(LEGACY_SOURCES) $(LDLIBS) -o $(BUILD_DIR)/kokoro; \
-	  $(CLANG) $(CPPFLAGS) $(BASE_CFLAGS) $(OPT_CFLAGS) $(SPEECH_SOURCES) $(LDLIBS) -o $(BUILD_DIR)/speech-mac; \
-	fi
-
-benchmark-build: source-discovery
-	@$(MAKE) build OPT_CFLAGS='-O2'
 	@mkdir -p $(BUILD_DIR)
-	@$(CLANG) $(CPPFLAGS) $(BASE_CFLAGS) -O2 -DKOKORO_BENCHMARK_TIMING benchmarks/native_driver.c $(ENGINE_SOURCES) $(LDLIBS) -o $(BUILD_DIR)/kokoro-benchmark
-
-benchmark: benchmark-build
-	@UV_CACHE_DIR=/private/tmp/kokoro-uv-cache uv run --project reference --locked --no-sync python benchmarks/run.py --runs 5 --warm-repetitions 5 --output artifacts/12-performance-baseline.json
-
-benchmark: export KOKORO_BENCH_COMPILER = $(CLANG)
-benchmark: export KOKORO_BENCH_CPPFLAGS = $(CPPFLAGS)
-benchmark: export KOKORO_BENCH_BASE_CFLAGS = $(BASE_CFLAGS)
-benchmark: export KOKORO_BENCH_OPT_CFLAGS = -O2
-benchmark: export KOKORO_BENCH_LDLIBS = $(LDLIBS)
-benchmark: export KOKORO_BENCH_BUILD_DIR = $(BUILD_DIR)
-
-stream-benchmark-build: source-discovery
-	@mkdir -p $(BUILD_DIR)
-	@$(CLANG) $(CPPFLAGS) $(BASE_CFLAGS) -O2 -DKOKORO_STREAM_BENCHMARK_TIMING \
-	  -DKOKORO_STREAM_SILENT_OUTPUT benchmarks/stream_driver.c $(ENGINE_SOURCES) $(LDLIBS) \
-	  -o $(BUILD_DIR)/kokoro-stream-benchmark
-
-stream-benchmark: stream-benchmark-build
-	@UV_CACHE_DIR=/private/tmp/kokoro-uv-cache uv run --project reference --locked --no-sync \
-	  python benchmarks/stream.py --runs 5
-
-stream-benchmark: export KOKORO_STREAM_COMPILER = $(CLANG)
-stream-benchmark: export KOKORO_STREAM_BASE_CFLAGS = $(BASE_CFLAGS)
-stream-benchmark: export KOKORO_STREAM_OPT_CFLAGS = -O2
-stream-benchmark: export KOKORO_STREAM_CPPFLAGS = $(CPPFLAGS)
-stream-benchmark: export KOKORO_STREAM_LDLIBS = $(LDLIBS)
-
-stream-benchmark-build: export KOKORO_STREAM_COMPILER = $(CLANG)
-stream-benchmark-build: export KOKORO_STREAM_BASE_CFLAGS = $(BASE_CFLAGS)
-stream-benchmark-build: export KOKORO_STREAM_OPT_CFLAGS = -O2
-stream-benchmark-build: export KOKORO_STREAM_CPPFLAGS = $(CPPFLAGS)
-stream-benchmark-build: export KOKORO_STREAM_LDLIBS = $(LDLIBS)
+	@$(CLANG) $(CPPFLAGS) $(BASE_CFLAGS) $(OPT_CFLAGS) $(SPEECH_SOURCES) $(LDLIBS) -o $(BUILD_DIR)/speech-mac
 
 test: source-discovery
 	@if [ -z "$(TEST_SOURCES)" ]; then \
@@ -167,34 +112,38 @@ source-discovery:
 
 check-fast: format-check lint typecheck test
 
-check: format-check lint typecheck build test
+check: format-check lint typecheck build test removal-check
 
 clean:
 	rm -rf $(BUILD_DIR)
 
 phonon-reference-check:
-	@UV_CACHE_DIR=/private/tmp/kokoro-uv-cache uv run --project reference/phonon --offline --no-sync --locked python reference/phonon/verify_assets.py
-	@UV_CACHE_DIR=/private/tmp/kokoro-uv-cache uv run --project reference/phonon --offline --no-sync --locked python reference/phonon/oracle.py verify
-	@UV_CACHE_DIR=/private/tmp/kokoro-uv-cache uv run --project reference/phonon --offline --no-sync --locked python reference/phonon/oracle.py verify-mimi
-	@UV_CACHE_DIR=/private/tmp/kokoro-uv-cache uv run --project reference/phonon --offline --no-sync --locked python reference/phonon/oracle.py verify-temporal
-	@UV_CACHE_DIR=/private/tmp/kokoro-uv-cache uv run --project reference/phonon --offline --no-sync --locked python reference/phonon/oracle.py verify-q8
-	@UV_CACHE_DIR=/private/tmp/kokoro-uv-cache uv run --project reference/phonon --offline --no-sync --locked python -m unittest discover -s reference/phonon/tests
+	@UV_CACHE_DIR=/private/tmp/speech-mac-uv-cache uv run --project reference/phonon --offline --no-sync --locked python reference/phonon/verify_assets.py
+	@UV_CACHE_DIR=/private/tmp/speech-mac-uv-cache uv run --project reference/phonon --offline --no-sync --locked python reference/phonon/oracle.py verify
+	@UV_CACHE_DIR=/private/tmp/speech-mac-uv-cache uv run --project reference/phonon --offline --no-sync --locked python reference/phonon/oracle.py verify-mimi
+	@UV_CACHE_DIR=/private/tmp/speech-mac-uv-cache uv run --project reference/phonon --offline --no-sync --locked python reference/phonon/oracle.py verify-temporal
+	@UV_CACHE_DIR=/private/tmp/speech-mac-uv-cache uv run --project reference/phonon --offline --no-sync --locked python reference/phonon/oracle.py verify-q8
+	@UV_CACHE_DIR=/private/tmp/speech-mac-uv-cache uv run --project reference/phonon --offline --no-sync --locked python -m unittest discover -s reference/phonon/tests
 
 phonon-native-pack:
-	@UV_CACHE_DIR=/private/tmp/kokoro-uv-cache uv run --project reference/phonon --offline --no-sync --locked python reference/phonon/native_pack.py
-	@UV_CACHE_DIR=/private/tmp/kokoro-uv-cache uv run --project reference/phonon --offline --no-sync --locked python reference/phonon/native_projection_oracle.py
+	@UV_CACHE_DIR=/private/tmp/speech-mac-uv-cache uv run --project reference/phonon --offline --no-sync --locked python reference/phonon/native_pack.py
+	@UV_CACHE_DIR=/private/tmp/speech-mac-uv-cache uv run --project reference/phonon --offline --no-sync --locked python reference/phonon/native_projection_oracle.py
 
 phonon-native-check: phonon-native-pack
-	@UV_CACHE_DIR=/private/tmp/kokoro-uv-cache uv run --project reference/phonon --offline --no-sync --locked python reference/phonon/export_flow_fixture.py
-	@UV_CACHE_DIR=/private/tmp/kokoro-uv-cache uv run --project reference/phonon --offline --no-sync --locked python reference/phonon/export_sampler_fixture.py
-	@PHONON_NATIVE_PACK=$$(find .build -maxdepth 1 -name 'phonon-native-*-v1.kpack' -print -quit) \
+	@UV_CACHE_DIR=/private/tmp/speech-mac-uv-cache uv run --project reference/phonon --offline --no-sync --locked python reference/phonon/export_flow_fixture.py
+	@UV_CACHE_DIR=/private/tmp/speech-mac-uv-cache uv run --project reference/phonon --offline --no-sync --locked python reference/phonon/export_sampler_fixture.py
+	@PHONON_NATIVE_PACK=.build/phonon-native-f6acc8f43cb296be-v1.kpack \
 	 PHONON_FLOW_SAMPLER_FIXTURE=.build/phonon-flow-sampler-v1.bin $(MAKE) test-one TEST=tests/test_phonon_transformer.c
-	@UV_CACHE_DIR=/private/tmp/kokoro-uv-cache uv run --project reference/phonon --offline --no-sync --locked python reference/phonon/verify_native_generation_trace.py
-	@PHONON_NATIVE_PACK=$$(find .build -maxdepth 1 -name 'phonon-native-*-v1.kpack' -print -quit) \
+	@UV_CACHE_DIR=/private/tmp/speech-mac-uv-cache uv run --project reference/phonon --offline --no-sync --locked python reference/phonon/verify_native_generation_trace.py
+	@PHONON_NATIVE_PACK=.build/phonon-native-f6acc8f43cb296be-v1.kpack \
 	 PHONON_Q8_ORACLE=.build/phonon-native-q8-projections-v1.bin \
 	 PHONON_BF16_ORACLE=.build/phonon-native-bf16-oracle-v1.bin $(MAKE) test-one TEST=tests/test_phonon_pack.c
 
 
 english-normalization-probe: source-discovery
 	@mkdir -p $(BUILD_DIR)
-	@$(CLANG) $(CPPFLAGS) $(BASE_CFLAGS) -O2 tests/english_normalize_probe.c src/english_normalize.c src/utf8.c src/kokoro.c -o $(BUILD_DIR)/english-normalize-probe
+	@$(CLANG) $(CPPFLAGS) $(BASE_CFLAGS) -O2 tests/english_normalize_probe.c src/english_normalize.c src/utf8.c src/speech_error.c -o $(BUILD_DIR)/english-normalize-probe
+
+.PHONY: removal-check
+removal-check:
+	@uv run --no-project --python 3.12 python -m unittest discover -s reference/phonon/tests -p test_maintained_surface.py

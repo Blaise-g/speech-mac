@@ -12,7 +12,7 @@ from gguf import GGUFReader
 from safetensors import safe_open
 
 ROOT = Path(__file__).resolve().parents[2]
-ASSETS = Path(os.environ.get("PHONON_MODEL_DIR", "/Volumes/Code/Personal/speech-mac-models/phonon-40m-en"))
+ASSETS = Path(os.environ.get("PHONON_MODEL_DIR", "models/phonon-40m-en"))
 HERE = Path(__file__).resolve().parent
 PINS = json.loads((HERE / "pins.json").read_text())
 PIN = next(item for item in PINS["files"] if item["path"] == "model.q8.gguf")

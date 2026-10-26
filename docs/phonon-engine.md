@@ -69,6 +69,6 @@ frames exist; it cannot replace model math and is absent from ordinary builds.
 Reproduce after preparing the pinned Rust tools and native pack:
 
 ```sh
-UV_CACHE_DIR=/private/tmp/kokoro-uv-cache uv run --project reference/phonon --offline --no-sync --locked python reference/phonon/export_engine_fixture.py
+UV_CACHE_DIR=/private/tmp/speech-mac-uv-cache uv run --project reference/phonon --offline --no-sync --locked python reference/phonon/export_engine_fixture.py
 PHONON_DEFAULT_VOICE=/path/to/default-voice.safetensors PHONON_NATIVE_PACK=.build/phonon-native-f6acc8f43cb296be-v1.kpack PHONON_ENGINE_FIXTURE=.build/phonon-engine-v1.bin make test-one TEST=tests/test_speech.c
 ```

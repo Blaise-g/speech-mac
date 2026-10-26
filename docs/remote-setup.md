@@ -20,4 +20,4 @@ The configured workflow is [`.github/workflows/ci.yml`](../.github/workflows/ci.
 
 The observed bootstrap run was [run 38263195103](https://github.com/Blaise-g/kokoro-mac/actions/runs/38263195103), triggered by the `main` push of setup commit `963ce48eb1da6f6b067588b067e6d325313bcf93`. Its `check` job completed successfully. This verifies CI on the setup commit; it does not represent a run for the unpublished feature branch.
 
-The workflow does not fetch ignored model weights. Local model-backed checks require the artifacts described in [README.md](../README.md); without them, the applicable C tests report explicit skips. The standalone locked comparison test command and its scope are documented in [CONTRIBUTING.md](../CONTRIBUTING.md).
+The workflow does not fetch ignored model weights. Local model-backed checks require the artifacts described in [README.md](../README.md); without them, the applicable C tests report explicit skips. The maintained locked Phonon reference commands are documented in [CONTRIBUTING.md](../CONTRIBUTING.md).

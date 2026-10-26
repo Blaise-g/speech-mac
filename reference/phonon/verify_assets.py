@@ -1,7 +1,7 @@
 """Verify shared model assets against checked-in revision-specific digest pins."""
 import hashlib,json,os
 from pathlib import Path
-ROOT=Path(os.environ.get('PHONON_MODEL_DIR','/Volumes/Code/Personal/speech-mac-models/phonon-40m-en'))
+ROOT=Path(os.environ.get('PHONON_MODEL_DIR','models/phonon-40m-en'))
 PINS=Path(__file__).with_name('pins.json')
 
 def verify():

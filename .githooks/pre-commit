@@ -2,7 +2,7 @@
 set -euo pipefail
 
 repo_root=$(git rev-parse --show-toplevel)
-temp_root=$(mktemp -d "${TMPDIR:-/tmp}/kokoro-pre-commit.XXXXXX")
+temp_root=$(mktemp -d "${TMPDIR:-/tmp}/speech-mac-pre-commit.XXXXXX")
 trap 'rm -rf "$temp_root"' EXIT
 
 snapshot="$temp_root/staged"

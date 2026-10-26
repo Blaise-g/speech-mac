@@ -14,10 +14,10 @@ int main(void) {
             line[--length] = '\0';
         char *normalized = NULL;
         size_t normalized_length = 0;
-        KokoroError error;
-        KokoroStatus status =
+        SpeechError error;
+        SpeechIOStatus status =
             phonon_english_normalize("en", line, length, &normalized, &normalized_length, &error);
-        if (status != KOKORO_OK) {
+        if (status != SPEECH_IO_OK) {
             fprintf(stderr, "%s\n", error.message);
             free(line);
             return EXIT_FAILURE;

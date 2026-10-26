@@ -8,12 +8,12 @@
 static int expect(const char *input, const char *expected) {
     char *actual = NULL;
     size_t length = 0;
-    KokoroError error;
-    KokoroStatus status =
+    SpeechError error;
+    SpeechIOStatus status =
         phonon_english_normalize("en", input, strlen(input), &actual, &length, &error);
-    if (status != KOKORO_OK || length != strlen(expected) || strcmp(actual, expected) != 0) {
+    if (status != SPEECH_IO_OK || length != strlen(expected) || strcmp(actual, expected) != 0) {
         fprintf(stderr, "normalize(%s): status=%s actual=%s expected=%s\n", input,
-                kokoro_status_name(status), actual == NULL ? "<null>" : actual, expected);
+                speech_status_name(status), actual == NULL ? "<null>" : actual, expected);
         phonon_english_normalize_free(actual);
         return 1;
     }
@@ -170,28 +170,28 @@ int main(void) {
                        "so No, Hi Why Ew, Ah! good Zzz Brrr WWW Mmm");
     char *result = NULL;
     size_t result_length = 0;
-    KokoroError error;
+    SpeechError error;
     const char malformed[] = {(char)0xc0, (char)0x80};
     const char embedded_nul[] = {'a', 0, 'b'};
     if (phonon_english_normalize("en", malformed, sizeof(malformed), &result, &result_length,
-                                 &error) != KOKORO_INVALID_ARGUMENT ||
+                                 &error) != SPEECH_IO_INVALID_ARGUMENT ||
         result != NULL)
         failures++;
     if (phonon_english_normalize("en", embedded_nul, sizeof(embedded_nul), &result, &result_length,
-                                 &error) != KOKORO_INVALID_ARGUMENT ||
+                                 &error) != SPEECH_IO_INVALID_ARGUMENT ||
         result != NULL)
         failures++;
     if (phonon_english_normalize("en", "😀", strlen("😀"), &result, &result_length, &error) !=
-            KOKORO_OK ||
+            SPEECH_IO_OK ||
         result == NULL || result_length != 0)
         failures++;
     phonon_english_normalize_free(result);
     result = NULL;
     if (phonon_english_normalize("fr", "hello", 5, &result, &result_length, &error) !=
-            KOKORO_INVALID_ARGUMENT ||
+            SPEECH_IO_INVALID_ARGUMENT ||
         result != NULL)
         failures++;
-    if (phonon_english_normalize("en", "", 0, &result, &result_length, &error) != KOKORO_OK ||
+    if (phonon_english_normalize("en", "", 0, &result, &result_length, &error) != SPEECH_IO_OK ||
         result == NULL || result_length != 0 || result[0] != '\0')
         failures++;
     phonon_english_normalize_free(result);
@@ -203,9 +203,9 @@ int main(void) {
         result = NULL;
         result_length = 0;
         phonon_english_normalize_test_fail_after(fail_at);
-        KokoroStatus status = phonon_english_normalize(
+        SpeechIOStatus status = phonon_english_normalize(
             "en", allocation_input, sizeof(allocation_input) - 1, &result, &result_length, &error);
-        if (status == KOKORO_OK) {
+        if (status == SPEECH_IO_OK) {
             if (phonon_english_normalize_test_failure_triggered() || result == NULL ||
                 strcmp(result,
                        "1 dollar and 25 cents, foo at example dot com 123 456 7 8 9 0 Lieutenant "
@@ -222,10 +222,11 @@ int main(void) {
             phonon_english_normalize_free(result);
             break;
         }
-        if (status != KOKORO_OUT_OF_MEMORY || !phonon_english_normalize_test_failure_triggered() ||
-            result != NULL || result_length != 0) {
+        if (status != SPEECH_IO_OUT_OF_MEMORY ||
+            !phonon_english_normalize_test_failure_triggered() || result != NULL ||
+            result_length != 0) {
             fprintf(stderr, "allocation failure %ld returned %s with output %s\n", fail_at,
-                    kokoro_status_name(status), result == NULL ? "<null>" : "non-null");
+                    speech_status_name(status), result == NULL ? "<null>" : "non-null");
             phonon_english_normalize_free(result);
             return EXIT_FAILURE;
         }

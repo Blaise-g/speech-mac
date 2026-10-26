@@ -7,8 +7,8 @@ typedef struct {
     void *output_context;
     AudioQueuePropertyListenerProc property_callback;
     void *property_context;
-    AudioQueueBufferRef buffers[KOKORO_STREAM_BUFFER_COUNT];
-    AudioQueueBufferRef pending[KOKORO_STREAM_BUFFER_COUNT];
+    AudioQueueBufferRef buffers[SPEECH_STREAM_BUFFER_COUNT];
+    AudioQueueBufferRef pending[SPEECH_STREAM_BUFFER_COUNT];
     size_t pending_head;
     size_t pending_count;
     size_t allocated_count;
@@ -83,7 +83,7 @@ static inline bool wait_audio(MockAudio *audio, bool (*ready)(const MockAudio *)
 }
 
 static inline bool ready_enqueued_three(const MockAudio *audio) {
-    return audio->enqueue_count >= KOKORO_STREAM_BUFFER_COUNT;
+    return audio->enqueue_count >= SPEECH_STREAM_BUFFER_COUNT;
 }
 
 static inline bool ready_consumed_first_chunk(const MockAudio *audio) {
@@ -158,7 +158,7 @@ static inline void *mock_consumer(void *argument) {
             return NULL;
         }
         AudioQueueBufferRef buffer = queue->pending[queue->pending_head];
-        queue->pending_head = (queue->pending_head + 1) % KOKORO_STREAM_BUFFER_COUNT;
+        queue->pending_head = (queue->pending_head + 1) % SPEECH_STREAM_BUFFER_COUNT;
         queue->pending_count--;
         queue->processing = true;
         size_t sample_count = buffer->mAudioDataByteSize / sizeof(float);
@@ -274,7 +274,7 @@ static inline OSStatus mock_allocate_buffer(AudioQueueRef queue_ref, UInt32 byte
     if (fail_at != 0 && index + 1 == fail_at) {
         return FAILURE_STATUS;
     }
-    if (index >= KOKORO_STREAM_BUFFER_COUNT) {
+    if (index >= SPEECH_STREAM_BUFFER_COUNT) {
         return FAILURE_STATUS;
     }
     AudioQueueBufferRef buffer = malloc(sizeof(*buffer));
@@ -318,7 +318,7 @@ static inline OSStatus mock_enqueue(AudioQueueRef queue_ref, AudioQueueBufferRef
     }
     bool fail = audio->enqueue_error_at != 0 && enqueue_number == audio->enqueue_error_at;
     if (!fail) {
-        size_t tail = (queue->pending_head + queue->pending_count) % KOKORO_STREAM_BUFFER_COUNT;
+        size_t tail = (queue->pending_head + queue->pending_count) % SPEECH_STREAM_BUFFER_COUNT;
         queue->pending[tail] = buffer;
         queue->pending_count++;
         pthread_cond_broadcast(&audio->condition);
@@ -354,7 +354,7 @@ static inline OSStatus mock_start(AudioQueueRef queue_ref, const AudioTimeStamp 
 static inline OSStatus mock_stop(AudioQueueRef queue_ref, Boolean immediate) {
     MockQueue *queue = (MockQueue *)queue_ref;
     MockAudio *audio = queue->owner;
-    AudioQueueBufferRef released[KOKORO_STREAM_BUFFER_COUNT];
+    AudioQueueBufferRef released[SPEECH_STREAM_BUFFER_COUNT];
     size_t release_count = 0;
     bool notify = false;
     pthread_mutex_lock(&audio->mutex);
@@ -362,7 +362,7 @@ static inline OSStatus mock_stop(AudioQueueRef queue_ref, Boolean immediate) {
         audio->immediate_stop_count++;
         while (queue->pending_count > 0) {
             released[release_count++] = queue->pending[queue->pending_head];
-            queue->pending_head = (queue->pending_head + 1) % KOKORO_STREAM_BUFFER_COUNT;
+            queue->pending_head = (queue->pending_head + 1) % SPEECH_STREAM_BUFFER_COUNT;
             queue->pending_count--;
         }
         queue->running = false;
@@ -442,7 +442,7 @@ static inline OSStatus mock_dispose(AudioQueueRef queue_ref, Boolean immediate) 
     return fail ? FAILURE_STATUS : noErr;
 }
 
-static const KokoroAudioQueueApi mock_api = {
+static const SpeechAudioQueueApi mock_api = {
     .new_output = mock_new_output,
     .add_property_listener = mock_add_listener,
     .remove_property_listener = mock_remove_listener,

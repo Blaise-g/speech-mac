@@ -23,14 +23,14 @@ typedef struct {
  * One control owner calls wait/free; cancel may overlap wait. Before free, callers
  * must prevent new external cancel calls and join or otherwise synchronize all
  * existing cancel callers. Keep the stream handle alive while any call uses it. */
-KokoroStatus speech_stream_start(const SpeechEngine *, const PhononVoice *, const char *, size_t,
-                                 const SpeechOptions *, SpeechStream **, KokoroError *);
+SpeechIOStatus speech_stream_start(const SpeechEngine *, const PhononVoice *, const char *, size_t,
+                                   const SpeechOptions *, SpeechStream **, SpeechError *);
 /* Playback-only injection: inference always runs the actual resident engine. */
-KokoroStatus speech_stream_start_with(const SpeechEngine *, const PhononVoice *, const char *,
-                                      size_t, const SpeechOptions *,
-                                      const KokoroStreamPlaybackOps *, void *, SpeechStream **,
-                                      KokoroError *);
-KokoroStatus speech_stream_wait(SpeechStream *, const volatile sig_atomic_t *, KokoroError *);
+SpeechIOStatus speech_stream_start_with(const SpeechEngine *, const PhononVoice *, const char *,
+                                        size_t, const SpeechOptions *,
+                                        const SpeechStreamPlaybackOps *, void *, SpeechStream **,
+                                        SpeechError *);
+SpeechIOStatus speech_stream_wait(SpeechStream *, const volatile sig_atomic_t *, SpeechError *);
 void speech_stream_cancel(SpeechStream *);
 void speech_stream_free(SpeechStream *);
 /* Read only after wait has returned successfully joining the producer. */

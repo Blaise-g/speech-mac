@@ -27,7 +27,7 @@ static void put_u64(unsigned char *b, uint64_t value) {
 }
 static void hash_bytes(const unsigned char *data, size_t size, unsigned char output[32]) {
     char hex[65];
-    assert(kokoro_sha256_hex(data, size, hex));
+    assert(speech_sha256_hex(data, size, hex));
     for (size_t i = 0; i < 32; i++) {
         unsigned char high =
             (unsigned char)(hex[2 * i] <= '9' ? hex[2 * i] - '0' : hex[2 * i] - 'a' + 10);
@@ -148,7 +148,7 @@ static void reject_mutation(const unsigned char *source, size_t size, const char
         index_size |= (uint64_t)copy[16 + i] << (8U * i);
     if (offset >= entries && offset < entries + index_size) {
         char hash[65];
-        assert(kokoro_sha256_hex(copy + entries, (size_t)index_size, hash));
+        assert(speech_sha256_hex(copy + entries, (size_t)index_size, hash));
         for (size_t i = 0; i < 32; i++) {
             unsigned char high =
                 (unsigned char)(hash[i * 2] <= '9' ? hash[i * 2] - '0' : hash[i * 2] - 'a' + 10);
@@ -160,7 +160,7 @@ static void reject_mutation(const unsigned char *source, size_t size, const char
     }
     if (offset >= 196 && offset < entries) {
         char hash[65];
-        assert(kokoro_sha256_hex(copy + 196, entries - 196, hash));
+        assert(speech_sha256_hex(copy + 196, entries - 196, hash));
         for (size_t i = 0; i < 32; i++) {
             unsigned char high =
                 (unsigned char)(hash[i * 2] <= '9' ? hash[i * 2] - '0' : hash[i * 2] - 'a' + 10);

@@ -6,6 +6,6 @@
 typedef SpeechStatus (*SpeechStreamTestProducer)(const SpeechEngine *, const PhononVoice *,
                                                  const char *, size_t, const SpeechOptions *,
                                                  SpeechPCMCallback, void *, SpeechResult *);
-KokoroStatus speech_stream_test_start(const SpeechOptions *, const KokoroStreamPlaybackOps *,
-                                      void *, SpeechStream **, SpeechStreamTestProducer);
+SpeechIOStatus speech_stream_test_start(const SpeechOptions *, const SpeechStreamPlaybackOps *,
+                                        void *, SpeechStream **, SpeechStreamTestProducer);
 #endif

@@ -1,6 +1,6 @@
 #include "english_normalize.h"
 
-#include "kokoro_internal.h"
+#include "speech_error_internal.h"
 #include "utf8.h"
 
 #include <errno.h>
@@ -981,14 +981,14 @@ static bool unicode_alphabetic(uint32_t codepoint) {
 static bool unicode_alphabetic_at(const char *text) {
     size_t offset = 0;
     uint32_t cp;
-    return kokoro_utf8_decode_next((const unsigned char *)text, strlen(text), &offset, &cp) &&
+    return speech_utf8_decode_next((const unsigned char *)text, strlen(text), &offset, &cp) &&
            unicode_alphabetic(cp);
 }
 
 static bool url_alphanumeric(const char *text, size_t length, size_t *width) {
     size_t offset = 0;
     uint32_t cp;
-    if (!kokoro_utf8_decode_next((const unsigned char *)text, length, &offset, &cp))
+    if (!speech_utf8_decode_next((const unsigned char *)text, length, &offset, &cp))
         return false;
     *width = offset;
     return unicode_alphanumeric(cp);
@@ -1002,7 +1002,7 @@ static bool speak_url_part(char *out, size_t cap, size_t *used, const char *part
         if (i < n && !separator) {
             size_t off = 0;
             uint32_t cp;
-            if (!kokoro_utf8_decode_next((const unsigned char *)part + i, n - i, &off, &cp))
+            if (!speech_utf8_decode_next((const unsigned char *)part + i, n - i, &off, &cp))
                 return false;
             i += off;
             continue;
@@ -1328,7 +1328,7 @@ static char *rewrite_slash_word(const char *word, bool *allocation_failed) {
                     break;
                 }
                 uint32_t cp;
-                if (!kokoro_utf8_decode_next((const unsigned char *)word + off, i - off, &width,
+                if (!speech_utf8_decode_next((const unsigned char *)word + off, i - off, &width,
                                              &cp)) {
                     alpha = false;
                     break;
@@ -2177,9 +2177,9 @@ static uint32_t superscript(uint32_t c) {
     }
 }
 
-KokoroStatus phonon_english_normalize(const char *language, const char *text, size_t text_length,
-                                      char **normalized, size_t *normalized_length,
-                                      KokoroError *error) {
+SpeechIOStatus phonon_english_normalize(const char *language, const char *text, size_t text_length,
+                                        char **normalized, size_t *normalized_length,
+                                        SpeechError *error) {
 #ifdef PHONON_ENGLISH_NORMALIZE_TEST_ALLOCATOR
     allocation_failure_active = allocation_failure_pending;
     allocation_failure_pending = -1;
@@ -2191,13 +2191,13 @@ KokoroStatus phonon_english_normalize(const char *language, const char *text, si
         *normalized_length = 0;
     if (language == NULL || strcmp(language, "en") != 0 || text == NULL || normalized == NULL ||
         normalized_length == NULL || memchr(text, '\0', text_length) != NULL ||
-        !kokoro_utf8_is_valid((const unsigned char *)text, text_length)) {
-        kokoro_error_set(error, KOKORO_INVALID_ARGUMENT,
+        !speech_utf8_is_valid((const unsigned char *)text, text_length)) {
+        speech_error_set(error, SPEECH_IO_INVALID_ARGUMENT,
                          "English normalization requires language en and valid non-NUL UTF-8 text");
 #ifdef PHONON_ENGLISH_NORMALIZE_TEST_ALLOCATOR
         allocation_failure_active = -1;
 #endif
-        return KOKORO_INVALID_ARGUMENT;
+        return SPEECH_IO_INVALID_ARGUMENT;
     }
     Codepoints output = {0};
     size_t offset = 0;
@@ -2205,7 +2205,7 @@ KokoroStatus phonon_english_normalize(const char *language, const char *text, si
     while (offset < text_length) {
         size_t codepoint_start = offset;
         uint32_t c;
-        if (!kokoro_utf8_decode_next((const unsigned char *)text, text_length, &offset, &c))
+        if (!speech_utf8_decode_next((const unsigned char *)text, text_length, &offset, &c))
             goto oom;
         c = quote_fold(c);
         c = fold_unicode(c);
@@ -2219,7 +2219,7 @@ KokoroStatus phonon_english_normalize(const char *language, const char *text, si
             while (offset < text_length) {
                 size_t peek = offset;
                 uint32_t next;
-                if (!kokoro_utf8_decode_next((const unsigned char *)text, text_length, &peek,
+                if (!speech_utf8_decode_next((const unsigned char *)text, text_length, &peek,
                                              &next) ||
                     (next != 0x2605 && next != 0x2606))
                     break;
@@ -2234,7 +2234,7 @@ KokoroStatus phonon_english_normalize(const char *language, const char *text, si
             size_t peek = offset;
             uint32_t next;
             if (offset < text_length &&
-                kokoro_utf8_decode_next((const unsigned char *)text, text_length, &peek, &next) &&
+                speech_utf8_decode_next((const unsigned char *)text, text_length, &peek, &next) &&
                 next == 0x00bd) {
                 half = true;
                 offset = peek;
@@ -2260,7 +2260,7 @@ KokoroStatus phonon_english_normalize(const char *language, const char *text, si
             while (run_end < text_length) {
                 size_t peek = run_end;
                 uint32_t next;
-                if (!kokoro_utf8_decode_next((const unsigned char *)text, text_length, &peek,
+                if (!speech_utf8_decode_next((const unsigned char *)text, text_length, &peek,
                                              &next))
                     break;
                 uint32_t mapped = superscript(next);
@@ -2287,7 +2287,7 @@ KokoroStatus phonon_english_normalize(const char *language, const char *text, si
                 while (ok && scan < run_end) {
                     uint32_t codepoint;
                     size_t next_offset = scan;
-                    if (!kokoro_utf8_decode_next((const unsigned char *)text, text_length,
+                    if (!speech_utf8_decode_next((const unsigned char *)text, text_length,
                                                  &next_offset, &codepoint)) {
                         ok = false;
                         break;
@@ -2325,7 +2325,7 @@ KokoroStatus phonon_english_normalize(const char *language, const char *text, si
         case '~': {
             size_t peek = offset;
             uint32_t next;
-            ok = kokoro_utf8_decode_next((const unsigned char *)text, text_length, &peek, &next) &&
+            ok = speech_utf8_decode_next((const unsigned char *)text, text_length, &peek, &next) &&
                          next >= '0' && next <= '9'
                      ? sink_spoken(&output, "about")
                      : sink_push(&output, c);
@@ -2343,7 +2343,7 @@ KokoroStatus phonon_english_normalize(const char *language, const char *text, si
             uint32_t next;
             bool before = previous == UINT32_MAX || whitespace(previous);
             bool after =
-                kokoro_utf8_decode_next((const unsigned char *)text, text_length, &peek, &next) &&
+                speech_utf8_decode_next((const unsigned char *)text, text_length, &peek, &next) &&
                 next >= '0' && next <= '9';
             ok = before && after ? sink_spoken(&output, "star") : sink_space(&output);
             break;
@@ -2355,7 +2355,7 @@ KokoroStatus phonon_english_normalize(const char *language, const char *text, si
             while (i && whitespace(output.items[i - 1]))
                 i--;
             bool has_next =
-                kokoro_utf8_decode_next((const unsigned char *)text, text_length, &peek, &next);
+                speech_utf8_decode_next((const unsigned char *)text, text_length, &peek, &next);
             bool spaced_digit = i > 0 && output.items[i - 1] >= '0' && output.items[i - 1] <= '9' &&
                                 (!has_next || !(next >= '0' && next <= '9'));
             if (spaced_digit) {
@@ -2396,11 +2396,11 @@ KokoroStatus phonon_english_normalize(const char *language, const char *text, si
                 size_t peek = offset;
                 uint32_t unit = 0;
                 bool has_unit =
-                    kokoro_utf8_decode_next((const unsigned char *)text, text_length, &peek, &unit);
+                    speech_utf8_decode_next((const unsigned char *)text, text_length, &peek, &unit);
                 if (has_unit && (unit == 'C' || unit == 'F')) {
                     size_t after = peek;
                     uint32_t next = 0;
-                    bool has_after = kokoro_utf8_decode_next((const unsigned char *)text,
+                    bool has_after = speech_utf8_decode_next((const unsigned char *)text,
                                                              text_length, &after, &next);
                     if (!has_after || !unicode_alphanumeric(next)) {
                         offset = peek;
@@ -2420,7 +2420,7 @@ KokoroStatus phonon_english_normalize(const char *language, const char *text, si
             uint32_t next = 0;
             bool has_next =
                 look < text_length &&
-                kokoro_utf8_decode_next((const unsigned char *)text, text_length, &look, &next);
+                speech_utf8_decode_next((const unsigned char *)text, text_length, &look, &next);
             if (previous != UINT32_MAX && !whitespace(previous) && has_next && !whitespace(next)) {
                 ok = sink_push(&output, ':');
             } else {
@@ -2493,18 +2493,19 @@ KokoroStatus phonon_english_normalize(const char *language, const char *text, si
         strchr(".!?,;", (*normalized)[*normalized_length - 2]) != NULL)
         (*normalized_length)--;
     (*normalized)[*normalized_length] = 0;
-    kokoro_error_set(error, KOKORO_OK, NULL);
+    speech_error_set(error, SPEECH_IO_OK, NULL);
 #ifdef PHONON_ENGLISH_NORMALIZE_TEST_ALLOCATOR
     allocation_failure_active = -1;
 #endif
-    return KOKORO_OK;
+    return SPEECH_IO_OK;
 oom:
     free(output.items);
-    kokoro_error_set(error, KOKORO_OUT_OF_MEMORY, "cannot allocate English normalization output");
+    speech_error_set(error, SPEECH_IO_OUT_OF_MEMORY,
+                     "cannot allocate English normalization output");
 #ifdef PHONON_ENGLISH_NORMALIZE_TEST_ALLOCATOR
     allocation_failure_active = -1;
 #endif
-    return KOKORO_OUT_OF_MEMORY;
+    return SPEECH_IO_OUT_OF_MEMORY;
 }
 
 void phonon_english_normalize_free(char *normalized) { free(normalized); }

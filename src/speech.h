@@ -24,7 +24,7 @@ typedef int (*SpeechCancel)(void *context);
 typedef struct {
     const char *language; /* exactly "en" */
     uint64_t seed;
-    float duration_delta; /* finite native duration conditioning, not Kokoro speed */
+    float duration_delta; /* finite native duration conditioning, not the removed speed scale */
     size_t max_frames;    /* total request cap, 1..8192; exceeding it returns SPEECH_LIMIT */
     SpeechCancel cancel;
     void *cancel_context;

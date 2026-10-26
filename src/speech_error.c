@@ -1,36 +1,36 @@
-#include "kokoro_internal.h"
+#include "speech_error_internal.h"
 
 #include <stdio.h>
 
-const char *kokoro_status_name(KokoroStatus status) {
+const char *speech_status_name(SpeechIOStatus status) {
     switch (status) {
-    case KOKORO_OK:
+    case SPEECH_IO_OK:
         return "ok";
-    case KOKORO_INVALID_ARGUMENT:
+    case SPEECH_IO_INVALID_ARGUMENT:
         return "invalid argument";
-    case KOKORO_IO_ERROR:
+    case SPEECH_IO_ERROR:
         return "I/O error";
-    case KOKORO_MALFORMED_PACK:
+    case SPEECH_IO_MALFORMED_PACK:
         return "malformed model pack";
-    case KOKORO_INCOMPATIBLE_PACK:
+    case SPEECH_IO_INCOMPATIBLE_PACK:
         return "incompatible model pack";
-    case KOKORO_OUT_OF_MEMORY:
+    case SPEECH_IO_OUT_OF_MEMORY:
         return "out of memory";
-    case KOKORO_INVALID_TOKEN_ID:
+    case SPEECH_IO_INVALID_TOKEN_ID:
         return "invalid token ID";
-    case KOKORO_CONTEXT_TOO_LONG:
+    case SPEECH_IO_CONTEXT_TOO_LONG:
         return "context length error";
-    case KOKORO_BUFFER_TOO_SMALL:
+    case SPEECH_IO_BUFFER_TOO_SMALL:
         return "output buffer too small";
-    case KOKORO_NUMERIC_ERROR:
+    case SPEECH_IO_NUMERIC_ERROR:
         return "non-finite model output";
-    case KOKORO_CANCELLED:
+    case SPEECH_IO_CANCELLED:
         return "cancelled";
     }
     return "unknown error";
 }
 
-void kokoro_error_set(KokoroError *error, KokoroStatus code, const char *format, ...) {
+void speech_error_set(SpeechError *error, SpeechIOStatus code, const char *format, ...) {
     if (error == NULL) {
         return;
     }

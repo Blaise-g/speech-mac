@@ -1,6 +1,6 @@
 # Phonon 40M development reference
 
-This isolated `uv` project runs the pinned Hugging Face Transformers/PyTorch Phonon implementation against the hash-verified model and Mimi decoder assets in `PHONON_MODEL_DIR` (default `/Volumes/Code/Personal/speech-mac-models/phonon-40m-en`). Assets are read-only and never copied into the repository. `uv.lock` pins Python dependencies and Transformers commit `50e35cc0ca18ec19b80653690de553e6decf74f5`; the checkpoint is `gradium/phonon-40m-en@cc738b7e4d182c2ba1bafb8062aa4846af000637`; decoder `gradium/phonon-mimi@33519be1a8e61c6fa00c6e154e2d38e76a367919`.
+This isolated `uv` project runs the pinned Hugging Face Transformers/PyTorch Phonon implementation against the hash-verified model and Mimi decoder assets in `PHONON_MODEL_DIR` (default `models/phonon-40m-en`). Assets are read-only and never copied into the repository. `uv.lock` pins Python dependencies and Transformers commit `50e35cc0ca18ec19b80653690de553e6decf74f5`; the checkpoint is `gradium/phonon-40m-en@cc738b7e4d182c2ba1bafb8062aa4846af000637`; decoder `gradium/phonon-mimi@33519be1a8e61c6fa00c6e154e2d38e76a367919`.
 
 The locked HF converter currently sets Mimi's `sliding_window` to `transformer_context + 1` (251). Ticket19's reference corrects that config to 250 positions. This is the minimal documented reference patch route authorized for reconciliation: Python Pocket TTS trained semantics use `delta < context`, so context 250 allows exactly 250 keys, unlike the PR209 Rust behavior `delta <= context`. The patch is explicitly applied in `oracle.py`; `context.py` encodes the expected predicate and boundary test. Upstream PR209 documents the discovered discrepancy: https://github.com/gradium-ai/xn-ptts/pull/209. HF model source is Apache-2.0, xn-ptts source Apache-2.0/MIT; 40M weights are CC BY-NC 4.0 and the Mimi codec weights Apache-2.0. Access to the gated 40M model requires accepting its Hugging Face terms. To access the gated 40M snapshot, accept the model terms on its Hugging Face page, then authenticate through the Hugging Face CLI or a local token before downloading. The supplied reference voice is the model repository’s `default-voice.safetensors` from the same pinned revision; no external named voice catalogue is used. These assets are for development/reference use, not shipped runtime dependencies.
 
@@ -9,16 +9,16 @@ The pinned Rust `NormalRng::new` samples with standard deviation `sqrt(temperatu
 Run from repository root:
 
 ```sh
-UV_CACHE_DIR=/private/tmp/kokoro-uv-cache uv run --project reference/phonon --locked python reference/phonon/oracle.py write
-UV_CACHE_DIR=/private/tmp/kokoro-uv-cache uv run --project reference/phonon --locked python reference/phonon/oracle.py verify
-UV_CACHE_DIR=/private/tmp/kokoro-uv-cache uv run --project reference/phonon --locked python reference/phonon/oracle.py write-q8
-UV_CACHE_DIR=/private/tmp/kokoro-uv-cache uv run --project reference/phonon --locked python reference/phonon/oracle.py verify-q8
-UV_CACHE_DIR=/private/tmp/kokoro-uv-cache uv run --project reference/phonon --locked python reference/phonon/oracle.py write-mimi
-UV_CACHE_DIR=/private/tmp/kokoro-uv-cache uv run --project reference/phonon --locked python reference/phonon/oracle.py verify-mimi
-UV_CACHE_DIR=/private/tmp/kokoro-uv-cache uv run --project reference/phonon --locked python reference/phonon/oracle.py write-temporal
-UV_CACHE_DIR=/private/tmp/kokoro-uv-cache uv run --project reference/phonon --locked python reference/phonon/oracle.py verify-temporal
+UV_CACHE_DIR=/private/tmp/speech-mac-uv-cache uv run --project reference/phonon --locked python reference/phonon/oracle.py write
+UV_CACHE_DIR=/private/tmp/speech-mac-uv-cache uv run --project reference/phonon --locked python reference/phonon/oracle.py verify
+UV_CACHE_DIR=/private/tmp/speech-mac-uv-cache uv run --project reference/phonon --locked python reference/phonon/oracle.py write-q8
+UV_CACHE_DIR=/private/tmp/speech-mac-uv-cache uv run --project reference/phonon --locked python reference/phonon/oracle.py verify-q8
+UV_CACHE_DIR=/private/tmp/speech-mac-uv-cache uv run --project reference/phonon --locked python reference/phonon/oracle.py write-mimi
+UV_CACHE_DIR=/private/tmp/speech-mac-uv-cache uv run --project reference/phonon --locked python reference/phonon/oracle.py verify-mimi
+UV_CACHE_DIR=/private/tmp/speech-mac-uv-cache uv run --project reference/phonon --locked python reference/phonon/oracle.py write-temporal
+UV_CACHE_DIR=/private/tmp/speech-mac-uv-cache uv run --project reference/phonon --locked python reference/phonon/oracle.py verify-temporal
 make phonon-reference-check
-UV_CACHE_DIR=/private/tmp/kokoro-uv-cache uv run --project reference/phonon --locked python -m unittest discover -s reference/phonon/tests
+UV_CACHE_DIR=/private/tmp/speech-mac-uv-cache uv run --project reference/phonon --locked python -m unittest discover -s reference/phonon/tests
 ```
 
 ## Native encoded-weight pack and projection check
@@ -36,12 +36,31 @@ The hello fixture stores the raw text and HF-tokenizer-normalized text, prepared
 The development exporter verifies the pinned assets, expands the published BF16 speaker projection from `model.q8.gguf`, and applies Torch `F.linear` to the pinned raw default voice. It writes `.build/phonon-cli-projected.safetensors` with only `model_ext=ba7a5a45@300` metadata and an adjacent JSON provenance record containing source/output digests, model identity, compatible voice identity, weight name/type and output shape. It consumes no native output and changes no frozen fixture or budget.
 
 ```sh
-UV_CACHE_DIR=/private/tmp/kokoro-uv-cache uv run --project reference/phonon --offline --no-sync --locked python reference/phonon/export_projected_voice.py
-UV_CACHE_DIR=/private/tmp/kokoro-uv-cache uv run --project reference/phonon --offline --no-sync --locked python -m unittest discover -s reference/phonon/tests -p test_projected_voice.py
+UV_CACHE_DIR=/private/tmp/speech-mac-uv-cache uv run --project reference/phonon --offline --no-sync --locked python reference/phonon/export_projected_voice.py
+UV_CACHE_DIR=/private/tmp/speech-mac-uv-cache uv run --project reference/phonon --offline --no-sync --locked python -m unittest discover -s reference/phonon/tests -p test_projected_voice.py
 PHONON_CLI_PACK=.build/phonon-native-f6acc8f43cb296be-v1.kpack \
-PHONON_DEFAULT_VOICE=/Volumes/Code/Personal/speech-mac-models/phonon-40m-en/default-voice.safetensors \
+PHONON_DEFAULT_VOICE="$PHONON_MODEL_DIR/default-voice.safetensors" \
 PHONON_PROJECTED_VOICE="$PWD/.build/phonon-cli-projected.safetensors" \
 make test-one TEST=tests/test_speech_cli.c
 ```
 
 The CLI test compares positional/file/stdin output exactly, compares raw and independently projected voices at the fixed PCM budget with exact sample count, and checks native controls, compatible local catalog selection, completed-WAV playback through a stub, 0600 temporary permissions, and cleanup on success/playback/removal failure. It saves audition WAVs without playing sound. Listening is unperformed. Model-free argument, input, catalog, voice-schema and WAV checks also run through `make check`.
+
+## Asset setup
+
+Install `uv`, accept the gated model terms on Hugging Face, and authenticate locally with the Hugging Face CLI. From the repository root, choose a persistent asset directory, install the locked project, and download only the pinned snapshots:
+
+```sh
+export PHONON_MODEL_DIR="$HOME/speech-mac-models/phonon-40m-en"
+uv sync --project reference/phonon --locked
+uv run --project reference/phonon --locked python reference/phonon/download_assets.py
+uv run --project reference/phonon --locked python reference/phonon/verify_assets.py
+make phonon-native-pack
+mkdir -p models voices
+cp .build/phonon-native-f6acc8f43cb296be-v1.kpack models/phonon-40m-en.kpack
+cp "$PHONON_MODEL_DIR/default-voice.safetensors" voices/default.safetensors
+make build
+.build/speech-mac say 'Hello.' --output hello.wav
+```
+
+Downloads are a development setup action; the CLI never downloads assets. `pins.json` selects repository, revision, filename, size and SHA-256 for every required artifact; verification runs before conversion. Keep this directory outside disposable worktrees. Ordinary builds require neither the source assets nor the Python environment. See [licenses](licenses.md) before using or redistributing model assets.

@@ -128,8 +128,8 @@ static void weightless(void) {
     unlink(".build/speech-cli-unit-voices/bad.safetensors");
     rmdir(".build/speech-cli-unit-voices");
     const float pcm[] = {-2, -1, 0, 1, 2};
-    KokoroError error;
-    CHECK(kokoro_wav_write_pcm16(".build/cli-unit.wav", pcm, 5, 24000, &error) == KOKORO_OK);
+    SpeechError error;
+    CHECK(speech_wav_write_pcm16(".build/cli-unit.wav", pcm, 5, 24000, &error) == SPEECH_IO_OK);
     size_t size;
     unsigned char *data = wav(".build/cli-unit.wav", &size);
     CHECK(size == 54);
@@ -137,8 +137,9 @@ static void weightless(void) {
     CHECK(!memcmp(data + 44, expected, sizeof(expected)));
     free(data);
     float nonfinite[] = {NAN};
-    CHECK(kokoro_wav_write_pcm16(".build/cli-unit.wav", nonfinite, 1, 24000, &error) != KOKORO_OK);
-    CHECK(kokoro_wav_write_pcm16(".build/cli-unit.wav", pcm, 0, 24000, &error) != KOKORO_OK);
+    CHECK(speech_wav_write_pcm16(".build/cli-unit.wav", nonfinite, 1, 24000, &error) !=
+          SPEECH_IO_OK);
+    CHECK(speech_wav_write_pcm16(".build/cli-unit.wav", pcm, 0, 24000, &error) != SPEECH_IO_OK);
     unlink(".build/cli-unit.wav");
     puts("weightless CLI catalog/input/WAV contracts: ok");
 }

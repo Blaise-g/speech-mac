@@ -193,11 +193,11 @@ static SpeechStatus synthesize(const SpeechEngine *e, const PhononVoice *voice, 
         return SPEECH_CANCELLED;
     char *normalized = NULL;
     size_t normalized_length = 0;
-    KokoroError error;
-    KokoroStatus normalization =
+    SpeechError error;
+    SpeechIOStatus normalization =
         phonon_english_normalize("en", text, length, &normalized, &normalized_length, &error);
-    if (normalization != KOKORO_OK)
-        return normalization == KOKORO_OUT_OF_MEMORY ? SPEECH_FAILED : SPEECH_INVALID;
+    if (normalization != SPEECH_IO_OK)
+        return normalization == SPEECH_IO_OUT_OF_MEMORY ? SPEECH_FAILED : SPEECH_INVALID;
     PhononPromptPlan plan = {0};
     PhononPCMState *pcm = NULL;
     float *projected = NULL;

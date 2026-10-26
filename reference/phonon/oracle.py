@@ -11,7 +11,7 @@ from transformers.models.pocket_tts.feature_extraction_pocket_tts import PocketT
 from transformers.models.pocket_tts_audio_tokenizer import PocketTTSAudioTokenizerConfig, PocketTTSAudioTokenizerModel
 
 ROOT=Path(__file__).resolve().parents[2]
-ASSETS=Path(os.environ.get('PHONON_MODEL_DIR','/Volumes/Code/Personal/speech-mac-models/phonon-40m-en'))
+ASSETS=Path(os.environ.get('PHONON_MODEL_DIR','models/phonon-40m-en'))
 MIMI=ASSETS/'reference-phonon-mimi'
 REV='cc738b7e4d182c2ba1bafb8062aa4846af000637'
 MIMI_REV='33519be1a8e61c6fa00c6e154e2d38e76a367919'
