@@ -38,11 +38,11 @@ Root: this ticket, active spec, tracker archival note and Markdown links into re
 - [x] Obsolete streaming/initial-model design and tracked result families from tickets09 through18 are removed; their historical tracker links resolve to immutable Git history. Current Phonon evidence, pins, fixtures, budgets, locks and notices remain byte-exact.
 - [x] README uses the direct antirez presentation pattern: native C/model/dependency introduction, early setup and runnable examples, concise features/usage/build/design/limits. Explicitly credit Salvatore Sanfilippo (antirez)'s qwen-asr and voxtral.c as architectural references, without claiming he authored Phonon or supplied copied code. Preserve actual setup/auth/voice/control/resource/license/testing facts, moving detail to linked docs where useful.
 - [x] Maintained developer/reference/benchmark/remote/architecture docs describe the current implementation and commands, without stale migration instructions or old model performance claims. Historical evidence remains identifiable, never rewritten to impersonate a new result.
-- [ ] Defect-revealing focused CLI and maintained-reference checks pass, with red proof for changed diagnostic contracts. Independent changed-path review precedes commit; make format then make check pass. Final Sol/high review and PR/main CI pass; repository stays public and merged branches/worktrees are cleaned up.
+- [x] Defect-revealing focused CLI and maintained-reference checks pass, with red proof for changed diagnostic contracts. Independent changed-path review precedes commit; make format then make check pass. Final Sol/high review and PR/main CI pass; repository stays public and merged branches/worktrees are cleaned up.
 
 Worker Profile: medium; implement-lite / gpt-6.1-sol / low.
 
-Status: in-progress
+Status: done
 
 ## Audit
 
@@ -66,8 +66,20 @@ The independent GPT-6.1 Sol/high reviewer examined the complete branch and pendi
 
 | Id | Finding | Disposition | Evidence |
 | --- | --- | --- | --- |
-| R1 | The reference guide still targets the renamed README setup heading. | Accepted; repair pending | Change its Mac quickstart target to README.md#quick-start. |
-| R2 | The reference overview says the project contains source assets, which are downloaded outside the clone. | Accepted; repair pending | Say it contains asset pins, conversion tools and checks. |
-| T1 | Cleanup PR/main CI, merge and branch cleanup. | Sequenced operational gate | Local checks and the real WAV are not CI evidence. |
+| R1 | The reference guide still targets the renamed README setup heading. | Applied | Commit0845f0c targets README.md#quick-start; static checks and independent High refresh pass. |
+| R2 | The reference overview says the project contains source assets, which are downloaded outside the clone. | Applied | Commit0845f0c says asset pins, conversion tools and checks; independent High refresh passes. |
+| T1 | Cleanup PR/main CI, merge and branch cleanup. | Resolved | PR6 check40353413331 and main check40353813228 passed; source merged as2885c31 and branch deleted. |
 
 The source fix is limited to these two documentation lines, using the standing Sol/low implementation profile and independent review. No behavior change warrants a new executable test. Final High refresh and CI follow the fixes.
+
+## Repaired source merged
+
+The Sol/low worker repaired R1/R2 in0845f0ca7fa734d381f39563e43d3bcb8851da00 from cleanf0be12fda91177716044bbaaed4e328a7ce1a64a. Only the two authorized documentation lines changed. Static checks, make format then make check, independent Low review and staged hook passed. The final Sol/high focused refresh independently confirmed both committed blobs and no remaining finding; the original whole-branch review remains applicable to unchanged paths. Reports: /private/tmp/speech-mac-37-high-doc-fix.report.md and speech-mac-37-final-high-refresh.report.md.
+
+[PR6](https://github.com/Blaise-g/speech-mac/pull/6) passed check run40353413331 at0845f0ca7fa734d381f39563e43d3bcb8851da00 and merged as2885c31ce97669b7b81232c14ab7860871c761d0. Its source branch is deleted, no new worktree was created, and the checkout now holds only the main worktree. Public visibility/description remain correct; anonymous Git resolves HEAD/main to2885c31 and the public raw README returns HTTP200 with bytes identical to the checkout. The updated116-commit redacted reachable-history scan finds no leaks beyond the previously reviewed exact tokenizer-hash exclusions. Main CI and final tracker completion follow this dated record.
+
+## Completion verified, 2026-10-26
+
+Merged-main [CI40353813228](https://github.com/Blaise-g/speech-mac/actions/runs/40353813228) completed successfully at2885c31ce97669b7b81232c14ab7860871c761d0. All acceptance criteria are verified; R1/R2 are applied and independently cleared by the High refresh, and T1 is resolved. The final tracker-only record starts from that merged commit on docs/cleanup-verified. Root make format then make check passed again for this closeout (/private/tmp/speech-mac-37-closeout-check.log). No further executable or model verification is claimed by this metadata update.
+
+The optional code-license choice remains unanswered, so no grant was added. Listening/acoustic onset remain unverified, unchanged from source acceptance. Seven existing analyzer warnings remain in unchanged files; they are not suppressed or presented as cleanup regressions. No user models, caches, backups or external installed commands were removed.
