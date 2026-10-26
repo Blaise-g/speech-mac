@@ -34,7 +34,7 @@ Worker Profile: medium; implement-lite / gpt-6.1-sol / low (user clarification 2
 - [ ] no autoplay/cache purge/system volume changes
 - [ ] Complete the approved slice checks and keep unavailable model/device checks explicit.
 
-Status: blocked
+Status: in-progress
 
 ## Implementation and partial verification — 2026-10-26
 
@@ -76,3 +76,22 @@ sh /private/tmp/speech-mac-32-terminal-timing.sh
 It verifies binary/pack/voice hashes, uses only a new queue at volume zero and has a 60-second native alarm. It writes raw JSON, source/hash metadata and exits to `.build/phonon-queue-terminal-timing.log`; it changes no source/evidence/tracker file. Success requires `TERMINAL_DEVICE_EXIT=0`, `QUEUE_TIMING_EXIT=0`, `TERMINAL_QUEUE_VALIDATED=1`, `TERMINAL_VALIDATION_EXIT=0`, finite correctly ordered events, 76800 samples/40 frames/40 reclaims and null acoustic onset. Root independently confirmed the helper's pinned binary remains SHA256 `35e3997d6feef019b19f38d9f114987ccb8216bb458ce68e5df762459c9830fe`.
 
 On a successful result, the same ticket32 scope resumes to integrate the verified timing evidence and independent artifact review before completion. Alternatively the user may explicitly approve a plan change leaving physical timing open while later work proceeds; none has been given. Ticket32 remains blocked and 33–35 remain held. Acoustic onset is unavailable without capture; user listening stays pending until confirmed. Final whole-branch GPT-6.1 Sol/high review, GitHub rename, push and PR remain future steps.
+
+### Current queue timing verified; E32-1 resolved — 2026-10-26
+
+The user instructed: “run it for me and check the things as needeed”. The Coordinator ran the reviewed `sh /private/tmp/speech-mac-32-terminal-timing.sh` through `exec_command` with `tty=true`. It returned exit 0 with all four success markers. Independent parsing confirmed the original pinned source/binary/pack/voice metadata, finite ordered queue events, 76800 samples/40 frames/40 reclaimed buffers and null acoustic onset. This is an assistant-run real SDK measurement, not a user-entered Terminal run. The helper's literal `CONTEXT=user Terminal` header is superseded by the appended `ACTUAL_RUNNER` annotation.
+
+| Current real queue event | Seconds from synthesis begin |
+| --- | ---: |
+| First PCM | 0.057648 |
+| First submission | 0.057729 |
+| Running state observed | 0.462776 |
+| First buffer reclaimed | 0.537393 |
+| Synthesis completed under queue backpressure | 3.417466 |
+| Successful drain | 3.761503 |
+
+Log `.build/phonon-queue-terminal-timing.log`, preserved at `/private/tmp/speech-mac-32-assistant-pty-success.log`, SHA256 `0c0e2a81ae0d5b224ab310d570756b97f32cac1bc303ee3bb796471b589c0e7b`. Markers: `QUEUE_TIMING_EXIT=0`, `TERMINAL_DEVICE_EXIT=0`, `TERMINAL_QUEUE_VALIDATED=1`, `TERMINAL_VALIDATION_EXIT=0`. Queue volume remained zero; no system audio settings changed. These are observed SDK/producer events, including backpressure, not acoustic onset or replacement unpaced compute measurements. Listening remains pending.
+
+Before this success, the Coordinator also tried the same reviewed helper through a private `.command` wrapper opened by Terminal.app. That automated launch failed with AudioQueueStart -66681/child4/validation1; it was not a manual user run. Its exact output is preserved at `/private/tmp/speech-mac-32-terminal-app-failed.log`, SHA256 `1be234c04bdfb66a7a4566dc8b7eafa765aa3f272bf037739bfcabfd21044fc2`. The earlier direct-tool failure remains separately preserved in the committed artifact. Why those attempts failed and the subsequent PTY run succeeded is not established; no service restart, device/volume change, numerical repair or diagnostic matrix was applied.
+
+The current measurement satisfies E32-1 without a plan waiver; no Escalation remains open. Ticket32 now resumes only its original evidence-integration scope: preserve failed attempts, add the successful raw timing with truthful execution context, update report/verification, independently review artifacts and commit. Source 0f7ea8e, prior compute baselines and numerical/software gates are unchanged; formal ticket32 repair count remains 0. The initial blocked atomic report was archived at `/private/tmp/speech-mac-32-initial-blocked.report.md` before resuming. Ticket32 is not marked complete until the integrated evidence is verified; tickets33–35 still wait for that completion record. Final whole-branch Sol/high review remains pending.
