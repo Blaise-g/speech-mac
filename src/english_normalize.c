@@ -1323,13 +1323,10 @@ static char *rewrite_slash_word(const char *word, bool *allocation_failed) {
             bool alpha = true;
             while (off < i) {
                 size_t width = 0;
-                if (!unicode_alphabetic_at(word + off)) {
-                    alpha = false;
-                    break;
-                }
                 uint32_t cp;
                 if (!speech_utf8_decode_next((const unsigned char *)word + off, i - off, &width,
-                                             &cp)) {
+                                             &cp) ||
+                    !unicode_alphabetic(cp)) {
                     alpha = false;
                     break;
                 }
