@@ -1,6 +1,6 @@
 # Benchmarks
 
-Historical numbered Kokoro reports remain in `artifacts/` with their original identity. Their active runners have been removed. Phonon measurement workloads are delivered by tickets 32 and 33; no Phonon speed claim follows from those historical results.
+Current Phonon measurements are the [native baseline](../artifacts/32-phonon-baseline-20261026/report.md) and [linear-weight preparation comparison](../artifacts/33-linear-materialization-20261026/report.md). Earlier model reports and their removed runners remain in [Git history](https://github.com/Blaise-g/speech-mac/tree/3434f73aeada7e1818feb11cf4815b773a21188b/artifacts); they establish no Phonon speed claim.
 
 Run the native Phonon baseline from a clean committed checkout with verified local assets:
 

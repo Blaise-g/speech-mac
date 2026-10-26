@@ -13,9 +13,9 @@ printf 'Hello.' | .build/speech-mac say --stdin --model /path/to/model.kpack --v
 
 The default pack path is `models/phonon-40m-en.kpack`; the default voice is `voices/default.safetensors`. Install named voices as `<name>.safetensors` in the selected `--voices-dir`; names contain ASCII letters, digits, hyphens or underscores. `voices` lists only artifacts that pass compatibility validation. The catalog is local: filenames select artifacts, and artifact metadata plus the pinned pack establish compatibility. There is no recording encoder, cloud enrollment, or runtime download.
 
-Without `--output` or `--stream`, the CLI writes the completed mono 24 kHz PCM16 WAV to a private temporary file, plays it using macOS `afplay`, then removes it even if playback fails. With `--output`, it writes the WAV without playing it. A single positional argument supplies text (`--` ends option parsing, so `say -- '--ipa'` supplies literal text); `--file PATH` reads UTF-8; `--stdin` or omitted text reads standard input. Inputs are limited to 1 MiB before and after normalization. Conflicting or duplicate inputs/options fail.
+Without `--output` or `--stream`, the CLI writes the completed mono 24 kHz PCM16 WAV to a private temporary file, plays it using macOS `afplay`, then removes it even if playback fails. With `--output`, it writes the WAV without playing it. A single positional argument supplies text (`--` ends option parsing, so `say -- '--literal-text'` supplies literal text); `--file PATH` reads UTF-8; `--stdin` or omitted text reads standard input. Inputs are limited to 1 MiB before and after normalization. Conflicting or duplicate inputs/options fail.
 
-Supported controls are `--language en`, `--seed` (decimal 0 through 18446744073709551615, default 0), and finite `--duration-delta` (default 0), the model's native duration conditioning. `--speed`, `-s`, `--ipa`, and Kokoro voice names are unsupported; speed values are never converted.
+Supported controls are `--language en`, `--seed` (decimal 0 through 18446744073709551615, default 0), and finite `--duration-delta` (default 0), the model's native duration conditioning. Only English and the controls listed here are supported.
 
 `--stream` sends each 1,920-sample mono 24 kHz frame to AudioQueue while later frames are still being generated. Playback starts after the first submission. Three fixed playback buffers provide ordered copies and backpressure; no whole-utterance PCM queue is retained. `--stream` accepts the same text, file and stdin inputs, but conflicts with `--output`. SIGINT or SIGTERM cancels generation, wakes blocked playback, then joins and disposes the request before releasing the engine and voice. A running native numerical call may finish before cancellation is polled.
 
@@ -56,6 +56,23 @@ make test-one TEST=tests/test_speech_cli.c
 
 `uv` manages the locked development project at `reference/phonon`. Follow its [asset setup](../reference/phonon/README.md#asset-setup) to download and verify the pinned gated model, create the native pack and install the default voice. Tests report explicit skips when optional real-model fixture paths are absent; a skip is not 40M validation. See [engine checks](phonon-engine.md) for actual-model fixture commands.
 
-Historical numbered measurements in `artifacts/` describe their original Kokoro runs. The old runtime, oracle, converters, dependencies and active benchmark runners have been removed. New Phonon measurements belong to tickets 32 and 33. The installed external `/opt/homebrew/bin/kokoro` is outside this repository's changes. Local consumers were CLI, streaming, benchmarks and tests; no additional nearby or open-PR client was found. Undiscoverable private callers have no compatibility guarantee. The repository directory and historical tracker path remain unchanged. The GitHub repository is now `Blaise-g/speech-mac`; see the [remote setup record](remote-setup.md).
+Current Phonon measurements are linked from the [benchmark guide](../benchmarks/README.md). Earlier model measurements and removed tools remain in [Git history](https://github.com/Blaise-g/speech-mac/tree/3434f73aeada7e1818feb11cf4815b773a21188b). The external installed command is outside this repository. Local consumers were CLI, streaming, benchmarks and tests; no additional nearby or open-PR client was found. Undiscoverable private callers have no compatibility guarantee. The repository directory and historical tracker path remain unchanged. The GitHub repository is `Blaise-g/speech-mac`; see the [remote setup record](remote-setup.md).
 
 See [contributing](../CONTRIBUTING.md), [agent instructions](../AGENTS.md) and the [local tracker](../.scratch/kokoro-native/README.md).
+
+## Setup details
+
+Source downloads live outside the clone at `$HOME/speech-mac-models/phonon-40m-en`. To reuse an existing download, set `PHONON_MODEL_DIR` before running bootstrap:
+
+```sh
+export PHONON_MODEL_DIR="$HOME/My models/phonon-40m-en"
+make bootstrap
+```
+
+Bootstrap verifies local assets before attempting any gated download. Valid assets need no Hugging Face credentials. With the locked Python dependencies installed or cached, setup can be repeated offline:
+
+```sh
+HF_HUB_OFFLINE=1 UV_OFFLINE=1 make bootstrap
+```
+
+The installed pack is `models/phonon-40m-en.kpack`; the default voice is `voices/default.safetensors`. Both are ignored by Git. Repeating bootstrap preserves identical installed files and unrelated files, including an existing `models` directory symlink. A different file at either destination causes an error; move it aside explicitly before retrying. Bootstrap does not install a global command, edit shell profiles or change system audio settings. `make setup` separately installs the repository's Git hook.
