@@ -55,6 +55,19 @@ There is one retained measured profile request per workload after one excluded w
 
 `fake-stream.log` records an actual native engine with a fake AudioQueue consumer for the separate `Hello.` / seed 123 regression workload: 30720 samples, exact batch/stream F32 equality, first PCM 0.039986 s, submission 0.039995 s, fake running observation 0.039996 s, synthesis end 0.336642 s and fake drain 0.336643 s. These events are not hardware timings and are not comparable to the three-workload release benchmark as a playback speed claim.
 
-`queue-agent-attempt.json` retains the one bounded queue-muted SDK attempt for the short baseline workload / seed 0. The tool-context attempt failed at AudioQueueStart with status -66681 (child exit 4); it produced no successful queue timing. Ticket 30's prior user-Terminal functional result remains historical evidence, not a ticket 32 timing measurement. A separately reviewed private Terminal helper is prepared for the current silent timing binary. Actual running/reclamation/drain timing remains pending until that helper succeeds. Acoustic onset remains unavailable even if it succeeds.
+`queue-agent-attempt.json` preserves the original bounded tool-pipe SDK failure at AudioQueueStart -66681 (child exit 4). `queue-terminal-app-failed.log` separately preserves the coordinator's later automated Terminal.app launch of the reviewed helper: SDK -66681, child exit 4 and validator exit 1. Neither was a manual user run. Ticket 30's prior user-Terminal functional success remains historical evidence rather than a ticket 32 timing measurement.
+
+The coordinator subsequently ran the exact reviewed silent helper through `exec_command` with `tty=true`; this current SDK run succeeded. `queue-assistant-pty-success.log` retains the raw output and `queue-assistant-pty.json` records its provenance, metrics and the separate failed Terminal.app attempt. The raw helper's old `CONTEXT=user Terminal` label is corrected by its `ACTUAL_RUNNER` annotation: the assistant executed the successful run, not the user. Why the earlier attempts failed before this success remains unknown. No code fix, cache purge, service restart, system-volume or default-device change occurred.
+
+| Current queue event | Seconds from synthesis begin |
+|---|---|
+| First PCM | 0.057648 |
+| First submission | 0.057729 |
+| Running state observed | 0.462776 |
+| First buffer reclaimed | 0.537393 |
+| Synthesis end | 3.417466 |
+| Drain complete | 3.761503 |
+
+This is one observed queue-volume-zero, queue-backpressured run of the short workload / seed 0: 76800 samples, 40 frames and 40 reclaimed buffers, with all four helper success markers and finite ordered events validated. Its clocks start after engine/voice and playback preparation. The playback-constrained synthesis end is not the release compute timing in the baseline table. Observed running state and reclamation are SDK events, not acoustic onset. Acoustic onset remains null/unavailable; this muted run provides no listening evidence.
 
 `short.wav`, `structured.wav`, and `long.wav` are mono 24 kHz PCM16 audition files, lasting 3.2, 16.4 and 32.24 seconds. Their texts are adjacent `.txt` files; `raw.json` records settings, sample/frame/chunk counts and SHA-256. Each corresponding `-profile.wav` is byte-identical, and native F32 hashes also match across every fresh/resident repetition and the separately instrumented requests. No file has been played; user listening remains pending.
