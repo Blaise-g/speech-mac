@@ -6,6 +6,8 @@ This is the active Requirement Source for the Phonon migration. It supersedes th
 
 ## Run preferences
 
+- On2026-10-26 the user requested removal of deprecated model references and obsolete files, and a clear native C README crediting antirez's architectural work and using its direct presentation style with `$unslop`. Existing Sol/low implementation and Sol/high final-review overrides remain in force.
+
 - On2026-10-26 the user requested terminal test commands, public GitHub visibility, a self-service Mac setup, and a proper README using `$unslop`. Existing worker overrides remain GPT-6.1 Sol/low and final review Sol/high.
 
 - Use the orchestrate workflow and present a concrete Run Plan for approval before implementation.
@@ -197,3 +199,13 @@ Ticket36's implementation80545586 and exact fresh/main setup/default-WAV behavio
 | T2 | Final credential audit and public visibility/description/anonymous access. | Resolved | Audit passed; after the agent's execution-policy rejection, the user ran the manual command. Live readbacks confirm public visibility and the requested description, unchanged repository identity/settings and anonymous access. | API public/id1415715156; credential-helper-disabled Git HEAD/main50baa092; raw README HTTP200. |
 
 This is the authoritative follow-up triage; no source fixes are requested by the final High review. [Ticket36](issues/36-mac-self-serve.md) is done and records commands, checks, clean source, unchanged inputs, preserved cache/symlink/backup, the historical execution-policy blocker and its resolution. [Remote setup](../../docs/remote-setup.md) records current public settings and merged CI. No new code license is selected; existing license state is preserved. Main remains unprotected with no rulesets; publication did not change protections. Listening and acoustic onset remain unverified.
+
+## Maintained checkout cleanup, 2026-10-26
+
+The user directly requested obsolete-model cleanup and an antirez-style native C README. [Ticket37](issues/37-maintained-speech-cleanup.md) is the Coordinator-approved bounded Run Plan from merged3434f73aeada7e1818feb11cf4815b773a21188b. Remove stale CLI migration diagnostics, superseded model/streaming docs and tracked09–18 artifacts; retain them through immutable Git-history links in the committed historical tracker. This supersedes the earlier policy to keep obsolete model artifacts in the checkout. Current Phonon evidence, legal notices, fixtures, numerical/runtime behavior and user-local assets remain unchanged. The configured tracker path is retained under the agent instructions.
+
+README follows the direct implementation/dependency/quickstart/usage/design/limits presentation of antirez's qwen-asr and voxtral.c. Credit their readable modular C architecture, explicit weights/numerical/platform boundaries, and Salvatore Sanfilippo by name. Do not assert copied algorithms/code, zero system dependencies, unsupported backends, or universal performance. Preserve setup-only Python versus C inference and the separate code/model/upstream licensing facts.
+
+One implement-lite Sol/low worker and its independent low reviewer run sequentially with root (peak three of four threads), followed by final independent Sol/high review. Root alone writes tracker/admin records and immutable archive links. No new worktree is needed; merge after successful CI and remove the merged branch under the standing user instruction.
+
+Source b4c0609 and root full-check/default-WAV verification pass; protected evidence is unchanged. Final Sol/high review reports two accepted documentation findings: R1, the inbound reference quickstart anchor, and R2, asset pins versus downloaded assets in the reference overview. The same requirement adds only the reference guide's quickstart link to the derived Footprint. Root archival metadata is ready; a Sol/low documentation repair and final High refresh precede cleanup PR/main CI. Historical links are redirected to immutable3434f73; details and authoritative triage are in ticket37.

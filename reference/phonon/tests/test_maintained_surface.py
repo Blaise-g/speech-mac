@@ -58,7 +58,7 @@ class MaintainedSurface(unittest.TestCase):
         self.assertNotIn("/kokoro", build)
         self.assertNotIn("LEGACY_SOURCES", build)
 
-    def test_built_command_identity_and_migration_errors(self):
+    def test_built_command_identity_and_invalid_options(self):
         binary = ROOT / os.environ.get("BUILD_DIR", ".build") / "speech-mac"
         if not binary.exists():
             self.skipTest("built CLI unavailable; run make build for executable census")
@@ -66,8 +66,9 @@ class MaintainedSurface(unittest.TestCase):
         for option in ("--ipa", "--speed", "-s"):
             result = subprocess.run([binary, "say", option, "1"], capture_output=True, text=True)
             self.assertEqual(result.returncode, 2)
-            self.assertIn("removed Kokoro option", result.stderr)
-            self.assertIn("ordinary English", result.stderr)
+            self.assertIn("Invalid, duplicate or conflicting option/input", result.stderr)
+            self.assertNotIn("Kokoro", result.stderr)
+            self.assertNotIn("Cannot load", result.stderr)
         symbols = subprocess.check_output(["nm", "-g", binary], text=True)
         self.assertNotIn("kokoro_", symbols)
         libraries = subprocess.check_output(["otool", "-L", binary], text=True).lower()

@@ -100,13 +100,6 @@ int speech_cli_run(int argc, char **argv, const SpeechCliConfig *config) {
             text_arg = arg;
             continue;
         }
-        if (!strcmp(arg, "--speed") || !strcmp(arg, "-s") || !strcmp(arg, "--ipa")) {
-            fprintf(err,
-                    "%s is a removed Kokoro option; supply ordinary English text and native "
-                    "--duration-delta (not speed).\n",
-                    arg);
-            return 2;
-        }
         if (!strcmp(arg, "--stream")) {
             if (streaming)
                 goto invalid;
@@ -230,7 +223,7 @@ int speech_cli_run(int argc, char **argv, const SpeechCliConfig *config) {
     if (!path || !phonon_voice_open(path, &voice)) {
         fprintf(err,
                 "Cannot load compatible Phonon voice '%s'. Use voices or --voice-file with a "
-                "compatible safetensors artifact; Kokoro voice names are unsupported.\n",
+                "compatible safetensors artifact.\n",
                 path ? path : name);
         free(owned_path);
         return 1;

@@ -1,5 +1,7 @@
 # Local tracker
 
+See [historical records](history.md) for the boundary between current runtime documentation and preserved execution evidence, including immutable links to removed model results and superseded designs.
+
 The coordinator maintains the product requirements in `spec.md` and work items in `issues/<NN>-<slug>.md`. These files are the authoritative local tracker and stay committed; repository ignore rules must not hide them. Feature requirements and tickets are added by the coordinator after the setup handoff and approved Run Plan.
 
 Tickets use one of these statuses:

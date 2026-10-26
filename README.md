@@ -1,8 +1,8 @@
 # speech-mac
 
-Generate English speech locally on an Apple Silicon Mac with Phonon 40M. The CLI accepts text, UTF-8 files or standard input, saves WAV files, and plays completed or streaming speech. Inference and English text normalization run in native C17 with Accelerate/NEON. Once set up, the CLI runs offline without Python, Rust or eSpeak.
+speech-mac is a native C17 implementation of Phonon 40M English text-to-speech for Apple Silicon macOS. The CLI accepts text, UTF-8 files or standard input, saves WAV files, and plays completed or streaming speech. Inference uses Accelerate/NEON and macOS system libraries; English text normalization also runs in C. Once set up, the CLI runs offline without Python, Rust or eSpeak.
 
-## Set up a Mac
+## Quick start
 
 You need an Apple Silicon Mac, Git, Xcode Command Line Tools and [uv](https://docs.astral.sh/uv/getting-started/installation/). Install the command line tools if needed:
 
@@ -26,22 +26,9 @@ make bootstrap
 
 `make bootstrap` checks for Darwin/arm64, uv and the Xcode compiler before setup. It installs the locked Python setup environment, downloads and verifies all twelve pinned source assets, converts the native pack, installs the default voice, and builds `.build/speech-mac`. It does not play sound. Python is used for setup and development references, not inference.
 
-Source downloads live outside the clone at `$HOME/speech-mac-models/phonon-40m-en`. To reuse an existing download, set `PHONON_MODEL_DIR` before running bootstrap:
+See [setup details](docs/cli-details.md#setup-details) for offline setup, custom asset locations and destination conflicts.
 
-```sh
-export PHONON_MODEL_DIR="$HOME/My models/phonon-40m-en"
-make bootstrap
-```
-
-Bootstrap verifies local assets before attempting any gated download. Valid assets need no Hugging Face credentials. With the locked Python dependencies installed or cached, setup can be repeated offline:
-
-```sh
-HF_HUB_OFFLINE=1 UV_OFFLINE=1 make bootstrap
-```
-
-The installed pack is `models/phonon-40m-en.kpack`; the default voice is `voices/default.safetensors`. Both are ignored by Git. Repeating bootstrap preserves identical installed files and unrelated files, including an existing `models` directory symlink. A different file at either destination causes an error; move it aside explicitly before retrying. Bootstrap does not install a global command, edit shell profiles or change system audio settings. `make setup` separately installs the repository's Git hook.
-
-## Try it
+## Usage
 
 Save a mono 24 kHz PCM16 WAV without playback, then play it when ready:
 
@@ -66,7 +53,7 @@ printf 'Hello.' | .build/speech-mac say --stdin --output stdin.wav
 .build/speech-mac --version
 ```
 
-Omitting text also reads stdin. Text is limited to 1 MiB before and after normalization. Use one input source per command. `--` ends option parsing, for example `say -- '--ipa'` reads that literal text.
+Omitting text also reads stdin. Text is limited to 1 MiB before and after normalization. Use one input source per command. `--` ends option parsing, for example `say -- '--literal-text'` reads that literal text.
 
 ## Voices and controls
 
@@ -82,13 +69,25 @@ The default voice comes from the pinned model revision. Compatible local voices 
 
 `--voices-dir` selects the catalog directory; names use ASCII letters, digits, hyphens or underscores. The catalog lists only compatible artifacts. No cloud enrollment, recording encoder or runtime download is included. See [voice schemas and compatibility](docs/cli-details.md) before supplying a voice artifact.
 
-Supported controls are `--language en`, `--seed` (decimal 0 through 18446744073709551615, default 0), and finite `--duration-delta` (default 0). Duration delta is the model's native duration conditioning. Other languages, `--speed`, `-s`, `--ipa` and Kokoro voice names are unsupported; old speed values are not converted.
+Supported controls are `--language en`, `--seed` (decimal 0 through 18446744073709551615, default 0), and finite `--duration-delta` (default 0). Duration delta is the model's native duration conditioning. Only English and the controls listed here are supported.
 
 ```sh
 .build/speech-mac say 'Hello.' --language en --seed 42 --duration-delta 0.1 --output controlled.wav
 ```
 
 Use `--model /path/to/model.kpack` for a pack outside the default location. Run commands from the repository root when using the default relative model and voice paths.
+
+## Build and design
+
+```sh
+make build
+make format
+make check
+```
+
+The implementation follows Salvatore Sanfilippo (antirez)'s [qwen-asr](https://github.com/antirez/qwen-asr) and [voxtral.c](https://github.com/antirez/voxtral.c) as architectural references for readable modular C, explicit weight and numerical-operation boundaries, and narrow platform interfaces. These references inform the C structure; Phonon supplies the TTS model.
+
+The resident engine keeps model weights loaded across requests. The text frontend, Flow transformer, Mimi decoder, voice loader and playback code are separate C modules. The runtime uses Accelerate/NEON on the CPU and AudioQueue for progressive playback. Python and the pinned Rust normalizer are setup or development tools. Numerical code includes pinned SLEEF operations and adaptations from PyTorch; their provenance and licenses remain in [model and reference licenses](reference/phonon/licenses.md), [operator provenance](reference/phonon/operator-provenance.json), and [third-party notices](LICENSES/). See [coding standards](CODING_STANDARDS.md), the [runtime decision](docs/adr/0002-phonon-native-runtime.md) and [engine checks](docs/phonon-engine.md).
 
 ## Performance and limits
 
@@ -108,6 +107,6 @@ First PCM readiness, submission, observed device running and acoustic onset are 
 
 ## Development and licenses
 
-Run `make format` then `make check` before committing. CI runs model-free checks on `macos-15`; optional real-model tests report explicit skips when their ignored assets are absent. A skip is not 40M validation. See [contributing](CONTRIBUTING.md), [reference setup](reference/phonon/README.md), [CLI and development details](docs/cli-details.md), and the [local tracker](.scratch/kokoro-native/README.md). Historical Kokoro measurements remain in `artifacts/`; the old runtime and active benchmark runners were removed.
+Run `make format` then `make check` before committing. CI runs model-free checks on `macos-15`; optional real-model tests report explicit skips when their ignored assets are absent. A skip is not 40M validation. See [contributing](CONTRIBUTING.md), [reference setup](reference/phonon/README.md), [CLI and development details](docs/cli-details.md), and the [local tracker](.scratch/kokoro-native/README.md).
 
 There is currently no top-level license granting reuse of this repository's code. Public visibility does not grant a code license or remove model restrictions. Phonon 40M weights, tokenizer and supplied voice are CC BY-NC 4.0 and require the model's gated terms. Mimi weights and upstream source components have their own licenses. See [model and reference licenses](reference/phonon/licenses.md) and [retained third-party licenses](LICENSES/) for provenance and individual terms.

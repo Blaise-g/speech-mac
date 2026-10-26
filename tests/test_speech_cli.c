@@ -92,8 +92,7 @@ static void weightless(void) {
     fclose(readonly);
     c.output = out;
     char *literal[] = {"speech-mac", "say", "--", "--ipa"};
-    CHECK(speech_cli_run(4, literal, &c) ==
-          1); /* reaches missing model, not removed-option parser */
+    CHECK(speech_cli_run(4, literal, &c) == 1); /* reaches missing model, not option parser */
     char *in[] = {"speech-mac", "say", "--stdin"};
     CHECK(speech_cli_run(3, in, &c) == 2); /* empty */
     fputc(0, input);
@@ -115,12 +114,17 @@ static void weightless(void) {
     CHECK(speech_cli_run(3, in, &c) == 1); /* exact cap accepted, reaches missing model */
     char *missing[] = {"speech-mac", "say", "--file", "/no/such/text"};
     CHECK(speech_cli_run(4, missing, &c) == 2);
-    char *old[] = {"speech-mac", "say", "hello", "--voice", "af_heart"};
-    CHECK(speech_cli_run(5, old, &c) == 1);
+    CHECK(!fflush(err));
+    CHECK(!ftruncate(fileno(err), 0));
+    CHECK(!fseek(err, 0, SEEK_SET));
+    char *missing_voice[] = {"speech-mac", "say", "hello", "--voice", "missing_narrator"};
+    CHECK(speech_cli_run(5, missing_voice, &c) == 1);
     CHECK(!fseek(err, 0, SEEK_SET));
     char messages[4096] = {0};
     CHECK(fread(messages, 1, sizeof(messages) - 1, err) > 0);
-    CHECK(strstr(messages, "Kokoro voice names are unsupported"));
+    CHECK(strstr(messages, "Cannot load compatible Phonon voice "
+                           "'.build/speech-cli-unit-voices/missing_narrator.safetensors'"));
+    CHECK(!strstr(messages, "Kokoro"));
     fclose(input);
     fclose(out);
     fclose(err);

@@ -48,7 +48,7 @@ The CLI test compares positional/file/stdin output exactly, compares raw and ind
 
 ## Asset setup
 
-For the local CLI, follow the [Mac quickstart](../../README.md#set-up-a-mac). `make bootstrap` uses the locked project and canonical verifier/converter without running the projection-oracle exports. It defaults source assets to `$HOME/speech-mac-models/phonon-40m-en`; the standalone reference scripts still default to `models/phonon-40m-en` unless `PHONON_MODEL_DIR` is set.
+For the local CLI, follow the [Mac quickstart](../../README.md#quick-start). `make bootstrap` uses the locked project and canonical verifier/converter without running the projection-oracle exports. It defaults source assets to `$HOME/speech-mac-models/phonon-40m-en`; the standalone reference scripts still default to `models/phonon-40m-en` unless `PHONON_MODEL_DIR` is set.
 
 For explicit development setup, accept the gated model terms and authenticate locally, then run:
 
