@@ -15,11 +15,11 @@ Makefile; scripts/ bootstrap helper(s); reference/phonon canonical setup/convers
 - [x] Model-free tests expose setup failure/reuse/destination behavior; actual fresh-checkout setup and deterministic default-output WAV smoke pass using verified existing40M assets, without user speech playback.
 - [x] README unslop explains prerequisites, fresh clone/auth/setup, explicit audible playback versus saved WAV, files/stdin/stream, voices/native controls, resource costs, troubleshooting and separate model/third-party/code licensing. Portable paths; no claim of unsupported languages/Intel/server/global install.
 - [x] Independent changed-path review before Ticket36 commits; make format then make check; relevant locked setup tests; final Sol/high review and CI pass.
-- [ ] Root verifies public GitHub identity/history/settings/CI/anonymous read and updates stale repository description/current private-only documentation, after the redacted reachable-history credential audit.
+- [x] Root verifies public GitHub identity/history/settings/CI/anonymous read and updates stale repository description/current private-only documentation, after the redacted reachable-history credential audit.
 
 Worker Profile: medium; implement-lite / gpt-6.1-sol / low.
 
-Status: blocked
+Status: done
 
 ## Verified implementation and publication blocker, 2026-10-26
 
@@ -34,3 +34,11 @@ PR4 (https://github.com/Blaise-g/speech-mac/pull/4) has passed check at source80
 Only the final public-administration criterion is blocked. Automatic approval review rejected both the read-only gh repo edit help invocation and the explicitly requested visibility/description command at process creation with: “approval required by policy, but AskForApproval is set to Never”. No mutation ran. The user's public authorization is already explicit; the environment cannot prompt for its required approval. A fresh readback still shows private=true and the old Kokoro description, with ADMIN permission. The user was given the exact combined gh repo edit visibility/description command to run in their own Terminal and asked to reply done. No alternate mutation path was attempted. The code/README/CI landing remains independent work to finish; live public/anonymous readbacks stay pending until the external setting changes.
 
 The optional code-license choice remains unanswered, so no LICENSE or reuse grant was added. The README states that absence and separates model/upstream terms. Existing human listening/acoustic limits remain unchanged.
+
+## Publication verified, 2026-10-26
+
+The user reported completing the manual visibility/description command. Root confirmed `Blaise-g/speech-mac` is public with description “Native C17 Phonon 40M English text-to-speech for Apple Silicon macOS”, unchanged repository ID1415715156, default main, ADMIN permission, merge commits only and automatic merged-branch deletion. Main remains unprotected and no rulesets are configured; no protection change was requested or made. Anonymous API access confirms public identity, credential-helper-disabled Git access resolves HEAD/main to50baa092d6c301cd12eee6d29d8f1b6f32e4af06, and the anonymous raw README returns HTTP200.
+
+PR4 is merged at50baa092d6c301cd12eee6d29d8f1b6f32e4af06. Its main CI run40346286812 completed successfully. The merged feature branch/worktree cleanup is complete; only the main worktree remains. T1 and T2 are resolved; the earlier automatic-review blocker above is historical. This completion record starts from50baa092d6c301cd12eee6d29d8f1b6f32e4af06 on docs/publication-verified and updates only tracker/publication documentation. The code-license choice remains optional and unanswered; listening and acoustic onset remain unverified.
+
+For this documentation closeout, root ran make format then make check successfully; model-dependent checks without their selected fixtures remain explicit skips. The redacted reachable-history scan now covers111 commits and finds no leaks beyond the previously reviewed exact tokenizer-hash fingerprints. Logs: /private/tmp/speech-mac-36-publication-check.log and speech-mac-36-publication-secrets.log.
