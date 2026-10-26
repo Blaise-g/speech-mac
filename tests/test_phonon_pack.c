@@ -1,7 +1,9 @@
 #include "phonon_pack.h"
 #include "phonon_pack_test.h"
 #include "phonon_q8.h"
+#include "phonon_transformer.h"
 #include "sha256.h"
+#include <pthread.h>
 
 #include <assert.h>
 #include <math.h>
@@ -282,12 +284,76 @@ static void test_pinned_index_rejects_changed_name(const char *path) {
     free(data);
 }
 
+/* Published Q8 blocks here encode 32 ones with unit scale. Each projection
+ * must be 32 regardless of preparation, sharing, or another pack's lifetime. */
+static void *shared_linear(void *context) {
+    const PhononTensorView *view = context;
+    float input[32], output;
+    for (size_t i = 0; i < 32; i++)
+        input[i] = 1;
+    for (size_t i = 0; i < 32; i++) {
+        assert(phonon_linear(view, input, 1, 32, NULL, &output));
+        assert(output == 32);
+    }
+    return NULL;
+}
+static void test_materialization(const char *path, PhononPack *pack) {
+    PhononTensorView before, after;
+    assert(phonon_pack_tensor(pack, "flow_lm.fixture_000.weight", &before));
+    assert(!before.linear_data);
+    shared_linear(&before);
+    /* Fail after one successful allocation; no partial cache may escape. */
+    assert(!phonon_pack_prepare_linears_for_tests(pack, 32 * sizeof(float)));
+    assert(phonon_pack_tensor(pack, "flow_lm.fixture_000.weight", &after));
+    assert(!after.linear_data);
+    shared_linear(&after);
+    assert(phonon_pack_prepare_linears(pack));
+    assert(phonon_pack_tensor(pack, "flow_lm.fixture_000.weight", &after));
+    assert(after.linear_data && after.data == before.data);
+    for (size_t i = 0; i < 32; i++)
+        assert(after.linear_data[i] == 1);
+    assert(phonon_pack_prepare_linears(pack));
+    PhononTensorView again;
+    assert(phonon_pack_tensor(pack, "flow_lm.fixture_000.weight", &again));
+    assert(again.linear_data == after.linear_data);
+    PhononPack *other = NULL;
+    assert(phonon_pack_open_for_tests(path, &other));
+    assert(phonon_pack_prepare_linears(other));
+    assert(phonon_pack_tensor(other, "flow_lm.fixture_000.weight", &again));
+    assert(again.linear_data != after.linear_data);
+    phonon_pack_close(other);
+    pthread_t threads[2];
+    for (size_t i = 0; i < 2; i++)
+        assert(!pthread_create(threads + i, NULL, shared_linear, &after));
+    for (size_t i = 0; i < 2; i++)
+        assert(!pthread_join(threads[i], NULL));
+    uint16_t bf16[] = {0x3f80, 0xc000};
+    PhononTensorView small = {
+        .dtype = PHONON_PACK_BF16, .rank = 2, .shape = {1, 2}, .data = bf16, .byte_count = 4};
+    float *converted = NULL;
+    assert(phonon_tensor_expand_linear(&small, &converted));
+    assert(converted[0] == 1 && converted[1] == -2);
+    float input[] = {3, 4}, ordinary, cached;
+    assert(phonon_linear(&small, input, 1, 2, NULL, &ordinary));
+    small.linear_data = converted;
+    assert(phonon_linear(&small, input, 1, 2, NULL, &cached));
+    assert(ordinary == -5 && cached == ordinary);
+    free(converted);
+    uint16_t bad[] = {0x7f80};
+    PhononTensorView invalid = {
+        .dtype = PHONON_PACK_BF16, .rank = 2, .shape = {1, 1}, .data = bad, .byte_count = 2};
+    float *expanded = (float *)(uintptr_t)1;
+    assert(!phonon_tensor_expand_linear(&invalid, &expanded) && !expanded);
+    assert(!phonon_pack_prepare_linears(NULL));
+}
+
 int main(void) {
     const char *synthetic_path = make_synthetic_pack();
     PhononPack *synthetic = NULL;
     assert(phonon_pack_open_for_tests(synthetic_path, &synthetic));
     assert(phonon_pack_tensor_count(synthetic) == 209);
     test_rejected_pack_variants(synthetic_path);
+    test_materialization(synthetic_path, synthetic);
     PhononTensorView bf16_view;
     assert(phonon_pack_tensor(synthetic, "mimi.fixture_036.weight", &bf16_view));
     float decoded[1];
@@ -308,9 +374,10 @@ int main(void) {
     }
     PhononPack *pack = NULL;
     assert(phonon_pack_open(pack_path, &pack));
+    assert(phonon_pack_prepare_linears(pack));
     assert(phonon_pack_tensor_count(pack) == 209);
     test_pinned_index_rejects_changed_name(pack_path);
-    size_t q8_count = 0, bf16_count = 0;
+    size_t q8_count = 0, bf16_count = 0, materialized_count = 0, materialized_bytes = 0;
     for (size_t i = 0; i < phonon_pack_tensor_count(pack); i++) {
         const char *name = NULL;
         size_t name_length = 0;
@@ -329,6 +396,10 @@ int main(void) {
             assert(view.shape[d] && elements <= SIZE_MAX / view.shape[d]);
             elements *= (size_t)view.shape[d];
         }
+        if (view.linear_data) {
+            materialized_count++;
+            materialized_bytes += elements * sizeof(float);
+        }
         if (view.dtype == PHONON_PACK_Q8_0) {
             q8_count++;
             assert(view.byte_count == elements / 32 * 34 && elements % 32 == 0);
@@ -342,6 +413,7 @@ int main(void) {
         }
     }
     assert(q8_count == 36 && bf16_count == 173);
+    assert(materialized_count == 75 && materialized_bytes == 177702912);
 
     FILE *oracle = fopen(oracle_path, "rb");
     assert(oracle);
@@ -374,6 +446,12 @@ int main(void) {
             float allowance = 1.0e-5f + 1.0e-3f * fabsf(expected[row]);
             assert(isfinite(actual[row]) && fabsf(actual[row] - expected[row]) <= allowance);
         }
+        assert(view.linear_data);
+        assert(phonon_linear(&view, input, rows, columns, NULL, actual));
+        for (uint32_t row = 0; row < rows; row++) {
+            float allowance = 1.0e-5f + 1.0e-3f * fabsf(expected[row]);
+            assert(isfinite(actual[row]) && fabsf(actual[row] - expected[row]) <= allowance);
+        }
         free(actual);
         free(expected);
         free(input);
@@ -398,8 +476,11 @@ int main(void) {
         float actual[16], expected[16];
         assert(phonon_bf16_to_float(view.data, sample_count, actual));
         assert(fread(expected, sizeof(*expected), sample_count, bf16_oracle) == sample_count);
-        for (uint32_t i = 0; i < sample_count; i++)
+        for (uint32_t i = 0; i < sample_count; i++) {
             assert(actual[i] == expected[i]);
+            if (view.linear_data)
+                assert(view.linear_data[i] == expected[i]);
+        }
     }
     assert(fgetc(bf16_oracle) == EOF);
     fclose(bf16_oracle);

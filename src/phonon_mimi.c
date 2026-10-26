@@ -212,6 +212,8 @@ static int layer_forward(PhononMimiState *state, size_t layer) {
         view.shape[0] = 512;
         view.byte_count /= 3;
         view.data = (const unsigned char *)view.data + part * view.byte_count;
+        if (view.linear_data)
+            view.linear_data += part * 512 * 512;
         if (!phonon_linear_batch(&view, &state->normalized[0][0], 512, 512, NULL,
                                  &state->projected[0][0], 16))
             return 0;

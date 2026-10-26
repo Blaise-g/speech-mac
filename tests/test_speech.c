@@ -2,6 +2,7 @@
 #include "phonon_transformer_test.h"
 #include "speech_test.h"
 #include <math.h>
+#include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -59,6 +60,28 @@ static int no_output(void *context, const float *pcm, size_t count, const Speech
     (void)r;
     CHECK(0);
     return 0;
+}
+/* Public API permits simultaneous requests sharing one immutable engine and
+ * voice. Each result must equal the independently completed serial request. */
+typedef struct {
+    const SpeechEngine *engine;
+    const PhononVoice *voice;
+    const char *text;
+    size_t bytes, samples;
+    const SpeechOptions *options;
+    const float *expected;
+} SharedRequest;
+static void *shared_request(void *context) {
+    SharedRequest *request = context;
+    float *pcm = NULL;
+    size_t count = 0;
+    SpeechResult result;
+    CHECK(speech_collect(request->engine, request->voice, request->text, request->bytes,
+                         request->options, request->samples, &pcm, &count, &result) == SPEECH_OK);
+    CHECK(count == request->samples && result.samples_generated == count);
+    CHECK(!memcmp(pcm, request->expected, count * sizeof(float)));
+    free(pcm);
+    return NULL;
 }
 typedef struct {
     size_t calls, stop;
@@ -243,6 +266,12 @@ static void full_model(void) {
               br.chunks_completed == r.chunks_completed);
         free(batch);
         if (record == 0) {
+            SharedRequest shared = {e, selected, text, bytes, samples, &o, c.pcm};
+            pthread_t requests[2];
+            for (size_t i = 0; i < 2; i++)
+                CHECK(!pthread_create(requests + i, NULL, shared_request, &shared));
+            for (size_t i = 0; i < 2; i++)
+                CHECK(!pthread_join(requests[i], NULL));
             /* Cancellation directly inside head/stack numerical work must not
              * publish partial output or commit a partially evaluated cache. */
             PhononPack *native_pack = NULL;

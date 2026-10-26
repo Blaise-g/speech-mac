@@ -38,8 +38,9 @@ int phonon_kv_cache_append(PhononKvCache *cache, size_t layer, size_t position, 
 /* Advance sequence length once after all nine layers have appended a token. */
 int phonon_kv_cache_commit_position(PhononKvCache *cache, size_t position);
 
-/* Stable numerical primitives shared by the Flow-LM. Linear projections own
- * and free bounded transient expanded weights; the other primitives do not allocate. */
+/* Stable numerical primitives shared by the Flow-LM. Linear projections use
+ * immutable pack materializations when present, otherwise own bounded transient
+ * expanded weights; the other primitives do not allocate. */
 int phonon_rms_norm(const float *input, const float *weight, size_t width, float epsilon,
                     float *output);
 int phonon_layer_norm(const float *input, const float *weight, const float *bias, size_t width,

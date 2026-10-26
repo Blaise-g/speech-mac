@@ -250,35 +250,6 @@ int phonon_rope_interleaved(float *values, size_t width, size_t heads, size_t po
     return 1;
 }
 
-static float half_to_float(uint16_t bits) {
-    uint32_t sign = (uint32_t)(bits & 0x8000U) << 16;
-    uint32_t exponent = (bits >> 10) & 0x1fU;
-    uint32_t mantissa = bits & 0x3ffU;
-    uint32_t result;
-    if (exponent == 0) {
-        if (mantissa == 0) {
-            result = sign;
-        } else {
-            int shift = 0;
-            while ((mantissa & 0x400U) == 0) {
-                mantissa <<= 1;
-                shift++;
-            }
-            mantissa &= 0x3ffU;
-            result = sign | ((uint32_t)(127 - 14 - shift) << 23) | (mantissa << 13);
-        }
-    } else if (exponent == 0x1fU) {
-        result = sign | 0x7f800000U | (mantissa << 13);
-    } else {
-        result = sign | ((exponent + 112U) << 23) | (mantissa << 13);
-    }
-    union {
-        uint32_t bits;
-        float value;
-    } converted = {result};
-    return converted.value;
-}
-
 int phonon_linear_batch(const PhononTensorView *weight, const float *input, size_t rows,
                         size_t columns, const float *bias, float *output, size_t batch) {
     if (!weight || !weight->data || !input || !output || !rows || !columns || !batch ||
@@ -310,37 +281,22 @@ int phonon_linear_batch(const PhononTensorView *weight, const float *input, size
         return 0;
     /* Torch 2.7.1 Linear.cpp flattens contiguous inputs into addmm. Use
      * the same Accelerate SGEMM reduction and bias accumulation here.
-     * Expanded weights are call-owned; the borrowed pack stays immutable.
-     * Transient expansion is a correctness baseline, not a speed claim. */
+     * Prepared expansion is borrowed from the immutable pack; fallback expansion
+     * is call-owned. Both use the identical BF16/Q8 conversion. */
     SPEECH_PROFILE_BEGIN(weight->dtype == PHONON_PACK_BF16 ? "linear_expand_bf16"
                                                            : "linear_expand_q8");
-    float *expanded = malloc(elements * sizeof(float));
-    if (!expanded)
-        return 0;
-    if (weight->dtype == PHONON_PACK_BF16) {
-        if (!phonon_bf16_to_float(weight->data, elements, expanded)) {
-            free(expanded);
+    float *owned = NULL;
+    const float *expanded = weight->linear_data;
+    if (!expanded) {
+        if (!phonon_tensor_expand_linear(weight, &owned))
             return 0;
-        }
-    } else {
-        const PhononQ8Block *blocks = weight->data;
-        for (size_t block = 0; block < elements / 32; block++) {
-            float scale = half_to_float(blocks[block].scale_bits);
-            if (!isfinite(scale)) {
-                free(expanded);
-                return 0;
-            }
-            /* Published Q8 expansion multiplies each integer by its scale
-             * before projection, rather than scaling a partial dot product. */
-            for (size_t i = 0; i < 32; i++)
-                expanded[block * 32 + i] = scale * (float)blocks[block].values[i];
-        }
+        expanded = owned;
     }
     SPEECH_PROFILE_END(weight->dtype == PHONON_PACK_BF16 ? "linear_expand_bf16"
                                                          : "linear_expand_q8");
     for (size_t r = 0; r < batch * rows; ++r) {
         if (bias && !isfinite(bias[r % rows])) {
-            free(expanded);
+            free(owned);
             return 0;
         }
         output[r] = bias ? bias[r % rows] : 0.0f;
@@ -349,7 +305,7 @@ int phonon_linear_batch(const PhononTensorView *weight, const float *input, size
     cblas_sgemm(CblasRowMajor, CblasNoTrans, CblasTrans, (int)batch, (int)rows, (int)columns, 1.0f,
                 input, (int)columns, expanded, (int)columns, bias ? 1.0f : 0.0f, output, (int)rows);
     SPEECH_PROFILE_END("linear_sgemm");
-    free(expanded);
+    free(owned);
     for (size_t r = 0; r < batch * rows; ++r)
         if (!isfinite(output[r]))
             return 0;
@@ -650,6 +606,8 @@ static int prefill_qkv(const PhononTensorView *qkv, const float *input, size_t l
         view.shape[0] = 512;
         view.byte_count /= 3;
         view.data = (const unsigned char *)qkv->data + part * view.byte_count;
+        if (view.linear_data)
+            view.linear_data += part * 512 * 512;
         if (!phonon_linear_batch(&view, input, 512, 512, NULL, split, length))
             return 0;
         for (size_t row = 0; row < length; row++)

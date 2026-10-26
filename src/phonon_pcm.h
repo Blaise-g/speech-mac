@@ -24,10 +24,10 @@ size_t phonon_pcm_samples(const PhononPCMState *state);
  * there is no first-sample delay to remove at this boundary.
  * PCM/Mimi caches and scratch are bounded; no whole-utterance buffering. SEANet
  * processing uses preallocated state, but Mimi calls shared linear kernels that
- * transiently allocate/free expanded weights. Complete decoding is not allocation
- * free. Limit 8192 frames. Invalid arguments/nonfinite input leave state intact.
- * Arithmetic failure poisons state until reset, outputs may hold a partial prefix.
- * Empty input is a no-op before finish. Process after finish fails, including empty.
+ * use immutable pack materializations when prepared, otherwise allocate/free expanded weights.
+ * Complete decoding is not allocation free. Limit 8192 frames. Invalid arguments/nonfinite input
+ * leave state intact. Arithmetic failure poisons state until reset, outputs may hold a partial
+ * prefix. Empty input is a no-op before finish. Process after finish fails, including empty.
  */
 int phonon_pcm_process(PhononPCMState *state, const float *latents, size_t frames, float *raw,
                        size_t raw_capacity, float *final, size_t final_capacity);

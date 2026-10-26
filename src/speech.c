@@ -37,7 +37,7 @@ SpeechStatus speech_engine_create(const char *path, SpeechEngine **out) {
     SpeechEngine *e = calloc(1, sizeof(*e));
     if (!e)
         return SPEECH_FAILED;
-    if (!phonon_pack_open(path, &e->pack) ||
+    if (!phonon_pack_open(path, &e->pack) || !phonon_pack_prepare_linears(e->pack) ||
         !phonon_flow_load_layers(e->pack, e->storage, e->layers) ||
         !phonon_flow_head_load(e->pack, &e->head) ||
         !phonon_pack_tensor(e->pack,

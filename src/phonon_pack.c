@@ -1,5 +1,6 @@
 #include "phonon_pack.h"
 
+#include "phonon_q8.h"
 #include "sha256.h"
 
 #include <math.h>
@@ -75,6 +76,8 @@ static int check_hash(const unsigned char *p, size_t n, const unsigned char *exp
 }
 static void free_pack(PhononPack *pack) {
     if (pack) {
+        for (size_t i = 0; pack->entries && i < pack->count; i++)
+            free((void *)pack->entries[i].view.linear_data);
         free(pack->entries);
         free(pack->bytes);
         free(pack);
@@ -336,3 +339,115 @@ int phonon_bf16_to_float(const uint16_t *values, size_t count, float *output) {
     }
     return 1;
 }
+
+static float half_to_float(uint16_t bits) {
+    uint32_t sign = (uint32_t)(bits & 0x8000U) << 16;
+    uint32_t exponent = (bits >> 10) & 0x1fU;
+    uint32_t mantissa = bits & 0x3ffU;
+    uint32_t result;
+    if (exponent == 0) {
+        if (mantissa == 0) {
+            result = sign;
+        } else {
+            int shift = 0;
+            while ((mantissa & 0x400U) == 0) {
+                mantissa <<= 1;
+                shift++;
+            }
+            mantissa &= 0x3ffU;
+            result = sign | ((uint32_t)(127 - 14 - shift) << 23) | (mantissa << 13);
+        }
+    } else if (exponent == 0x1fU) {
+        result = sign | 0x7f800000U | (mantissa << 13);
+    } else {
+        result = sign | ((exponent + 112U) << 23) | (mantissa << 13);
+    }
+    union {
+        uint32_t bits;
+        float value;
+    } converted = {result};
+    return converted.value;
+}
+
+int phonon_tensor_expand_linear(const PhononTensorView *weight, float **output) {
+    if (!output)
+        return 0;
+    *output = NULL;
+    if (!weight || !weight->data || weight->rank != 2)
+        return 0;
+    size_t elements = product(weight->shape, weight->rank);
+    if (!elements || elements > SIZE_MAX / sizeof(float))
+        return 0;
+    if (weight->dtype == PHONON_PACK_BF16) {
+        if (weight->byte_count != elements * sizeof(uint16_t))
+            return 0;
+    } else if (weight->dtype != PHONON_PACK_Q8_0 || weight->shape[1] % 32 ||
+               weight->byte_count != elements / 32 * sizeof(PhononQ8Block))
+        return 0;
+    float *expanded = malloc(elements * sizeof(float));
+    if (!expanded)
+        return 0;
+    if (weight->dtype == PHONON_PACK_BF16) {
+        if (!phonon_bf16_to_float(weight->data, elements, expanded)) {
+            free(expanded);
+            return 0;
+        }
+    } else {
+        const PhononQ8Block *blocks = weight->data;
+        for (size_t block = 0; block < elements / 32; block++) {
+            float scale = half_to_float(blocks[block].scale_bits);
+            if (!isfinite(scale)) {
+                free(expanded);
+                return 0;
+            }
+            /* Published Q8 expansion multiplies each integer by its scale
+             * before projection, rather than scaling a partial dot product. */
+            for (size_t i = 0; i < 32; i++)
+                expanded[block * 32 + i] = scale * (float)blocks[block].values[i];
+        }
+    }
+    *output = expanded;
+    return 1;
+}
+
+static int prepare_linears(PhononPack *pack, size_t limit) {
+    if (!pack)
+        return 0;
+    size_t total = 0;
+    for (size_t i = 0; i < pack->count; i++) {
+        PhononTensorView *view = &pack->entries[i].view;
+        /* Lookup tables and the checkpoint's unused w_s_t branch never call
+         * shared linear projections. Retain only their packed representation. */
+        PackEntry *entry = &pack->entries[i];
+        if (view->rank != 2 ||
+            has_text((const unsigned char *)entry->name, entry->name_length, ".embed.weight") ||
+            has_text((const unsigned char *)entry->name, entry->name_length, "flow_lm.flow.w_s_t."))
+            continue;
+        size_t elements = product(view->shape, view->rank);
+        if (!elements || elements > (limit - total) / sizeof(float))
+            goto failed;
+        total += elements * sizeof(float);
+        if (!view->linear_data) {
+            float *expanded;
+            if (!phonon_tensor_expand_linear(view, &expanded))
+                goto failed;
+            view->linear_data = expanded;
+        }
+    }
+    return 1;
+failed:
+    for (size_t i = 0; i < pack->count; i++) {
+        free((void *)pack->entries[i].view.linear_data);
+        pack->entries[i].view.linear_data = NULL;
+    }
+    return 0;
+}
+
+int phonon_pack_prepare_linears(PhononPack *pack) {
+    return prepare_linears(pack, 256U * 1024U * 1024U);
+}
+#ifdef PHONON_PACK_TEST_API
+int phonon_pack_prepare_linears_for_tests(PhononPack *pack, size_t limit) {
+    return prepare_linears(pack, limit);
+}
+#endif
