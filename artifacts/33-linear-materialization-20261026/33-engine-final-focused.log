@@ -1,0 +1,4 @@
+engine actual record=0 samples=30720 chunks=1 expected=30720/1
+engine record=0 samples=30720 nrmse=1.28780352e-06 max_abs=2.29477882e-06
+engine record=0 samples=30720 nrmse=1.28780352e-06 max_abs=2.29477882e-06
+speech tests passed

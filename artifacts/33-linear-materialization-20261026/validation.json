@@ -1,0 +1,12 @@
+{
+  "native_values_unchanged": true,
+  "source_file_hashes_match_commits": true,
+  "summary_recomputed": true,
+  "measured_requests": 72,
+  "excluded_warmups": 36,
+  "native_processes": 72,
+  "all_workload_f32_identical_to_baseline32": true,
+  "measurement_method_sha256": "cf0101b60e60e2af1144452be5f1b97d62f40642912293554c947edbdfbdeb85",
+  "native_data_sha256": "484e90522381ce07dd31136b05b028e27296dcc58e2f5f236fdf0cdcd988ad2f",
+  "raw_sha256": "e23d5c77ad7ab6c6db356b4d0e346179a994f979a11f7a043b34696edeb0a0e5"
+}

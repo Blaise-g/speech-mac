@@ -1,0 +1,6 @@
+ROLLBACK_MUTATION_EXIT 2
+Assertion failed: (!after.linear_data), function test_materialization, file test_phonon_pack.c, line 308.
+/bin/sh: line 1: 88747 Abort trap: 6           "$binary"
+make: *** [test-one] Error 134
+
+EXACT_SOURCE_RESTORED 995a3e788598efbf42d0134cb0d3764b34936ef4840899ae731157ac264876d2

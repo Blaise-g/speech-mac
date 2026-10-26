@@ -1,0 +1,19 @@
+/Volumes/Code/Personal/kokoro-mac/.worktrees/phonon-migration-planning/.build/phonon-native-f6acc8f43cb296be-v1.kpack
+/Volumes/Code/Personal/kokoro-mac/.worktrees/phonon-migration-planning/.build/phonon-native-q8-projections-v1.bin
+Loading weights:   0%|          | 0/153 [00:00<?, ?it/s]Loading weights: 100%|██████████| 153/153 [00:00<00:00, 17311.26it/s]
+Loading weights:   0%|          | 0/48 [00:00<?, ?it/s]Loading weights: 100%|██████████| 48/48 [00:00<00:00, 23519.46it/s]
+.build/phonon-flow-prefix-v1.bin
+.build/phonon-flow-condition-v1.bin
+.build/phonon-flow-fixture-v1.json
+{"fixture": ".build/phonon-flow-sampler-v1.bin", "runs": [40, 32]}
+real Q8 one-step flow head parity: 40 fixed + 32 natural frames passed
+closed-loop Q8 generation observed max_abs=0 budget_exceedances=0/1024; stop=32 EOS+3
+closed-loop Q8 generation completed: 32 frames, EOS+3 tail; replay exhaustion rejected
+phonon transformer primitives: ok
+Loading weights:   0%|          | 0/153 [00:00<?, ?it/s]Loading weights: 100%|██████████| 153/153 [00:00<00:00, 11179.16it/s]
+Loading weights:   0%|          | 0/48 [00:00<?, ?it/s]Loading weights: 100%|██████████| 48/48 [00:00<00:00, 11302.86it/s]
+saved Gaussian replay exact=True; finite native/model PCM=True
+native head on identical dynamic inputs: max_abs=0, over_budget=0/1024; EOS max_abs=0, over_budget=0/32
+autonomous reference trajectory: condition max_abs=0, over_budget=0/16384; normalized integration max_abs=0, over_budget=0/1024; EOS max_abs=0, over_budget=0/32; denormalized latent max_abs=0, over_budget=0/1024
+decoded PCM counts raw/final=61440/61440 exact; raw nrmse/max_abs=0/0; final nrmse/max_abs=0/0
+Phonon native pack: 209 tensors, 36 Q8 projections matched oracle
