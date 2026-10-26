@@ -1,7 +1,9 @@
 """Independent identical-input diagnostics; does not replace the frozen generation gate.
 
 Run with locked reference/phonon uv. --transformer-source permits comparison with
-an archived source file. Builds a temporary library, leaving it for inspection.
+an archived source file compatible with the current headers and guarded
+PHONON_PACK_TEST_API attention primitives. Older private-seam archives must use
+the diagnostic from their own revision. Builds a temporary library for inspection.
 Source anchors: PyTorch v2.7.1 aten/src/ATen/native/{Linear.cpp,
 cpu/layer_norm_kernel.cpp,cpu/moments_utils.h,cpu/SumKernel.cpp}; pinned HF
 modeling_gradium_phonon_tts.py RoPE; quantization.py's published Q8 expansion.
@@ -33,7 +35,32 @@ def assert_component(actual, expected):
 
 class TensorView(C.Structure):
     _fields_ = [("dtype", C.c_int), ("rank", C.c_uint), ("shape", C.c_uint64 * 8),
-                ("data", C.c_void_p), ("byte_count", C.c_size_t)]
+                ("data", C.c_void_p), ("byte_count", C.c_size_t), ("linear_data", C.c_void_p)]
+
+
+def build_library(source: Path, scratch: Path):
+    """Compile ABI checks before allowing any ctypes tensor calls."""
+    source = source.resolve()
+    text = source.read_text()
+    if not all(name in text for name in ("PHONON_PACK_TEST_API", "phonon_attention_test(",
+                                         "phonon_prefill_attention_test(")):
+        raise ValueError("unsupported transformer source: requires current headers and guarded "
+                         "PHONON_PACK_TEST_API attention primitives; use the diagnostic from "
+                         "the archived source revision for older private-seam sources")
+    wrapper = scratch / "operators.c"
+    checks = [f'_Static_assert(sizeof(PhononTensorView) == {C.sizeof(TensorView)}, "TensorView size ABI drift");']
+    for name, _ in TensorView._fields_:
+        checks.append(f'_Static_assert(offsetof(PhononTensorView, {name}) == '
+                      f'{getattr(TensorView, name).offset}, "TensorView {name} ABI drift");')
+    wrapper.write_text('#include <stddef.h>\n#include "phonon_pack.h"\n' +
+                       "\n".join(checks) + '\n#include "' + str(source) + '"\n')
+    library = scratch / "operators.dylib"
+    subprocess.run(["clang", "-std=c17", "-O0", "-dynamiclib", "-DPHONON_PACK_TEST_API",
+                    "-I" + str(ROOT / "src"), str(wrapper),
+                    *(str(ROOT / "src" / name) for name in
+                      ("phonon_q8.c", "phonon_pack.c", "sha256.c", "phonon_math.c")),
+                    "-framework", "Accelerate", "-o", str(library)], check=True)
+    return C.CDLL(str(library))
 
 
 def main():
@@ -42,23 +69,10 @@ def main():
     args = parser.parse_args()
     scratch = Path(tempfile.mkdtemp(prefix="phonon-operators-"))
     library = scratch / "operators.dylib"
-    # Test the private attention seam without adding a shipped public API.
-    source = args.transformer_source.resolve()
-    wrapper = scratch / "attention.c"
-    if "static int flow_attention(" in source.read_text():
-        wrapper.write_text('#include "' + str(source) + '"\n' +
-                           'int trace_attention(const float *q,const float *k,const float *v,size_t n,size_t stride,float *out) { return flow_attention(q,k,v,n,stride,out); }\n' +
-                           ('int trace_prefill_attention(const float *q,const float *k,const float *v,size_t n,float *scores,float *dst,float *out) { return prefill_attention(q,k,v,n,scores,dst,out); }\n'
-                            if 'static int prefill_attention(' in source.read_text() else ''))
-        compile_source = wrapper
-    else:
-        compile_source = source
-    subprocess.run(["clang", "-std=c17", "-O0", "-dynamiclib", "-I" + str(ROOT / "src"),
-                    str(compile_source),
-                    *(str(ROOT / "src" / name) for name in
-                      ("phonon_q8.c", "phonon_pack.c", "sha256.c", "phonon_math.c")),
-                    "-framework", "Accelerate", "-o", str(library)], check=True)
-    lib = C.CDLL(str(library))
+    try:
+        lib = build_library(args.transformer_source, scratch)
+    except ValueError as error:
+        parser.error(str(error))
     lib.phonon_linear.argtypes = [C.POINTER(TensorView), C.c_void_p, C.c_size_t,
                                  C.c_size_t, C.c_void_p, C.c_void_p]
     lib.phonon_layer_norm.argtypes = [C.c_void_p, C.c_void_p, C.c_void_p,
@@ -137,8 +151,8 @@ def main():
     expected = torch.nn.functional.gelu(torch.from_numpy(x), approximate="none").numpy()
     print(f"GELU:65537 independent grid values+tail; unequal={np.count_nonzero(actual != expected)}; "
           f"max_abs={np.abs(actual - expected).max():.9g}")
-    if hasattr(lib, "trace_attention"):
-        lib.trace_attention.argtypes = [C.c_void_p, C.c_void_p, C.c_void_p,
+    if hasattr(lib, "phonon_attention_test"):
+        lib.phonon_attention_test.argtypes = [C.c_void_p, C.c_void_p, C.c_void_p,
                                        C.c_size_t, C.c_size_t, C.c_void_p]
         maximum = 0.0
         unequal = 0
@@ -149,7 +163,7 @@ def main():
             values = rng.normal(size=(length, 512)).astype("float32")
             query = rng.normal(size=64).astype("float32")
             actual = np.empty(64, dtype="float32")
-            assert lib.trace_attention(query.ctypes.data, keys.ctypes.data, values.ctypes.data,
+            assert lib.phonon_attention_test(query.ctypes.data, keys.ctypes.data, values.ctypes.data,
                                        length, 512, actual.ctypes.data)
             expected = torch.nn.functional.scaled_dot_product_attention(
                 torch.from_numpy(np.concatenate((query[::2], query[1::2]))).reshape(1, 1, 1, 64),
@@ -159,22 +173,19 @@ def main():
             maximum = max(maximum, float(np.abs(actual - expected).max()))
             unequal += int(np.count_nonzero(actual != expected))
         print(f"SDPA: {len(lengths)} cache lengths through8192; unequal={unequal}; max_abs={maximum:.9g}")
-    if hasattr(lib, "trace_prefill_attention"):
-        lib.trace_prefill_attention.argtypes = [C.c_void_p, C.c_void_p, C.c_void_p,
-                                               C.c_size_t, C.c_void_p, C.c_void_p, C.c_void_p]
+    if hasattr(lib, "phonon_prefill_attention_test"):
+        lib.phonon_prefill_attention_test.argtypes = [C.c_void_p, C.c_void_p, C.c_void_p,
+                                               C.c_size_t, C.c_void_p]
         maximum = 0.0
         unequal = 0
         lengths = (1, 31, 32, 33, 191, 192, 193, 511, 512, 513, 767, 768, 769, 1025)
-        scores = np.empty((256, 512), dtype="float32")
-        destination = np.empty((256, 64), dtype="float32")
         for length in lengths:
             query = rng.normal(size=(length, 1536)).astype("float32")
             keys = rng.normal(size=(length, 512)).astype("float32")
             values = rng.normal(size=(length, 512)).astype("float32")
             actual = np.empty((length, 512), dtype="float32")
-            assert lib.trace_prefill_attention(query.ctypes.data, keys.ctypes.data, values.ctypes.data,
-                                               length, scores.ctypes.data, destination.ctypes.data,
-                                               actual.ctypes.data)
+            assert lib.phonon_prefill_attention_test(query.ctypes.data, keys.ctypes.data, values.ctypes.data,
+                                               length, actual.ctypes.data)
             def half_order(x):
                 pairs = torch.from_numpy(x.copy()).reshape(length, 8, 32, 2)
                 return torch.cat((pairs[..., 0], pairs[..., 1]), dim=-1).transpose(0, 1).unsqueeze(0)
