@@ -26,15 +26,15 @@ Worker Profile: medium; implement-lite / gpt-6.1-sol / low (user clarification 2
 
 ## Acceptance criteria
 
-- [ ] --stream consuming within-utterance frames through existing narrow AudioQueue adapter
-- [ ] Ordered bounded buffering/backpressure/drain/cancel/error lifecycle and resident reuse
-- [ ] Separate first PCM, submission/start, buffer reclaim and successful drain events
-- [ ] Prove first audio arrives before inference finishes, batch/stream equivalence including tail, cancellation during generation/wait/drain and single terminal outcome
-- [ ] Device checks mute queue only, never system volume
-- [ ] fake-consumer time is not acoustic/device onset
-- [ ] Complete the approved slice checks and keep unavailable model/device checks explicit.
+- [x] --stream consuming within-utterance frames through existing narrow AudioQueue adapter
+- [x] Ordered bounded buffering/backpressure/drain/cancel/error lifecycle and resident reuse
+- [x] Separate first PCM, submission/start, buffer reclaim and successful drain events
+- [x] Prove first audio arrives before inference finishes, batch/stream equivalence including tail, cancellation during generation/wait/drain and single terminal outcome
+- [x] Device checks mute queue only, never system volume
+- [x] fake-consumer time is not acoustic/device onset
+- [x] Complete the approved slice checks and keep unavailable model/device checks explicit.
 
-Status: blocked
+Status: done
 
 ## Implementation and partial verification — 2026-10-25
 
@@ -106,3 +106,20 @@ sh /private/tmp/speech-mac-30-terminal-check.sh
 The private helper invokes the committed focused test with the actual pack/default voice, `PHONON_STREAM_DEVICE=1`, `KOKORO_STREAM_SILENT_OUTPUT`, a separate build directory and O2. It was inspected and passed `sh -n`; it has not been run from the user's Terminal. It changes no system audio settings and mutes its own queue before submission/start. The existing SDK watchdog fails after 30 seconds rather than hanging indefinitely. Results go to `.build/phonon-stream-terminal-device.log`, including `TERMINAL_DEVICE_EXIT`. Acceptance requires exit0 and the test's `ACTUAL queue-volume-zero AudioQueue functional start/reclaim/drain: ok` marker; fake parity output alone is insufficient. This may also fail in Terminal and promises no environment fix.
 
 Alternatively the user may explicitly approve leaving physical AudioQueue verification open while the remaining migration proceeds. That would change the approved plan and must be recorded before any dependent launch; no such approval has been received. The optional other-app audio question remains unanswered and would not itself establish device acceptance. Tickets31–35 remain held, final whole-branch GPT-6.1 Sol/high review has not run, and no criterion is marked complete by this partial record.
+
+### Verified completion; E30-1 resolved — 2026-10-26
+
+The user ran `sh /private/tmp/speech-mac-30-terminal-check.sh` from their Terminal and returned the result. The Coordinator independently read `.build/phonon-stream-terminal-device.log` on the clean run branch at `15139c5c03fb1d534602fc6a0e7959ee1ef9817d` and verified all success markers. Log SHA256: `d54c54fc5fc0aaf610d9dc3e262e4fef18c39a7179c8668eb00b5923e1e7fbb4`. Its relevant output is:
+
+```text
+muted AudioQueue result=0 detail=
+ACTUAL queue-volume-zero AudioQueue functional start/reclaim/drain: ok, samples=30720; acoustic onset unknown
+actual stream order/bounds/waits/generation+submit+drain+signal cancellation/errors/resident reuse/CLI: ok
+TERMINAL_DEVICE_EXIT=0
+```
+
+The same run also reports exact actual-model batch/stream equality at 30720 samples/16 frames through the fake adapter. Its first-PCM/submission/start/synthesis-end/drain timings are fake-consumer evidence only; the separately labelled real queue test establishes functional start/reclamation/drain, not acoustic onset or listening quality. The helper compiles the focused test with O2 and `KOKORO_STREAM_SILENT_OUTPUT`, actual model/default voice and a separate build directory; only that queue is muted. No system settings changed.
+
+This resolves E30-1 by meeting the original device criterion, without changing or waiving the approved plan. Earlier tool-context failures remain historical evidence; their cause is not established. No source change or formal repair arose from the Terminal result. The previously verified software, numerical, sanitizer, independent review, header-only repair and format/check/hook evidence remains applicable to the unchanged source. Ticket30 is verified on `feat/phonon-migration` at `15139c5c03fb1d534602fc6a0e7959ee1ef9817d`; result source SHAs are `8d09e66cbbff86eacdde5617e7c75d63751a784f` and `8390afcffcb26848b23f82b4ae8d7b0c63abe589`. Formal ticket30 repair count stays1of2.
+
+Ticket31 may launch after this completion record is committed. Tickets31–35 still require their own checks. Final whole-branch review remains pending and must use GPT-6.1 Sol/high, including the earlier Luna code. No acoustic onset, listening acceptance, final review, GitHub rename, branch push or PR completion is claimed here.

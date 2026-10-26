@@ -1,6 +1,6 @@
 # speech-mac: native Phonon migration
 
-Status: blocked
+Status: in-progress
 
 This is the active Requirement Source for the Phonon migration. It supersedes the Kokoro product and architecture requirements. The previous source is preserved in `kokoro-spec-archive.md`; tickets 00–18 and their evidence remain historical records, including their open criteria. They are not blockers for this migration.
 
@@ -117,3 +117,7 @@ Ticket 29 is verified at `2f994e469a86e64f78f988850742ea76faa6253e`: native spee
 Ticket30 implementation is committed at `8d09e66cbbff86eacdde5617e7c75d63751a784f`. Actual model/fake-device stream equality, cancellation/races, sanitizer/TSAN, preserved numerical and canonical checks pass. Successful native AudioQueue start/reclamation/drain remains unverified: new, preserved and standalone queue-muted probes fail or hang at SDK start on this host. No device failure or skip is credited as passing. A comments-only ownership clarification is preapproved as ticket30 repair1of2. [Ticket30](issues/30-progressive-playback.md) records exact evidence and the pending bounded Terminal check. Tickets31–35 and final whole-branch Sol/high review remain held; no acceptance criterion was waived.
 
 The ownership clarification is now applied at `8390afcffcb26848b23f82b4ae8d7b0c63abe589`; independent review, format/check, staged hook and the Coordinator's exact noncomment-byte comparison pass. Formal ticket30 repair1of2 is applied without changing executable behavior. E30-1 remains open: the Coordinator's ordinary and PTY silent SDK checks both fail at AudioQueueStart -66681. A reviewed private helper, `sh /private/tmp/speech-mac-30-terminal-check.sh`, is ready for the user's Terminal and records its bounded queue-muted result in `.build/phonon-stream-terminal-device.log`. A successful actual start/reclamation/drain or an explicit user-approved plan change is required before dependent tickets launch. No user waiver or listening/device success has been recorded.
+
+## Streaming acceptance verified; migration resumed — 2026-10-26
+
+E30-1 is resolved without an acceptance change. The user ran the prepared silent integration from Terminal; the Coordinator read its saved log and verified `TERMINAL_DEVICE_EXIT=0`, `muted AudioQueue result=0` and actual queue-volume-zero start/reclamation/drain success for30720 samples. Ticket30 is verified at `15139c5c03fb1d534602fc6a0e7959ee1ef9817d` with unchanged implementation/header-repair SHAs and existing independent software/numerical evidence. [Ticket30](issues/30-progressive-playback.md) records the log hash and limits: fake timings remain fake, acoustic onset/listening are unmeasured, prior tool-context failures are preserved and no system settings changed. No Escalation remains open. Ticket31 may start after this record is committed; tickets31–35 and final GPT-6.1 Sol/high whole-branch review remain pending.
