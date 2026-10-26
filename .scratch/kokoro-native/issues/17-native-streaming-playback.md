@@ -2,7 +2,7 @@
 
 ## Context
 
-Technical source: `.scratch/kokoro-native/spec.md` (Authorized streaming implementation), the [approved streaming design](../../../docs/streaming-plan.md), and [ticket 16](16-streaming-design.md).
+Technical source: `.scratch/kokoro-native/spec.md` (Authorized streaming implementation), the [approved streaming design](https://github.com/Blaise-g/speech-mac/blob/3434f73aeada7e1818feb11cf4815b773a21188b/docs/streaming-plan.md), and [ticket 16](16-streaming-design.md).
 
 Background: [Kokoro native inference spec](../spec.md). Existing engine and frontend behavior is defined in [ticket 10](10-resident-engine-phoneme-cli.md) and [ticket 11](11-english-espeak-frontend.md).
 

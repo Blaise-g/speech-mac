@@ -2,7 +2,7 @@
 
 ## Context
 
-Technical source: `.scratch/kokoro-native/spec.md` (performance measurement acceptance), [ADR 0001](../../../docs/adr/0001-native-inference.md), and [approved Run Plan](../run-plan.md).
+Technical source: `.scratch/kokoro-native/spec.md` (performance measurement acceptance), [ADR 0001](https://github.com/Blaise-g/speech-mac/blob/3434f73aeada7e1818feb11cf4815b773a21188b/docs/adr/0001-native-inference.md), and [approved Run Plan](../run-plan.md).
 
 Background: [Kokoro native inference spec](../spec.md).
 
