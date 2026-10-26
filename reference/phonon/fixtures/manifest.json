@@ -1,0 +1,233 @@
+{
+  "schema_version": 1,
+  "model_revision": "cc738b7e4d182c2ba1bafb8062aa4846af000637",
+  "mimi_revision": "33519be1a8e61c6fa00c6e154e2d38e76a367919",
+  "transformers_revision": "50e35cc0ca18ec19b80653690de553e6decf74f5",
+  "mimi_context_positions": 250,
+  "context_patch": "override sliding_window from upstream converter 251 to trained Python semantics delta < 250; provenance xn-ptts PR209",
+  "seed": 123,
+  "fixture": "phonon-hello.npz",
+  "temperature": 0.8,
+  "generation_settings": {
+    "do_sample": true,
+    "eos_threshold": 4.0,
+    "min_frames_before_eos": 0,
+    "num_flow_steps": 1,
+    "pad_token_id": 3,
+    "return_dict_in_generate": true,
+    "temperature": 0.8,
+    "transformers_version": "5.21.0.dev0"
+  },
+  "processor_settings": {
+    "audio_tokenizer": {
+      "audio_tokenizer_class": "PocketTTSAudioTokenizerModel",
+      "audio_tokenizer_name_or_path": "gradium/phonon-mimi"
+    },
+    "fade_in_duration": 0.0,
+    "feature_extractor": {
+      "analysis_frame_duration": 0.02,
+      "end_on_pause": true,
+      "fade_out_duration": 0.02,
+      "feature_extractor_type": "PocketTTSFeatureExtractor",
+      "feature_size": 1,
+      "frame_size": 1920,
+      "pad_to_multiple_of": 1920,
+      "padding_side": "right",
+      "padding_value": 0.0,
+      "pause_duration": 0.08,
+      "return_attention_mask": true,
+      "sampling_rate": 24000,
+      "silence_floor_db": 35.0
+    },
+    "frames_after_eos": 1,
+    "frames_after_eos_short_text": 3,
+    "processor_class": "PocketTTSProcessor",
+    "short_text_max_words": 4
+  },
+  "arrays": {
+    "attention_mask": {
+      "shape": [
+        1,
+        140
+      ],
+      "dtype": "int64",
+      "sha256": "8aaff4484b57985074468863bd7b301c2859c858a7500befcdbc4be6287aa8f9"
+    },
+    "audio_marker_ids": {
+      "shape": [
+        3
+      ],
+      "dtype": "int64",
+      "sha256": "3624a254c5ee8cf1553e2215003df032bed2e3b25b2c2f012e083e031dca7bbf"
+    },
+    "backbone_output": {
+      "shape": [
+        1,
+        171,
+        512
+      ],
+      "dtype": "float32",
+      "sha256": "6bcebc777ddb302b0586863b945177f5b577fc3b9e27defc22e302e8d38f335b"
+    },
+    "eos_logits": {
+      "shape": [
+        32,
+        1
+      ],
+      "dtype": "float32",
+      "sha256": "c7d9183e5cc4588af7016e12c8d6b61c06cbc5c42c2c1797bbe1525516059a12"
+    },
+    "final_pcm": {
+      "shape": [
+        1,
+        61440
+      ],
+      "dtype": "float32",
+      "sha256": "11d8fb16cf778fb56614568e5b2220a627e06d1d64915fc79a4e5a3c1e84d654"
+    },
+    "final_pcm_sample_count": {
+      "shape": [
+        1
+      ],
+      "dtype": "int64",
+      "sha256": "a4e644d5a24e8700424dc061e9a02f5aa70e66e2df74ec2fca03a0588152f314"
+    },
+    "flow_condition": {
+      "shape": [
+        32,
+        1,
+        512
+      ],
+      "dtype": "float32",
+      "sha256": "bc18941cbe06d11977cf96e8c7a168b8e045272d36da4a8606550aee3e96289d"
+    },
+    "flow_input_noise": {
+      "shape": [
+        32,
+        1,
+        32
+      ],
+      "dtype": "float64",
+      "sha256": "9343c91b1a67a4ac69ebd1ac7b29014e11298cb712d57d6cc3662ecc6fc1ea99"
+    },
+    "flow_integration": {
+      "shape": [
+        32,
+        32
+      ],
+      "dtype": "float32",
+      "sha256": "df64371b4b0092f84a7f5ec04ec250d25032adfc4d0a75c80abb94323377dd8b"
+    },
+    "input_ids": {
+      "shape": [
+        1,
+        140
+      ],
+      "dtype": "int64",
+      "sha256": "e85c42081b9830693458f8d2b70c4c7efd0043f3112a632c8a50627f18c0dec8"
+    },
+    "latent_mask": {
+      "shape": [
+        1,
+        32
+      ],
+      "dtype": "int64",
+      "sha256": "6ba64591dc5d5fa6ab9e575602829ad02f0fe517616bda69e4fe87b55b9d9836"
+    },
+    "latents": {
+      "shape": [
+        1,
+        32,
+        32
+      ],
+      "dtype": "float32",
+      "sha256": "0485c44cf579e90ec9f7b26f9b2b181a7f1cc991f48291e82af5cb860fcd4770"
+    },
+    "mimi_features": {
+      "shape": [
+        1,
+        512,
+        512
+      ],
+      "dtype": "float32",
+      "sha256": "7141849815ddd2fd532410e1f8dbf09595d57490ba302160e03c1305c5244912"
+    },
+    "noise_draws": {
+      "shape": [
+        32,
+        1,
+        32
+      ],
+      "dtype": "float32",
+      "sha256": "8c30f291dc4399e23ffe9491a5705ab806d7d2e49a2cd99a4d7241d037f1a8d1"
+    },
+    "prefix_states": {
+      "shape": [
+        1,
+        140,
+        512
+      ],
+      "dtype": "float32",
+      "sha256": "019d10627624590a71c6ceb65745352eb4912049d12a404e5adddb8ba6d3f40d"
+    },
+    "raw_pcm": {
+      "shape": [
+        1,
+        61440
+      ],
+      "dtype": "float32",
+      "sha256": "11d8fb16cf778fb56614568e5b2220a627e06d1d64915fc79a4e5a3c1e84d654"
+    },
+    "raw_pcm_sample_count": {
+      "shape": [
+        1
+      ],
+      "dtype": "int64",
+      "sha256": "a4e644d5a24e8700424dc061e9a02f5aa70e66e2df74ec2fca03a0588152f314"
+    },
+    "raw_text": {
+      "shape": [
+        1
+      ],
+      "dtype": "<U27",
+      "sha256": "056cb3fef31c6bccb3f327b6137ef476f9557d92d53b057ac79940bf20313d6b"
+    },
+    "stop_lengths": {
+      "shape": [
+        1
+      ],
+      "dtype": "int64",
+      "sha256": "9d4ac218fb54041e3a70a8e14db1ea1af9f570f4842b4702ef9323f1ad8f0ec4"
+    },
+    "temperature": {
+      "shape": [
+        1
+      ],
+      "dtype": "float32",
+      "sha256": "030a1a64b337c633d995221728d15e8b0d086cc0dcf4557205111b089b04464d"
+    },
+    "tokenizer_normalized_text": {
+      "shape": [
+        1
+      ],
+      "dtype": "<U28",
+      "sha256": "10a1c8c101f8bbd74d3cf900bef98ab6cea45c84a1c852a1e1d9836482bfefbf"
+    },
+    "voice_projection": {
+      "shape": [
+        125,
+        512
+      ],
+      "dtype": "float32",
+      "sha256": "d65cadf790d4df4e234b82a6e5abe788785da02269bafe131a505ab59833f5b1"
+    },
+    "voice_prompt_latents": {
+      "shape": [
+        125,
+        512
+      ],
+      "dtype": "float32",
+      "sha256": "dc4b812bf50c607f2866b621996a29415be1462ff9d817619b6c0f12eaf28f44"
+    }
+  }
+}

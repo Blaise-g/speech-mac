@@ -1,0 +1,78 @@
+from pathlib import Path
+import sys, json, time, statistics, subprocess, hashlib, platform, os
+ROOT=Path.cwd();sys.path.insert(0,str(ROOT/'reference/phonon'))
+import benchmark as b
+out=ROOT/'artifacts/33-linear-materialization-20261026'
+assert not out.exists()
+assert not b.command('git','status','--porcelain','--untracked-files=normal')
+base=Path('/private/tmp/speech-mac-33-baseline.ZPbvI4/.build/phonon-baseline')
+candidate=b.build(False)
+pack=ROOT/'.build/phonon-native-f6acc8f43cb296be-v1.kpack'
+voice=Path('/Volumes/Code/Personal/speech-mac-models/phonon-40m-en/default-voice.safetensors')
+old=json.loads((ROOT/'artifacts/32-phonon-baseline-20261026/raw.json').read_text())
+for asset in old['provenance']['source_assets']['files']:
+ assert b.digest(Path(os.environ['PHONON_MODEL_DIR'])/asset['filename'])==asset['sha256']
+assert b.digest(pack)==old['provenance']['pack_sha256']
+assert b.digest(voice)==old['provenance']['voice_sha256']
+out.mkdir()
+for name,text in b.WORKLOADS.items(): (out/f'{name}.txt').write_text(text)
+meta={
+ 'baseline_source':'f9ac91830db6ce6cde4ea9fe7ff597c6201a23d1',
+ 'baseline_archive_directory':str(base.parents[1]),
+ 'baseline_build_command':['xcrun','clang',*b.FLAGS,'benchmarks/phonon_baseline.c',*[str(p.relative_to(base.parents[1])) for p in sorted((base.parents[1]/'src').glob('*.c')) if p.name!='speech_main.c'],'-framework','AudioToolbox','-framework','Accelerate','-o',str(base)],
+ 'baseline_archive_command':'git archive f9ac91830db6ce6cde4ea9fe7ff597c6201a23d1 | tar -x -C /private/tmp/speech-mac-33-baseline.ZPbvI4',
+ 'baseline_source_files':{str(p.relative_to(base.parents[1])):b.digest(p) for p in sorted((base.parents[1]/'src').glob('*')) if p.is_file()},
+ 'candidate_source_files':{str(p.relative_to(ROOT)):b.digest(p) for p in sorted((ROOT/'src').glob('*')) if p.is_file()},
+ 'candidate_source':b.command('git','rev-parse','HEAD'),
+ 'baseline_binary_sha256':b.digest(base),'candidate_binary_sha256':b.digest(candidate),
+ 'flags':b.FLAGS,'host':platform.platform(),'machine':b.command('sysctl','-n','machdep.cpu.brand_string'),
+ 'os_build':b.command('sw_vers'),'compiler':b.command('xcrun','clang','--version'),
+ 'memory_bytes':int(b.command('sysctl','-n','hw.memsize')),
+ 'thread_environment':{k:os.environ.get(k) for k in b.THREAD_ENV},
+ 'pack_sha256':b.digest(pack),'voice_sha256':b.digest(voice),
+ 'generation':old['provenance']['generation'],'model_revision':old['provenance']['model_revision'],
+ 'voice_model_ext':old['provenance']['voice_model_ext'],'source_assets':old['provenance']['source_assets'],
+ 'script_sha256':b.digest(Path(__file__)),
+ 'scope':'exclusive release compute; synchronous memory copy; no playback/cache purge; fresh process is not OS-cold',
+}
+runs=[];excluded=[];sequence=[];start=time.time()
+for rep in range(6):
+ for name in b.WORKLOADS:
+  for mode,count in [('fresh_process',1),('warm_resident',2)]:
+   order=['baseline','candidate'] if rep%2==0 else ['candidate','baseline']
+   for variant in order:
+    binary=base if variant=='baseline' else candidate
+    t=time.time();raw=b.execute(binary,pack,voice,out/f'{name}.txt',count,None)
+    for i,r in enumerate(raw):
+     r.update(variant=variant,workload=name,mode=mode,repetition=rep,pair_order=order,execution_index=len(sequence),request_index=i)
+     if count==2 and i==0: excluded.append(r)
+     else: runs.append(r)
+    sequence.append(dict(variant=variant,workload=name,mode=mode,repetition=rep,order=order,start_unix=t,end_unix=time.time()))
+    print(rep,name,mode,variant,raw[-1]['synthesis_s'],flush=True)
+    (out/'progress.json').write_text(json.dumps(dict(provenance=meta,runs=runs,excluded_warmups=excluded,sequence=sequence),indent=2)+'\n')
+# Existing validator checks all workload/mode/repeat/count/timing/hash invariants.
+for variant in ('baseline','candidate'):
+ provenance={**old['provenance'],'source_commit':meta[f'{variant}_source'],'source_dirty':False}
+ b.validate(dict(schema=1,acoustic_onset_s=None,provenance=provenance,repeats=6,runs=[r for r in runs if r['variant']==variant]))
+for name in b.WORKLOADS:
+ assert len({r['pcm_f32_sha256'] for r in runs+excluded if r['workload']==name})==1
+ assert {r['pcm_f32_sha256'] for r in runs if r['workload']==name}=={r['pcm_f32_sha256'] for r in old['runs'] if r['workload']==name}
+summary=[]
+for name in b.WORKLOADS:
+ for mode in ('fresh_process','warm_resident'):
+  groups={v:[r for r in runs if r['variant']==v and r['workload']==name and r['mode']==mode] for v in ('baseline','candidate')}
+  row=dict(workload=name,mode=mode)
+  for v,rs in groups.items():
+   row[v]={}
+   for key in ('synthesis_s','first_pcm_s','engine_prepare_s','voice_open_s','cpu_s','rss_high_water_bytes','rtf'):
+    xs=[r[key] for r in rs];row[v][key]=dict(median=statistics.median(xs),min=min(xs),max=max(xs),values=xs)
+   for key in (('prepare_to_first_pcm_s','prepare_to_synthesis_end_s') if mode=='fresh_process' else ()):
+    xs=[r['engine_prepare_s']+r['voice_open_s']+r['first_pcm_s' if key=='prepare_to_first_pcm_s' else 'synthesis_s'] for r in rs]
+    row[v][key]=dict(median=statistics.median(xs),min=min(xs),max=max(xs),values=xs)
+  ratios=[groups['baseline'][i]['synthesis_s']/groups['candidate'][i]['synthesis_s'] for i in range(6)]
+  row['paired_speedup']=dict(median=statistics.median(ratios),min=min(ratios),max=max(ratios),values=ratios)
+  summary.append(row)
+raw=dict(schema=1,provenance=meta,repeats=6,runs=runs,excluded_warmups=excluded,sequence=sequence,start_unix=start,end_unix=time.time(),summary=summary,acoustic_onset_s=None)
+(out/'raw.json').write_text(json.dumps(raw,indent=2)+'\n');(out/'progress.json').unlink()
+(out/'measurement-method.txt').write_text(Path(__file__).read_text())
+print('VALIDATED',out,flush=True)

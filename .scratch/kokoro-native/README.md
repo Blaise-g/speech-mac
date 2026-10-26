@@ -9,4 +9,4 @@ Tickets use one of these statuses:
 - `done`: implementation, review, and required checks are complete.
 - `blocked`: progress needs a specific unresolved dependency or decision.
 
-Commit trailers use the ticket id, for example `Ticket: 00-project-setup`. Implementation workers follow the GPT-6 Luna xhigh `implement-lite` profile and complete independent review before commit.
+Commit trailers use the ticket id, for example `Ticket: 00-project-setup`. Use the worker profile and reasoning effort in the coordinator-approved Run Plan or explicit user override. Follow the [agent instructions](../../AGENTS.md) for implementation and completion checks. Preserve historical execution profiles in ticket evidence.

@@ -1,0 +1,23 @@
+from pathlib import Path
+import json, sys, time, statistics, hashlib
+ROOT=Path.cwd();sys.path.insert(0,str(ROOT/'reference/phonon'))
+import benchmark as b
+out=ROOT/'artifacts/33-linear-materialization-20261026'
+original=out/'progress.json';saved=out/'native-process-data.json'
+assert original.exists() and not saved.exists()
+saved.write_bytes(original.read_bytes())
+p=json.loads(saved.read_text());meta=p['provenance'];runs=p['runs'];excluded=p['excluded_warmups'];sequence=p['sequence']
+assert len(runs)==72 and len(excluded)==36 and len(sequence)==72
+for r in runs+excluded:
+ r.update(profiled=False,consumer='synchronous_memory_copy',output_duration_s=r['samples']/24000)
+ r['rtf']=r['synthesis_s']/r['output_duration_s']
+old=json.loads((ROOT/'artifacts/32-phonon-baseline-20261026/raw.json').read_text())
+start=min(s['start_unix'] for s in sequence)
+method=ROOT/'.build/33-measure.py'
+assert b.digest(method)==meta['script_sha256']
+# Continue the reviewed original validation and summary code over saved native data.
+suffix=method.read_text().split('# Existing validator checks all workload/mode/repeat/count/timing/hash invariants.\n',1)[1]
+suffix=suffix.replace('end_unix=time.time(),summary=summary','end_unix=max(s["end_unix"] for s in sequence),postprocessed_unix=time.time(),summary=summary')
+suffix=suffix.replace("(out/'measurement-method.txt').write_text(Path(__file__).read_text())","(out/'measurement-method.txt').write_text(method.read_text())")
+exec(compile(suffix,str(method)+' [postprocessing recovery]','exec'))
+(out/'postprocessing-recovery.txt').write_text(Path(__file__).read_text())

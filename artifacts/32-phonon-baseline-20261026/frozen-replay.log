@@ -1,0 +1,10 @@
+
+Loading weights:   0%|          | 0/153 [00:00<?, ?it/s]
+Loading weights: 100%|██████████| 153/153 [00:00<00:00, 20575.48it/s]
+
+Loading weights:   0%|          | 0/48 [00:00<?, ?it/s]
+Loading weights: 100%|██████████| 48/48 [00:00<00:00, 28601.59it/s]
+saved Gaussian replay exact=True; finite native/model PCM=True
+native head on identical dynamic inputs: max_abs=0, over_budget=0/1024; EOS max_abs=0, over_budget=0/32
+autonomous reference trajectory: condition max_abs=0, over_budget=0/16384; normalized integration max_abs=0, over_budget=0/1024; EOS max_abs=0, over_budget=0/32; denormalized latent max_abs=0, over_budget=0/1024
+decoded PCM counts raw/final=61440/61440 exact; raw nrmse/max_abs=0/0; final nrmse/max_abs=0/0

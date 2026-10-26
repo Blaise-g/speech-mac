@@ -1,0 +1,41 @@
+{
+  "repository": "https://github.com/shibatch/sleef",
+  "revision": "56e1f79cb140fb9326d612d0be06b5250565cade",
+  "version": "3.7.0",
+  "pinned_by_pytorch": "e2d141dbde55c2a4370fac5165b0561b6af4798b:third_party/sleef",
+  "archive_url": "https://codeload.github.com/shibatch/sleef/tar.gz/56e1f79cb140fb9326d612d0be06b5250565cade",
+  "archive_sha256": "d51c477ae25bead879e8fc869fb3740e66c18b431f45ed0598ec4ba4985023a0",
+  "header": {
+    "path": "vendor/sleef/sleefinline_advsimd.h",
+    "bytes": 579669,
+    "sha256": "9c67f846daa49394628b4390396cb7223197e383de940e02cc3a58d9f33b477f",
+    "unmodified": true
+  },
+  "license": {
+    "path": "LICENSES/sleef-BSL-1.0.txt",
+    "sha256": "c9bff75738922193e67fa726fa225535870d2aa1059f91452c411736284ad566",
+    "copyright": "Naoki Shibata and contributors 2010 - 2021; retained in generated header"
+  },
+  "entrypoints": [
+    "Sleef_expf4_u10advsimd",
+    "Sleef_sinf4_u10advsimd",
+    "Sleef_cosf4_u10advsimd"
+  ],
+  "generation": {
+    "tool": "tools/generate_sleef_inline.py",
+    "cmake": "4.4.4",
+    "compiler": "Apple clang version 21.0.0 (clang-2100.3.34.2)",
+    "options": [
+      "SLEEF_BUILD_DFT=OFF",
+      "SLEEF_BUILD_TESTS=OFF",
+      "SLEEF_BUILD_GNUABI_LIBS=OFF",
+      "SLEEF_BUILD_QUAD=OFF",
+      "SLEEF_BUILD_INLINE_HEADERS=ON"
+    ],
+    "target": "inline_headers_util",
+    "command": "UV_CACHE_DIR=/private/tmp/kokoro-uv-cache uv run --project reference/phonon --offline --no-sync --locked python tools/generate_sleef_inline.py --archive <verified-archive>"
+  },
+  "runtime": "Compiled native inline C/NEON only. No SLEEF shared library, CMake, generator, or network required by ordinary builds or inference.",
+  "floating_point": "Source explicit FMA only; FP_CONTRACT OFF; canonical division-form SiLU; system libm scalar tails.",
+  "vendor_diagnostics": "Only unused-parameter and unused-function suppressed around unmodified vendor include in phonon_math.c."
+}

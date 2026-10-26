@@ -4,16 +4,14 @@
 
 Before committing, run `make format`, then `make check`, and resolve failures. The repository-local pre-commit hook repeats the format check, lint, typecheck, and tests against the staged snapshot. Use `make test-one TEST=tests/test_name.c` for a focused C test. The C suite includes checked-in fixtures; model-backed parity and synthesis checks skip when the ignored model artifacts are absent. Follow the model download and conversion steps in [README.md](README.md), then rerun `make check` to run those checks. CI does not download ignored model artifacts.
 
-The comparison tooling tests are separate from `make check` and do not need model weights or dependency installation. Run them with the locked Python project:
+Run development reference checks with the locked Phonon project:
 
 ```sh
-UV_CACHE_DIR=/private/tmp/kokoro-uv-cache uv run --project reference --offline --no-sync --locked python reference/tests/test_compare.py
+uv run --project reference/phonon --offline --no-sync --locked python -m unittest discover -s reference/phonon/tests
+make phonon-reference-check
+make phonon-native-check
 ```
 
-The streaming report validator has a separate focused fixture suite. Run it from the repository root with the locked Python project:
+The latter two commands require the pinned local assets described in [reference setup](reference/phonon/README.md). `make check` also checks the maintained source/API/build surface for removed dependencies and commands.
 
-```sh
-UV_CACHE_DIR=/private/tmp/kokoro-uv-cache uv run --project reference --offline --no-sync --locked python -m unittest discover -s reference/tests -p test_stream_report.py
-```
-
-Use concise conventional commit subjects such as `feat: add phoneme frontend`, and include `Ticket: <NN>-<slug>` in every implementation commit. Complete an independent review before committing. Update the ticket's status and verification evidence as work progresses. A local hook can be bypassed; `.github/workflows/ci.yml` runs `make check` on pull requests and pushes to `main`. GitHub currently cannot enforce that check on this private repository, so verify it before merging.
+Use concise conventional commit subjects such as `feat: add speech frontend`, and include `Ticket: <NN>-<slug>` in every implementation commit. Complete an independent review before committing. Update the ticket's status and verification evidence as work progresses. A local hook can be bypassed; `.github/workflows/ci.yml` runs `make check` on pull requests and pushes to `main`. GitHub currently cannot enforce that check on this private repository, so verify it before merging.

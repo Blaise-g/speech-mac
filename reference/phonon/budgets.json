@@ -1,0 +1,208 @@
+{
+  "schema_version": 1,
+  "scope": "Locked stage budgets for later native-C comparison, plus exact same-oracle replay. Context/quantization observations remain separate; do not widen based on outputs.",
+  "reference_replay": {
+    "input_ids": {
+      "rtol": 0,
+      "atol": 0
+    },
+    "attention_mask": {
+      "rtol": 0,
+      "atol": 0
+    },
+    "voice_prompt_latents": {
+      "rtol": 0,
+      "atol": 0
+    },
+    "raw_text": {
+      "rtol": 0,
+      "atol": 0
+    },
+    "tokenizer_normalized_text": {
+      "rtol": 0,
+      "atol": 0
+    },
+    "audio_marker_ids": {
+      "rtol": 0,
+      "atol": 0
+    },
+    "latents": {
+      "rtol": 0,
+      "atol": 0
+    },
+    "latent_mask": {
+      "rtol": 0,
+      "atol": 0
+    },
+    "eos_logits": {
+      "rtol": 0,
+      "atol": 0
+    },
+    "noise_draws": {
+      "rtol": 0,
+      "atol": 0
+    },
+    "flow_input_noise": {
+      "rtol": 0,
+      "atol": 0
+    },
+    "flow_condition": {
+      "rtol": 0,
+      "atol": 0
+    },
+    "voice_projection": {
+      "rtol": 0,
+      "atol": 0
+    },
+    "prefix_states": {
+      "rtol": 0,
+      "atol": 0
+    },
+    "backbone_output": {
+      "rtol": 0,
+      "atol": 0
+    },
+    "flow_integration": {
+      "rtol": 0,
+      "atol": 0
+    },
+    "stop_lengths": {
+      "rtol": 0,
+      "atol": 0
+    },
+    "raw_pcm": {
+      "rtol": 0,
+      "atol": 0
+    },
+    "final_pcm": {
+      "rtol": 0,
+      "atol": 0
+    },
+    "mimi_features": {
+      "rtol": 0,
+      "atol": 0
+    }
+  },
+  "mimi_uneven_batch_vs_single": {
+    "rtol": 0,
+    "atol": 2e-07,
+    "observed_max_abs": 2.56113708e-09,
+    "latent_frames": [
+      263,
+      257
+    ],
+    "transformer_positions": [
+      4208,
+      4112
+    ],
+    "context_positions": 250
+  },
+  "mimi_transformer_whole_vs_framewise_or_uneven_cache": {
+    "rtol": 0,
+    "atol": 1e-05,
+    "observed_framewise_feature_max_abs": 5.48362732e-06,
+    "observed_uneven_feature_max_abs": 6.19888306e-06,
+    "observed_framewise_pcm_max_abs": 4.58955765e-06,
+    "observed_uneven_pcm_max_abs": 5.66244125e-06,
+    "latent_frames": 263,
+    "transformer_positions": 4208,
+    "context_positions": 250,
+    "uneven_latent_frame_chunks": [
+      1,
+      7,
+      113,
+      142
+    ]
+  },
+  "native_parity_gate": {
+    "gamma_n": 0.00021366869143188546,
+    "n_terms": 3584,
+    "unit_roundoff": 5.960464477539063e-08,
+    "rationale": "Component-level binary32 dot-product accumulation estimate: worst tracked reduction 512 channels \u00d7 kernel7 = 3584 terms. The 1e-3 rtol is about 4.7\u00d7 gamma_n plus a 1e-5 near-zero floor. This engineering bound does not prove whole-graph nonlinear/autoregressive error; fixed comparisons below are acceptance targets and are never recalibrated from native output.",
+    "native_float_stage_targets": {
+      "voice_projection": {
+        "rtol": 0.001,
+        "atol": 1e-05
+      },
+      "prefix_states": {
+        "rtol": 0.001,
+        "atol": 1e-05
+      },
+      "backbone_output": {
+        "rtol": 0.001,
+        "atol": 1e-05
+      },
+      "flow_condition": {
+        "rtol": 0.001,
+        "atol": 1e-05
+      },
+      "flow_integration": {
+        "rtol": 0.001,
+        "atol": 1e-05
+      },
+      "latents": {
+        "rtol": 0.001,
+        "atol": 1e-05
+      },
+      "eos_logits": {
+        "rtol": 0.001,
+        "atol": 1e-05
+      },
+      "mimi_features": {
+        "rtol": 0.001,
+        "atol": 1e-05
+      }
+    },
+    "native_q8_stage_targets": {
+      "voice_projection": {
+        "rtol": 0.001,
+        "atol": 1e-05
+      },
+      "prefix_states": {
+        "rtol": 0.001,
+        "atol": 1e-05
+      },
+      "backbone_output": {
+        "rtol": 0.001,
+        "atol": 1e-05
+      },
+      "flow_condition": {
+        "rtol": 0.001,
+        "atol": 1e-05
+      },
+      "flow_integration": {
+        "rtol": 0.001,
+        "atol": 1e-05
+      },
+      "latents": {
+        "rtol": 0.001,
+        "atol": 1e-05
+      },
+      "eos_logits": {
+        "rtol": 0.001,
+        "atol": 1e-05
+      },
+      "mimi_features": {
+        "rtol": 0.001,
+        "atol": 1e-05
+      }
+    },
+    "native_pcm_targets": {
+      "normalized_rmse_max": 0.001,
+      "max_abs": 0.002,
+      "applies_to": [
+        "raw_pcm",
+        "final_pcm"
+      ]
+    },
+    "discrete_exact": [
+      "input_ids",
+      "attention_mask",
+      "audio_marker_ids",
+      "latent_mask",
+      "stop_lengths",
+      "raw_pcm_sample_count",
+      "final_pcm_sample_count"
+    ]
+  }
+}

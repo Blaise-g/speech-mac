@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "model_revision": "cc738b7e4d182c2ba1bafb8062aa4846af000637",
+  "mimi_revision": "33519be1a8e61c6fa00c6e154e2d38e76a367919",
+  "transformers_revision": "50e35cc0ca18ec19b80653690de553e6decf74f5",
+  "files": {
+    "mimi-temporal-263.npz": {
+      "size_bytes": 29672582,
+      "sha256": "0625cc066185ccc27502c3bd03d6cd9ebf2eb7b6d6b8e8682a1fa2e5f13118bf"
+    },
+    "mimi-uneven-263-257.npz": {
+      "size_bytes": 7601675,
+      "sha256": "8ffe333c0ed748a0f2d853bad5a1d32f8dbfe9f24b77c0fb74a221d2d4348949"
+    },
+    "phonon-hello-q8-natural.npz": {
+      "size_bytes": 2576088,
+      "sha256": "aa3010199ea075fdb57521677ef60ffccc59d41a0b5dd75ec9b130fbd53543cf"
+    },
+    "phonon-hello-q8.npz": {
+      "size_bytes": 2953782,
+      "sha256": "7285a3bcbdd46da54eda5e3ba48acce4b6206d5d8f7bc50c040ef42d7daa89b8"
+    },
+    "phonon-hello.npz": {
+      "size_bytes": 2575872,
+      "sha256": "bd9655d1876227687b25bc10dbef6ba919a7a6ee1dec0e00e73ad11aa905afcd"
+    }
+  }
+}

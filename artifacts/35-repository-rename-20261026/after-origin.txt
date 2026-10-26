@@ -1,0 +1,2 @@
+origin	https://github.com/Blaise-g/speech-mac.git (fetch)
+origin	https://github.com/Blaise-g/speech-mac.git (push)

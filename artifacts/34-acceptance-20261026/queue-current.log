@@ -1,0 +1,12 @@
+SOURCE_COMMIT=4753207c6f5e3c188f665686a5c9c9f1b22d88ac
+RUNTIME_SOURCE_COMMIT=cef25447a45840db848f6e3aadf0f0d9afc8272c
+CONTEXT=assistant exec_command tty=true; first current-code invocation; exclusive idle window
+BUILD=xcrun clang -Isrc -std=c17 -Wall -Wextra -Wpedantic -Werror -O2 -DSPEECH_STREAM_SILENT_OUTPUT benchmarks/phonon_queue.c [all src/*.c except speech_main.c] -framework AudioToolbox -framework Accelerate -o .build/34-current-queue
+WATCHDOG_SECONDS=60
+muted AudioQueue status=0 detail=
+{"consumer":"queue_volume_zero_AudioQueue","first_pcm_s":0.051353000,"first_submission_s":0.051453000,"running_observed_s":0.221702000,"first_reclaimed_s":0.296227000,"synthesis_end_s":3.176339000,"drain_s":3.517704000,"samples":76800,"frames":40,"reclaimed_buffers":40,"acoustic_onset_s":null}
+QUEUE_TIMING_EXIT=0
+EXEC_COMMAND_EXIT=0
+BINARY_SHA256=c9996750f31522ee1d7ae56f42d31043e54511777a0e2d049fc3a45a709236d1
+PACK_SHA256=d636dd53044ac86bfb99939608a381fd8d5378ae29f7bae6fd9026244ca5087b
+VOICE_SHA256=dc537478eaadc1a5257fcda2e3501ab81e14c111a5d95a5838f350db2afd0f1a

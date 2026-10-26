@@ -1,0 +1,46 @@
+{
+  "pcm_f32_sha256": "c0b3cdd89d933dcfebb96d587107791ae7d3dcdc318214db3dc5fe57d607d4c8",
+  "run": 0,
+  "engine_prepare_s": 0.032974,
+  "voice_open_s": 0.000231,
+  "first_pcm_s": 0.049775,
+  "synthesis_s": 7.871394,
+  "cpu_s": 7.850648,
+  "rss_high_water_bytes": 152911872,
+  "samples": 773760,
+  "frames": 403,
+  "chunks": 4,
+  "stages": {
+    "prefill": {
+      "seconds": 0.0,
+      "calls": 0
+    },
+    "flow_head": {
+      "seconds": 0.0,
+      "calls": 0
+    },
+    "mimi_pcm": {
+      "seconds": 0.0,
+      "calls": 0
+    },
+    "incremental_backbone": {
+      "seconds": 0.0,
+      "calls": 0
+    },
+    "linear_expand_bf16": {
+      "seconds": 0.0,
+      "calls": 0
+    },
+    "linear_expand_q8": {
+      "seconds": 0.0,
+      "calls": 0
+    },
+    "linear_sgemm": {
+      "seconds": 0.0,
+      "calls": 0
+    }
+  },
+  "workload": "long",
+  "mode": "warm_resident",
+  "repetition": -1
+}

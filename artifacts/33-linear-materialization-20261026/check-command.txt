@@ -1,0 +1,18 @@
+#!/bin/sh
+set -eu
+export PHONON_MODEL_DIR=/Volumes/Code/Personal/speech-mac-models/phonon-40m-en
+export PHONON_NATIVE_PACK=.build/phonon-native-f6acc8f43cb296be-v1.kpack
+export PHONON_DEFAULT_VOICE=/Volumes/Code/Personal/speech-mac-models/phonon-40m-en/default-voice.safetensors
+export PHONON_PROJECTED_VOICE=/Volumes/Code/Personal/kokoro-mac/.worktrees/phonon-migration-planning/.build/phonon-cli-projected.safetensors
+export PHONON_CLI_PACK=.build/phonon-native-f6acc8f43cb296be-v1.kpack
+export PHONON_ENGINE_FIXTURE=.build/phonon-engine-v1.bin
+export PHONON_PCM_FIXTURE=.build/phonon-pcm-q8-v1.bin
+export PHONON_MIMI_FIXTURE=.build/phonon-mimi-q8-v1.bin
+export PHONON_CONV_FIXTURE=.build/phonon-conv-q8-v1.bin
+export PHONON_Q8_ORACLE=.build/phonon-native-q8-projections-v1.bin
+export PHONON_BF16_ORACLE=.build/phonon-native-bf16-oracle-v1.bin
+export PHONON_FLOW_SAMPLER_FIXTURE=.build/phonon-flow-sampler-v1.bin
+export PHONON_FLOW_FIXTURE=.build/phonon-flow-prefix-v1.bin
+export PHONON_CONDITION_FIXTURE=.build/phonon-flow-condition-v1.bin
+make format
+make check TEST_CFLAGS=-O2

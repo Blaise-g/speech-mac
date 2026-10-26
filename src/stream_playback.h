@@ -1,25 +1,25 @@
-#ifndef KOKORO_STREAM_PLAYBACK_H
-#define KOKORO_STREAM_PLAYBACK_H
+#ifndef SPEECH_STREAM_PLAYBACK_H
+#define SPEECH_STREAM_PLAYBACK_H
 
-#include "kokoro.h"
+#include "speech_error.h"
 
 #include <stddef.h>
 
-#define KOKORO_STREAM_BUFFER_FRAMES 4096U
-#define KOKORO_STREAM_BUFFER_COUNT 3U
+#define SPEECH_STREAM_BUFFER_FRAMES 4096U
+#define SPEECH_STREAM_BUFFER_COUNT 3U
 
 /* Playback owns every submitted copy. Calls may block for buffer reuse. */
 typedef struct {
-    KokoroStatus (*open)(void *context, void **playback, KokoroError *error);
-    KokoroStatus (*submit)(void *playback, const float *samples, size_t sample_count,
-                           KokoroError *error);
-    KokoroStatus (*start)(void *playback, KokoroError *error);
-    KokoroStatus (*drain)(void *playback, KokoroError *error);
+    SpeechIOStatus (*open)(void *context, void **playback, SpeechError *error);
+    SpeechIOStatus (*submit)(void *playback, const float *samples, size_t sample_count,
+                             SpeechError *error);
+    SpeechIOStatus (*start)(void *playback, SpeechError *error);
+    SpeechIOStatus (*drain)(void *playback, SpeechError *error);
     /* Wake a blocked submit/drain without calling the platform audio API. */
     void (*wake)(void *playback);
     /* Stop immediately. May be called by control flow while synthesis is active. */
     void (*abort)(void *playback);
-    KokoroStatus (*close)(void *playback, KokoroError *error);
-} KokoroStreamPlaybackOps;
+    SpeechIOStatus (*close)(void *playback, SpeechError *error);
+} SpeechStreamPlaybackOps;
 
 #endif

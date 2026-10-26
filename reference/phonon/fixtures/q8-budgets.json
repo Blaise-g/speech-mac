@@ -1,0 +1,231 @@
+{
+  "schema_version": 1,
+  "model_revision": "cc738b7e4d182c2ba1bafb8062aa4846af000637",
+  "q8_tensor_format": "all 209 tensors expanded from GGUF Q8_0 + BF16",
+  "fixed_stage_run": "40 frames, EOS disabled for aligned stages; exact recorded Gaussian draws and temperature=0.8",
+  "natural_run": {
+    "temperature": 0.8,
+    "eos_threshold": 4.0,
+    "stop_lengths": [
+      32
+    ],
+    "raw_pcm_sample_counts": [
+      61440
+    ]
+  },
+  "same_q8_oracle_replay_budgets": {
+    "input_ids": {
+      "rtol": 0.0,
+      "atol": 0.0
+    },
+    "attention_mask": {
+      "rtol": 0.0,
+      "atol": 0.0
+    },
+    "voice_prompt_latents": {
+      "rtol": 0.0,
+      "atol": 0.0
+    },
+    "raw_text": {
+      "rtol": 0.0,
+      "atol": 0.0
+    },
+    "tokenizer_normalized_text": {
+      "rtol": 0.0,
+      "atol": 0.0
+    },
+    "audio_marker_ids": {
+      "rtol": 0.0,
+      "atol": 0.0
+    },
+    "latents": {
+      "rtol": 0.0,
+      "atol": 0.0
+    },
+    "latent_mask": {
+      "rtol": 0.0,
+      "atol": 0.0
+    },
+    "eos_logits": {
+      "rtol": 0.0,
+      "atol": 0.0
+    },
+    "noise_draws": {
+      "rtol": 0.0,
+      "atol": 0.0
+    },
+    "flow_input_noise": {
+      "rtol": 0.0,
+      "atol": 0.0
+    },
+    "temperature": {
+      "rtol": 0.0,
+      "atol": 0.0
+    },
+    "flow_condition": {
+      "rtol": 0.0,
+      "atol": 0.0
+    },
+    "voice_projection": {
+      "rtol": 0.0,
+      "atol": 0.0
+    },
+    "prefix_states": {
+      "rtol": 0.0,
+      "atol": 0.0
+    },
+    "backbone_output": {
+      "rtol": 0.0,
+      "atol": 0.0
+    },
+    "flow_integration": {
+      "rtol": 0.0,
+      "atol": 0.0
+    },
+    "stop_lengths": {
+      "rtol": 0.0,
+      "atol": 0.0
+    },
+    "raw_pcm": {
+      "rtol": 0.0,
+      "atol": 0.0
+    },
+    "raw_pcm_sample_count": {
+      "rtol": 0.0,
+      "atol": 0.0
+    },
+    "final_pcm": {
+      "rtol": 0.0,
+      "atol": 0.0
+    },
+    "final_pcm_sample_count": {
+      "rtol": 0.0,
+      "atol": 0.0
+    },
+    "mimi_features": {
+      "rtol": 0.0,
+      "atol": 0.0
+    }
+  },
+  "pre_native_q8_stage_acceptance_targets": {
+    "voice_projection": {
+      "rtol": 0.001,
+      "atol": 1e-05
+    },
+    "prefix_states": {
+      "rtol": 0.001,
+      "atol": 1e-05
+    },
+    "backbone_output": {
+      "rtol": 0.001,
+      "atol": 1e-05
+    },
+    "flow_condition": {
+      "rtol": 0.001,
+      "atol": 1e-05
+    },
+    "flow_integration": {
+      "rtol": 0.001,
+      "atol": 1e-05
+    },
+    "latents": {
+      "rtol": 0.001,
+      "atol": 1e-05
+    },
+    "eos_logits": {
+      "rtol": 0.001,
+      "atol": 1e-05
+    },
+    "mimi_features": {
+      "rtol": 0.001,
+      "atol": 1e-05
+    }
+  },
+  "pre_native_pcm_acceptance_targets": {
+    "normalized_rmse_max": 0.001,
+    "max_abs": 0.002,
+    "applies_to": [
+      "raw_pcm",
+      "final_pcm"
+    ]
+  },
+  "quantization_effect_measurements_not_acceptance_tolerances": {
+    "input_ids": {
+      "exact": true
+    },
+    "attention_mask": {
+      "exact": true
+    },
+    "voice_prompt_latents": {
+      "observed_max_abs": 0.0,
+      "observed_rmse": 0.0
+    },
+    "audio_marker_ids": {
+      "exact": true
+    },
+    "latents": {
+      "observed_max_abs": 2.0879498720169067,
+      "observed_rmse": 0.15970370824523952
+    },
+    "latent_mask": {
+      "exact": true
+    },
+    "eos_logits": {
+      "observed_max_abs": 0.8629369735717773,
+      "observed_rmse": 0.2613358155244587
+    },
+    "noise_draws": {
+      "observed_max_abs": 0.0,
+      "observed_rmse": 0.0
+    },
+    "flow_input_noise": {
+      "observed_max_abs": 0.0,
+      "observed_rmse": 0.0
+    },
+    "temperature": {
+      "observed_max_abs": 0.0,
+      "observed_rmse": 0.0
+    },
+    "flow_condition": {
+      "observed_max_abs": 2.2509716749191284,
+      "observed_rmse": 0.12507995821912102
+    },
+    "voice_projection": {
+      "observed_max_abs": 0.0,
+      "observed_rmse": 0.0
+    },
+    "prefix_states": {
+      "observed_max_abs": 0.04833128675818443,
+      "observed_rmse": 0.005863113582695163
+    },
+    "backbone_output": {
+      "observed_max_abs": 2.2509716749191284,
+      "observed_rmse": 0.05935288340146968
+    },
+    "flow_integration": {
+      "observed_max_abs": 2.5212979316711426,
+      "observed_rmse": 0.17645067442027157
+    },
+    "stop_lengths": {
+      "exact": true
+    },
+    "raw_pcm": {
+      "observed_max_abs": 1.0693821012973785,
+      "observed_rmse": 0.09342918460020659
+    },
+    "raw_pcm_sample_count": {
+      "exact": true
+    },
+    "final_pcm": {
+      "observed_max_abs": 1.0693821012973785,
+      "observed_rmse": 0.09342918460020659
+    },
+    "final_pcm_sample_count": {
+      "exact": true
+    },
+    "mimi_features": {
+      "observed_max_abs": 3.7950960397720337,
+      "observed_rmse": 0.2266006605622059
+    }
+  }
+}

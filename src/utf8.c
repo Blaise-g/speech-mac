@@ -1,6 +1,6 @@
 #include "utf8.h"
 
-bool kokoro_utf8_decode_next(const unsigned char *text, size_t length, size_t *offset,
+bool speech_utf8_decode_next(const unsigned char *text, size_t length, size_t *offset,
                              uint32_t *codepoint) {
     if (text == NULL || offset == NULL || codepoint == NULL || *offset >= length) {
         return false;
@@ -45,14 +45,14 @@ bool kokoro_utf8_decode_next(const unsigned char *text, size_t length, size_t *o
     return true;
 }
 
-bool kokoro_utf8_is_valid(const unsigned char *text, size_t length) {
+bool speech_utf8_is_valid(const unsigned char *text, size_t length) {
     if (text == NULL && length != 0) {
         return false;
     }
     size_t offset = 0;
     while (offset < length) {
         uint32_t ignored_codepoint;
-        if (!kokoro_utf8_decode_next(text, length, &offset, &ignored_codepoint)) {
+        if (!speech_utf8_decode_next(text, length, &offset, &ignored_codepoint)) {
             return false;
         }
     }

@@ -1,0 +1,3 @@
+PASS full actual fixture coverage: five prepared-engine cases, 33 raw PCM partitions, long Mimi, all23 locked reference tests, all36Q8 oracles, exact frozen closed loop; only separate-device skip present
+PASS current queue strict events/counts; fresh/current native binary dependencies/symbols/call sites; fresh default seed123 identity; current audition files identical to tracked32 WAVs
+PASS immutable runtime source matches optimized sourcecef2544; fresh lock/native pack/default voice match verified inputs

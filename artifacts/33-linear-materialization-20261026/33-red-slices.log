@@ -1,0 +1,15 @@
+phonon_transformer.c MUTATION_EXIT 2
+
+engine seam mismatch frame=0 component=0 actual=0.702827275 expected=0.175819576
+failed /Volumes/Code/Personal/kokoro-mac/.worktrees/phonon-migration-planning/tests/test_speech.c:50: 0
+make: *** [test-one] Error 1
+
+EXACT_SOURCE_RESTORED 47126d7788a5810b7ce255993c58492d2b30dcad3b9746e6d7c6af34a791a0c9
+phonon_mimi.c MUTATION_EXIT 2
+engine actual record=0 samples=30720 chunks=1 expected=30720/1
+engine record=0 samples=30720 nrmse=1.62818004 max_abs=0.866486669
+
+failed /Volumes/Code/Personal/kokoro-mac/.worktrees/phonon-migration-planning/tests/test_speech.c:106: nrmse <= .001 && maximum <= .002
+make: *** [test-one] Error 1
+
+EXACT_SOURCE_RESTORED 887df01fcae284645441dfeaac8a07c76f16da0f3b1b1d3d371758af4cb9c39e

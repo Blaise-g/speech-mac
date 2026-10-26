@@ -1,0 +1,9 @@
+{
+  "repository": "https://github.com/gradium-ai/xn-ptts",
+  "revision": "ac0e1524cfd9e71d57aadca0de542796f942d775",
+  "files": {
+    "ptts/src/tok.rs": "da44ea9a97d0931624d580c67ffbbeb278a66ec1f173f22e42e7c747ba134698",
+    "ptts/src/plan.rs": "bb77c13b057a68e5413b476a8870307552c50d2f6f27f3a0c227128590058d36",
+    "ptts/src/tts_model.rs": "a9a57097d5786570a48948c02a91840409e2725bfb7887ce00b3d65e2ceffbe5"
+  }
+}

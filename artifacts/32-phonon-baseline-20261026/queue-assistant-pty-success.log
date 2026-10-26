@@ -1,0 +1,14 @@
+SOURCE_COMMIT=0f7ea8eab3e52f3b388ed810de0a3f71218935e9
+BINARY_SHA256=35e3997d6feef019b19f38d9f114987ccb8216bb458ce68e5df762459c9830fe
+PACK_SHA256=d636dd53044ac86bfb99939608a381fd8d5378ae29f7bae6fd9026244ca5087b
+VOICE_SHA256=dc537478eaadc1a5257fcda2e3501ab81e14c111a5d95a5838f350db2afd0f1a
+CONTEXT=user Terminal; new queue volume zero; acoustic onset unavailable
+muted AudioQueue status=0 detail=
+{"consumer":"queue_volume_zero_AudioQueue","first_pcm_s":0.057648000,"first_submission_s":0.057729000,"running_observed_s":0.462776000,"first_reclaimed_s":0.537393000,"synthesis_end_s":3.417466000,"drain_s":3.761503000,"samples":76800,"frames":40,"reclaimed_buffers":40,"acoustic_onset_s":null}
+QUEUE_TIMING_EXIT=0
+
+TERMINAL_DEVICE_EXIT=0
+TERMINAL_QUEUE_VALIDATED=1
+TERMINAL_VALIDATION_EXIT=0
+
+ACTUAL_RUNNER=assistant exec_command with tty=true; not a user-entered Terminal run

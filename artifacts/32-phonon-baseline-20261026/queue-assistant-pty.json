@@ -1,0 +1,49 @@
+{
+  "schema": 1,
+  "source_commit": "0f7ea8eab3e52f3b388ed810de0a3f71218935e9",
+  "binary_sha256": "35e3997d6feef019b19f38d9f114987ccb8216bb458ce68e5df762459c9830fe",
+  "pack_sha256": "d636dd53044ac86bfb99939608a381fd8d5378ae29f7bae6fd9026244ca5087b",
+  "voice_sha256": "dc537478eaadc1a5257fcda2e3501ab81e14c111a5d95a5838f350db2afd0f1a",
+  "actual_runner": "assistant exec_command with tty=true; not a user-entered Terminal run",
+  "literal_context_annotation": "The raw helper CONTEXT=user Terminal is a historical label; ACTUAL_RUNNER corrects it. No manual user execution occurred.",
+  "raw_log": "queue-assistant-pty-success.log",
+  "raw_log_sha256": "0c0e2a81ae0d5b224ab310d570756b97f32cac1bc303ee3bb796471b589c0e7b",
+  "metrics": {
+    "consumer": "queue_volume_zero_AudioQueue",
+    "first_pcm_s": 0.057648,
+    "first_submission_s": 0.057729,
+    "running_observed_s": 0.462776,
+    "first_reclaimed_s": 0.537393,
+    "synthesis_end_s": 3.417466,
+    "drain_s": 3.761503,
+    "samples": 76800,
+    "frames": 40,
+    "reclaimed_buffers": 40,
+    "acoustic_onset_s": null
+  },
+  "scope": "One observed queue-volume-zero SDK run with queue backpressure; CLOCK_MONOTONIC seconds relative to synthesis_begin, after engine/voice and playback preparation. Not release compute timing, acoustic onset or listening evidence.",
+  "workload": "short",
+  "text": "Hello there. I am ready to help you today.",
+  "generation": {
+    "seed": 0,
+    "language": "en",
+    "duration_delta": 0,
+    "temperature": 0.8,
+    "lsd_steps": 1,
+    "eos_threshold": 4,
+    "min_eos": 0,
+    "short_tail": 3,
+    "normal_tail": 1,
+    "sample_rate": 24000
+  },
+  "output_duration_s": 3.2,
+  "previous_automated_terminal_app_attempt": {
+    "raw_log": "queue-terminal-app-failed.log",
+    "raw_log_sha256": "1be234c04bdfb66a7a4566dc8b7eafa765aa3f272bf037739bfcabfd21044fc2",
+    "runner": "coordinator-automated Terminal.app launch using private .command wrapper and open -a Terminal; not manual user execution",
+    "device_exit": 4,
+    "validation_exit": 1,
+    "sdk_status": -66681
+  },
+  "prior_failure_to_success_cause": "unknown; no code fix, cache purge, service, system-volume or default-device change"
+}

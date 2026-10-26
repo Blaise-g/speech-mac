@@ -1,0 +1,10 @@
+{
+  "repository": "https://github.com/gradium-ai/xn-ptts",
+  "revision": "ac0e1524cfd9e71d57aadca0de542796f942d775",
+  "rust_toolchain": "rustc 1.99.1 (58cf8f9c3 2026-10-13), isolated under .build/reference-toolchain",
+  "dependencies": [],
+  "sources": {
+    "ptts/src/preprocess.rs": "e9d66b8d2f4a03b2990394c587a6979f913996f76d3b2ce55b4593117375365c",
+    "ptts/src/preprocess/rewrite.rs": "e387757b66024c9338b1bd185e3b86e45e470cd7cb8f3fb7e1f1dd8f50719d32"
+  }
+}

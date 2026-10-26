@@ -1,0 +1,38 @@
+#ifndef SPEECH_STREAM_H
+#define SPEECH_STREAM_H
+#include "speech.h"
+#include "stream_playback.h"
+#include <signal.h>
+typedef struct SpeechStream SpeechStream;
+/* CLOCK_MONOTONIC seconds since its unspecified origin; zero means no event.
+ * Start means successful running-state observation, not acoustic onset. Reclamation is measured at
+ * the AudioQueue callback, not at the speaker. */
+typedef struct {
+    double synthesis_begin, first_pcm, first_submission, started, synthesis_end, drained;
+    size_t submitted_samples, reclaimed_buffers;
+    double first_reclaimed;
+} SpeechStreamMetrics;
+/* Engine, voice, text and options.language remain borrowed and immutable through
+ * producer completion. The borrowed playback ops table must stay valid and
+ * unmodified through completion. Options values are copied.
+ * cancel_context and playback_context storage remain borrowed and alive through
+ * producer completion. Their state may be mutable; callers synchronize concurrent
+ * external access. Cancellation callbacks run only on the producer, including
+ * numerical work.
+ * Playback submit must copy PCM before returning. No whole-utterance PCM queue.
+ * One control owner calls wait/free; cancel may overlap wait. Before free, callers
+ * must prevent new external cancel calls and join or otherwise synchronize all
+ * existing cancel callers. Keep the stream handle alive while any call uses it. */
+SpeechIOStatus speech_stream_start(const SpeechEngine *, const PhononVoice *, const char *, size_t,
+                                   const SpeechOptions *, SpeechStream **, SpeechError *);
+/* Playback-only injection: inference always runs the actual resident engine. */
+SpeechIOStatus speech_stream_start_with(const SpeechEngine *, const PhononVoice *, const char *,
+                                        size_t, const SpeechOptions *,
+                                        const SpeechStreamPlaybackOps *, void *, SpeechStream **,
+                                        SpeechError *);
+SpeechIOStatus speech_stream_wait(SpeechStream *, const volatile sig_atomic_t *, SpeechError *);
+void speech_stream_cancel(SpeechStream *);
+void speech_stream_free(SpeechStream *);
+/* Read only after wait has returned successfully joining the producer. */
+void speech_stream_result(const SpeechStream *, SpeechResult *, SpeechStreamMetrics *);
+#endif

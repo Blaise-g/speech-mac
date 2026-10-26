@@ -1,0 +1,14 @@
+{
+  "xn_ptts_revision": "ac0e1524cfd9e71d57aadca0de542796f942d775",
+  "xn_ptts_files": {
+    "ptts/src/flow_lm.rs": "72ad56bd7281e73dbde05a6ac073e0f684a3283cb04b119c2d3f7554e66d01b3",
+    "ptts/src/mimi.rs": "eb63eedcf942b12c0720f2aff0e0e17f1bb9c0e204d83f64ba2c3ca32d8716de",
+    "ptts/src/synth.rs": "2001a2e8b26c6669f91453024041df904ac76469dff20bf2e64fd044c2a076c6"
+  },
+  "transformers_revision": "50e35cc0ca18ec19b80653690de553e6decf74f5",
+  "transformers_files": {
+    "models/gradium_phonon_tts/convert_gradium_phonon_tts_to_hf.py": "9fcdc2e4a70690eabd508e02c64574997e1ab4674629923d9bfea565578e99dc",
+    "models/pocket_tts/generation_pocket_tts.py": "61e3fc330146354a3b95bfa9a1218b82599a6426b513add826ebe9d3384afb94",
+    "models/pocket_tts_audio_tokenizer/modeling_pocket_tts_audio_tokenizer.py": "1e5138628b7d42ca5fdf4bb42538364c9f7f10b1a305a6e8c8888ee9cfa690e2"
+  }
+}

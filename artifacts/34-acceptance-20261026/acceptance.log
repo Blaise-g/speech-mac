@@ -1,0 +1,818 @@
+src/english_normalize.c:838:21: warning: The left operand of '==' is a garbage value due to array index out of bounds [core.UndefinedBinaryOperatorResult]
+  838 |         if (word[i] == '-' || word[i] == '_')
+      |                     ^
+src/english_normalize.c:1779:5: note: Taking false branch
+ 1779 |     if (input_length > SIZE_MAX - 64)
+      |     ^
+src/english_normalize.c:1783:9: note: Assuming 'buffer' is not equal to NULL
+ 1783 |     if (buffer == NULL)
+      |         ^~~~~~~~~~~~~~
+src/english_normalize.c:1783:5: note: Taking false branch
+ 1783 |     if (buffer == NULL)
+      |     ^
+src/english_normalize.c:1788:5: note: Loop condition is true.  Entering loop body
+ 1788 |     while (*p) {
+      |     ^
+src/english_normalize.c:1792:13: note: 'scaled' is equal to NULL
+ 1792 |         if (scaled != NULL) {
+      |             ^~~~~~
+src/english_normalize.c:1792:9: note: Taking false branch
+ 1792 |         if (scaled != NULL) {
+      |         ^
+src/english_normalize.c:1830:9: note: Taking false branch
+ 1830 |         if (errno == ENOMEM) {
+      |         ^
+src/english_normalize.c:1838:13: note: Assuming 'digit_run' is equal to NULL
+ 1838 |         if (digit_run != NULL) {
+      |             ^~~~~~~~~~~~~~~~~
+src/english_normalize.c:1838:9: note: Taking false branch
+ 1838 |         if (digit_run != NULL) {
+      |         ^
+src/english_normalize.c:1876:13: note: Assuming the condition is false
+ 1876 |         if (errno == ENOMEM) {
+      |             ^~~~~~~~~~~~~~~
+/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/sys/errno.h:81:15: note: expanded from macro 'errno'
+   81 | #define errno (*__error())
+      |               ^
+src/english_normalize.c:1876:9: note: Taking false branch
+ 1876 |         if (errno == ENOMEM) {
+      |         ^
+src/english_normalize.c:1884:34: note: 'previous_item_present' is false
+ 1884 |             rewrite_ending_in(p, previous_item_present ? buffer + previous_item_start : "",
+      |                                  ^~~~~~~~~~~~~~~~~~~~~
+src/english_normalize.c:1884:34: note: '?' condition is false
+src/english_normalize.c:1886:13: note: 'ending' is equal to NULL
+ 1886 |         if (ending != NULL) {
+      |             ^~~~~~
+src/english_normalize.c:1886:9: note: Taking false branch
+ 1886 |         if (ending != NULL) {
+      |         ^
+src/english_normalize.c:1926:9: note: Taking false branch
+ 1926 |         if (errno == ENOMEM) {
+      |         ^
+src/english_normalize.c:1931:14: note: 'p' is equal to 'input'
+ 1931 |         if ((p == input || p[-1] == ' ') && strncmp(p, "Lt ", 3) == 0 && p[3] != ' ') {
+      |              ^
+src/english_normalize.c:1931:25: note: Left side of '||' is true
+ 1931 |         if ((p == input || p[-1] == ' ') && strncmp(p, "Lt ", 3) == 0 && p[3] != ' ') {
+      |                         ^
+src/english_normalize.c:1931:45: note: Assuming the condition is false
+ 1931 |         if ((p == input || p[-1] == ' ') && strncmp(p, "Lt ", 3) == 0 && p[3] != ' ') {
+      |                                             ^~~~~~~~~~~~~~~~~~~~~~~~~
+src/english_normalize.c:1931:71: note: Left side of '&&' is false
+ 1931 |         if ((p == input || p[-1] == ' ') && strncmp(p, "Lt ", 3) == 0 && p[3] != ' ') {
+      |                                                                       ^
+src/english_normalize.c:1980:16: note: Left side of '&&' is true
+ 1980 |         while (*p && *p != ' ')
+      |                ^
+src/english_normalize.c:1980:22: note: Assuming the condition is false
+ 1980 |         while (*p && *p != ' ')
+      |                      ^~~~~~~~~
+src/english_normalize.c:1980:9: note: Loop condition is false. Execution continues on line 1982
+ 1980 |         while (*p && *p != ' ')
+      |         ^
+src/english_normalize.c:1983:9: note: Taking false branch
+ 1983 |         if (n > SIZE_MAX - 1) {
+      |         ^
+src/english_normalize.c:1987:22: note: Calling 'normalizer_malloc'
+ 1987 |         char *word = malloc(n + 1);
+      |                      ^~~~~~~~~~~~~
+src/english_normalize.c:55:16: note: expanded from macro 'malloc'
+   55 | #define malloc normalizer_malloc
+      |                ^
+src/english_normalize.c:39:12: note: Storing uninitialized value
+   39 |     return malloc(size);
+      |            ^~~~~~~~~~~~
+src/english_normalize.c:1987:22: note: Returning from 'normalizer_malloc'
+ 1987 |         char *word = malloc(n + 1);
+      |                      ^~~~~~~~~~~~~
+src/english_normalize.c:55:16: note: expanded from macro 'malloc'
+   55 | #define malloc normalizer_malloc
+      |                ^
+src/english_normalize.c:1988:13: note: Assuming 'word' is not equal to NULL
+ 1988 |         if (word == NULL) {
+      |             ^~~~~~~~~~~~
+src/english_normalize.c:1988:9: note: Taking false branch
+ 1988 |         if (word == NULL) {
+      |         ^
+src/english_normalize.c:1994:27: note: Calling 'rewrite_word_english'
+ 1994 |         char *rewritten = rewrite_word_english(word, allocation_failed);
+      |                           ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/english_normalize.c:1401:9: note: Assuming 'out' is equal to NULL
+ 1401 |     if (out != NULL)
+      |         ^~~~~~~~~~~
+src/english_normalize.c:1401:5: note: Taking false branch
+ 1401 |     if (out != NULL)
+      |     ^
+src/english_normalize.c:1403:9: note: Assuming the condition is false
+ 1403 |     if (errno == ENOMEM) {
+      |         ^~~~~~~~~~~~~~~
+/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/sys/errno.h:81:15: note: expanded from macro 'errno'
+   81 | #define errno (*__error())
+      |               ^
+src/english_normalize.c:1403:5: note: Taking false branch
+ 1403 |     if (errno == ENOMEM) {
+      |     ^
+src/english_normalize.c:1409:9: note: Assuming 'out' is equal to NULL
+ 1409 |     if (out != NULL)
+      |         ^~~~~~~~~~~
+src/english_normalize.c:1409:5: note: Taking false branch
+ 1409 |     if (out != NULL)
+      |     ^
+src/english_normalize.c:1411:9: note: Assuming the condition is false
+ 1411 |     if (errno == ENOMEM) {
+      |         ^~~~~~~~~~~~~~~
+/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/sys/errno.h:81:15: note: expanded from macro 'errno'
+   81 | #define errno (*__error())
+      |               ^
+src/english_normalize.c:1411:5: note: Taking false branch
+ 1411 |     if (errno == ENOMEM) {
+      |     ^
+src/english_normalize.c:1416:11: note: Calling 'rewrite_dashed_digits'
+ 1416 |     out = rewrite_dashed_digits(word);
+      |           ^~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/english_normalize.c:834:12: note: Assuming 'end' is not equal to 0
+  834 |     while (end && strchr("!?.,:;", word[end - 1]))
+      |            ^~~
+src/english_normalize.c:834:12: note: Left side of '&&' is true
+src/english_normalize.c:834:5: note: Loop condition is false. Execution continues on line 836
+  834 |     while (end && strchr("!?.,:;", word[end - 1]))
+      |     ^
+src/english_normalize.c:837:24: note: 'i' is < 'end'
+  837 |     for (size_t i = 0; i < end; i++)
+      |                        ^
+src/english_normalize.c:837:5: note: Loop condition is true.  Entering loop body
+  837 |     for (size_t i = 0; i < end; i++)
+      |     ^
+src/english_normalize.c:838:13: note: Left side of '||' is false
+  838 |         if (word[i] == '-' || word[i] == '_')
+      |             ^
+src/english_normalize.c:838:9: note: Taking false branch
+  838 |         if (word[i] == '-' || word[i] == '_')
+      |         ^
+src/english_normalize.c:837:33: note: The value 1 is assigned to 'i'
+  837 |     for (size_t i = 0; i < end; i++)
+      |                                 ^~~
+src/english_normalize.c:837:24: note: Assuming 'i' is < 'end'
+  837 |     for (size_t i = 0; i < end; i++)
+      |                        ^~~~~~~
+src/english_normalize.c:837:5: note: Loop condition is true.  Entering loop body
+  837 |     for (size_t i = 0; i < end; i++)
+      |     ^
+src/english_normalize.c:838:21: note: The left operand of '==' is a garbage value due to array index out of bounds
+  838 |         if (word[i] == '-' || word[i] == '_')
+      |             ~~~~~~~ ^
+src/english_normalize.c:1205:19: warning: 2nd function call argument is an uninitialized value [core.CallAndMessage]
+ 1205 |     while (end && strchr("!?.,:;", word[end - 1]))
+      |                   ^
+src/english_normalize.c:1779:5: note: Taking false branch
+ 1779 |     if (input_length > SIZE_MAX - 64)
+      |     ^
+src/english_normalize.c:1783:9: note: Assuming 'buffer' is not equal to NULL
+ 1783 |     if (buffer == NULL)
+      |         ^~~~~~~~~~~~~~
+src/english_normalize.c:1783:5: note: Taking false branch
+ 1783 |     if (buffer == NULL)
+      |     ^
+src/english_normalize.c:1788:5: note: Loop condition is true.  Entering loop body
+ 1788 |     while (*p) {
+      |     ^
+src/english_normalize.c:1792:13: note: 'scaled' is equal to NULL
+ 1792 |         if (scaled != NULL) {
+      |             ^~~~~~
+src/english_normalize.c:1792:9: note: Taking false branch
+ 1792 |         if (scaled != NULL) {
+      |         ^
+src/english_normalize.c:1830:9: note: Taking false branch
+ 1830 |         if (errno == ENOMEM) {
+      |         ^
+src/english_normalize.c:1838:13: note: Assuming 'digit_run' is equal to NULL
+ 1838 |         if (digit_run != NULL) {
+      |             ^~~~~~~~~~~~~~~~~
+src/english_normalize.c:1838:9: note: Taking false branch
+ 1838 |         if (digit_run != NULL) {
+      |         ^
+src/english_normalize.c:1876:13: note: Assuming the condition is false
+ 1876 |         if (errno == ENOMEM) {
+      |             ^~~~~~~~~~~~~~~
+/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/sys/errno.h:81:15: note: expanded from macro 'errno'
+   81 | #define errno (*__error())
+      |               ^
+src/english_normalize.c:1876:9: note: Taking false branch
+ 1876 |         if (errno == ENOMEM) {
+      |         ^
+src/english_normalize.c:1884:34: note: 'previous_item_present' is false
+ 1884 |             rewrite_ending_in(p, previous_item_present ? buffer + previous_item_start : "",
+      |                                  ^~~~~~~~~~~~~~~~~~~~~
+src/english_normalize.c:1884:34: note: '?' condition is false
+src/english_normalize.c:1886:13: note: 'ending' is equal to NULL
+ 1886 |         if (ending != NULL) {
+      |             ^~~~~~
+src/english_normalize.c:1886:9: note: Taking false branch
+ 1886 |         if (ending != NULL) {
+      |         ^
+src/english_normalize.c:1926:9: note: Taking false branch
+ 1926 |         if (errno == ENOMEM) {
+      |         ^
+src/english_normalize.c:1931:14: note: 'p' is equal to 'input'
+ 1931 |         if ((p == input || p[-1] == ' ') && strncmp(p, "Lt ", 3) == 0 && p[3] != ' ') {
+      |              ^
+src/english_normalize.c:1931:25: note: Left side of '||' is true
+ 1931 |         if ((p == input || p[-1] == ' ') && strncmp(p, "Lt ", 3) == 0 && p[3] != ' ') {
+      |                         ^
+src/english_normalize.c:1931:45: note: Assuming the condition is false
+ 1931 |         if ((p == input || p[-1] == ' ') && strncmp(p, "Lt ", 3) == 0 && p[3] != ' ') {
+      |                                             ^~~~~~~~~~~~~~~~~~~~~~~~~
+src/english_normalize.c:1931:71: note: Left side of '&&' is false
+ 1931 |         if ((p == input || p[-1] == ' ') && strncmp(p, "Lt ", 3) == 0 && p[3] != ' ') {
+      |                                                                       ^
+src/english_normalize.c:1980:16: note: Left side of '&&' is true
+ 1980 |         while (*p && *p != ' ')
+      |                ^
+src/english_normalize.c:1980:22: note: Assuming the condition is false
+ 1980 |         while (*p && *p != ' ')
+      |                      ^~~~~~~~~
+src/english_normalize.c:1980:9: note: Loop condition is false. Execution continues on line 1982
+ 1980 |         while (*p && *p != ' ')
+      |         ^
+src/english_normalize.c:1983:9: note: Taking false branch
+ 1983 |         if (n > SIZE_MAX - 1) {
+      |         ^
+src/english_normalize.c:1987:22: note: Calling 'normalizer_malloc'
+ 1987 |         char *word = malloc(n + 1);
+      |                      ^~~~~~~~~~~~~
+src/english_normalize.c:55:16: note: expanded from macro 'malloc'
+   55 | #define malloc normalizer_malloc
+      |                ^
+src/english_normalize.c:39:12: note: Storing uninitialized value
+   39 |     return malloc(size);
+      |            ^~~~~~~~~~~~
+src/english_normalize.c:1987:22: note: Returning from 'normalizer_malloc'
+ 1987 |         char *word = malloc(n + 1);
+      |                      ^~~~~~~~~~~~~
+src/english_normalize.c:55:16: note: expanded from macro 'malloc'
+   55 | #define malloc normalizer_malloc
+      |                ^
+src/english_normalize.c:1988:13: note: Assuming 'word' is not equal to NULL
+ 1988 |         if (word == NULL) {
+      |             ^~~~~~~~~~~~
+src/english_normalize.c:1988:9: note: Taking false branch
+ 1988 |         if (word == NULL) {
+      |         ^
+src/english_normalize.c:1994:27: note: Calling 'rewrite_word_english'
+ 1994 |         char *rewritten = rewrite_word_english(word, allocation_failed);
+      |                           ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/english_normalize.c:1401:9: note: Assuming 'out' is equal to NULL
+ 1401 |     if (out != NULL)
+      |         ^~~~~~~~~~~
+src/english_normalize.c:1401:5: note: Taking false branch
+ 1401 |     if (out != NULL)
+      |     ^
+src/english_normalize.c:1403:9: note: Assuming the condition is false
+ 1403 |     if (errno == ENOMEM) {
+      |         ^~~~~~~~~~~~~~~
+/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/sys/errno.h:81:15: note: expanded from macro 'errno'
+   81 | #define errno (*__error())
+      |               ^
+src/english_normalize.c:1403:5: note: Taking false branch
+ 1403 |     if (errno == ENOMEM) {
+      |     ^
+src/english_normalize.c:1409:9: note: Assuming 'out' is equal to NULL
+ 1409 |     if (out != NULL)
+      |         ^~~~~~~~~~~
+src/english_normalize.c:1409:5: note: Taking false branch
+ 1409 |     if (out != NULL)
+      |     ^
+src/english_normalize.c:1411:9: note: Assuming the condition is false
+ 1411 |     if (errno == ENOMEM) {
+      |         ^~~~~~~~~~~~~~~
+/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/sys/errno.h:81:15: note: expanded from macro 'errno'
+   81 | #define errno (*__error())
+      |               ^
+src/english_normalize.c:1411:5: note: Taking false branch
+ 1411 |     if (errno == ENOMEM) {
+      |     ^
+src/english_normalize.c:1416:11: note: Calling 'rewrite_dashed_digits'
+ 1416 |     out = rewrite_dashed_digits(word);
+      |           ^~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/english_normalize.c:834:12: note: Assuming 'end' is not equal to 0
+  834 |     while (end && strchr("!?.,:;", word[end - 1]))
+      |            ^~~
+src/english_normalize.c:834:12: note: Left side of '&&' is true
+src/english_normalize.c:834:5: note: Loop condition is true.  Entering loop body
+  834 |     while (end && strchr("!?.,:;", word[end - 1]))
+      |     ^
+src/english_normalize.c:834:12: note: Assuming 'end' is not equal to 0
+  834 |     while (end && strchr("!?.,:;", word[end - 1]))
+      |            ^~~
+src/english_normalize.c:834:12: note: Left side of '&&' is true
+src/english_normalize.c:834:5: note: Loop condition is true.  Entering loop body
+  834 |     while (end && strchr("!?.,:;", word[end - 1]))
+      |     ^
+src/english_normalize.c:834:12: note: Assuming 'end' is 0
+  834 |     while (end && strchr("!?.,:;", word[end - 1]))
+      |            ^~~
+src/english_normalize.c:834:16: note: Left side of '&&' is false
+  834 |     while (end && strchr("!?.,:;", word[end - 1]))
+      |                ^
+src/english_normalize.c:837:5: note: Loop condition is false. Execution continues on line 840
+  837 |     for (size_t i = 0; i < end; i++)
+      |     ^
+src/english_normalize.c:840:9: note: 'separators' is < 2
+  840 |     if (separators < 2 || separators == SIZE_MAX)
+      |         ^~~~~~~~~~
+src/english_normalize.c:840:24: note: Left side of '||' is true
+  840 |     if (separators < 2 || separators == SIZE_MAX)
+      |                        ^
+src/english_normalize.c:1416:11: note: Returning from 'rewrite_dashed_digits'
+ 1416 |     out = rewrite_dashed_digits(word);
+      |           ^~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/english_normalize.c:1417:9: note: 'out' is equal to NULL
+ 1417 |     if (out != NULL)
+      |         ^~~
+src/english_normalize.c:1417:5: note: Taking false branch
+ 1417 |     if (out != NULL)
+      |     ^
+src/english_normalize.c:1419:9: note: Assuming the condition is false
+ 1419 |     if (errno == ENOMEM) {
+      |         ^~~~~~~~~~~~~~~
+/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/sys/errno.h:81:15: note: expanded from macro 'errno'
+   81 | #define errno (*__error())
+      |               ^
+src/english_normalize.c:1419:5: note: Taking false branch
+ 1419 |     if (errno == ENOMEM) {
+      |     ^
+src/english_normalize.c:1425:9: note: Assuming 'out' is equal to NULL
+ 1425 |     if (out != NULL)
+      |         ^~~~~~~~~~~
+src/english_normalize.c:1425:5: note: Taking false branch
+ 1425 |     if (out != NULL)
+      |     ^
+src/english_normalize.c:1427:9: note: Assuming the condition is false
+ 1427 |     if (errno == ENOMEM) {
+      |         ^~~~~~~~~~~~~~~
+/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/sys/errno.h:81:15: note: expanded from macro 'errno'
+   81 | #define errno (*__error())
+      |               ^
+src/english_normalize.c:1427:5: note: Taking false branch
+ 1427 |     if (errno == ENOMEM) {
+      |     ^
+src/english_normalize.c:1432:11: note: Calling 'rewrite_url'
+ 1432 |     out = rewrite_url(word);
+      |           ^~~~~~~~~~~~~~~~~
+src/english_normalize.c:1205:12: note: 'end' is 2
+ 1205 |     while (end && strchr("!?.,:;", word[end - 1]))
+      |            ^~~
+src/english_normalize.c:1205:12: note: Left side of '&&' is true
+src/english_normalize.c:1205:19: note: 2nd function call argument is an uninitialized value
+ 1205 |     while (end && strchr("!?.,:;", word[end - 1]))
+      |                   ^                ~~~~~~~~~~~~~
+src/english_normalize.c:1244:16: warning: The left operand of '==' is a garbage value [core.UndefinedBinaryOperatorResult]
+ 1244 |         if (*q == '.')
+      |                ^
+src/english_normalize.c:1779:5: note: Taking false branch
+ 1779 |     if (input_length > SIZE_MAX - 64)
+      |     ^
+src/english_normalize.c:1783:9: note: Assuming 'buffer' is not equal to NULL
+ 1783 |     if (buffer == NULL)
+      |         ^~~~~~~~~~~~~~
+src/english_normalize.c:1783:5: note: Taking false branch
+ 1783 |     if (buffer == NULL)
+      |     ^
+src/english_normalize.c:1788:5: note: Loop condition is true.  Entering loop body
+ 1788 |     while (*p) {
+      |     ^
+src/english_normalize.c:1792:13: note: 'scaled' is equal to NULL
+ 1792 |         if (scaled != NULL) {
+      |             ^~~~~~
+src/english_normalize.c:1792:9: note: Taking false branch
+ 1792 |         if (scaled != NULL) {
+      |         ^
+src/english_normalize.c:1830:9: note: Taking false branch
+ 1830 |         if (errno == ENOMEM) {
+      |         ^
+src/english_normalize.c:1838:13: note: Assuming 'digit_run' is equal to NULL
+ 1838 |         if (digit_run != NULL) {
+      |             ^~~~~~~~~~~~~~~~~
+src/english_normalize.c:1838:9: note: Taking false branch
+ 1838 |         if (digit_run != NULL) {
+      |         ^
+src/english_normalize.c:1876:13: note: Assuming the condition is false
+ 1876 |         if (errno == ENOMEM) {
+      |             ^~~~~~~~~~~~~~~
+/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/sys/errno.h:81:15: note: expanded from macro 'errno'
+   81 | #define errno (*__error())
+      |               ^
+src/english_normalize.c:1876:9: note: Taking false branch
+ 1876 |         if (errno == ENOMEM) {
+      |         ^
+src/english_normalize.c:1884:34: note: 'previous_item_present' is false
+ 1884 |             rewrite_ending_in(p, previous_item_present ? buffer + previous_item_start : "",
+      |                                  ^~~~~~~~~~~~~~~~~~~~~
+src/english_normalize.c:1884:34: note: '?' condition is false
+src/english_normalize.c:1886:13: note: 'ending' is equal to NULL
+ 1886 |         if (ending != NULL) {
+      |             ^~~~~~
+src/english_normalize.c:1886:9: note: Taking false branch
+ 1886 |         if (ending != NULL) {
+      |         ^
+src/english_normalize.c:1926:9: note: Taking false branch
+ 1926 |         if (errno == ENOMEM) {
+      |         ^
+src/english_normalize.c:1931:14: note: 'p' is equal to 'input'
+ 1931 |         if ((p == input || p[-1] == ' ') && strncmp(p, "Lt ", 3) == 0 && p[3] != ' ') {
+      |              ^
+src/english_normalize.c:1931:25: note: Left side of '||' is true
+ 1931 |         if ((p == input || p[-1] == ' ') && strncmp(p, "Lt ", 3) == 0 && p[3] != ' ') {
+      |                         ^
+src/english_normalize.c:1931:45: note: Assuming the condition is false
+ 1931 |         if ((p == input || p[-1] == ' ') && strncmp(p, "Lt ", 3) == 0 && p[3] != ' ') {
+      |                                             ^~~~~~~~~~~~~~~~~~~~~~~~~
+src/english_normalize.c:1931:71: note: Left side of '&&' is false
+ 1931 |         if ((p == input || p[-1] == ' ') && strncmp(p, "Lt ", 3) == 0 && p[3] != ' ') {
+      |                                                                       ^
+src/english_normalize.c:1980:16: note: Left side of '&&' is true
+ 1980 |         while (*p && *p != ' ')
+      |                ^
+src/english_normalize.c:1980:22: note: Assuming the condition is false
+ 1980 |         while (*p && *p != ' ')
+      |                      ^~~~~~~~~
+src/english_normalize.c:1980:9: note: Loop condition is false. Execution continues on line 1982
+ 1980 |         while (*p && *p != ' ')
+      |         ^
+src/english_normalize.c:1983:9: note: Taking false branch
+ 1983 |         if (n > SIZE_MAX - 1) {
+      |         ^
+src/english_normalize.c:1987:22: note: Calling 'normalizer_malloc'
+ 1987 |         char *word = malloc(n + 1);
+      |                      ^~~~~~~~~~~~~
+src/english_normalize.c:55:16: note: expanded from macro 'malloc'
+   55 | #define malloc normalizer_malloc
+      |                ^
+src/english_normalize.c:39:12: note: Storing uninitialized value
+   39 |     return malloc(size);
+      |            ^~~~~~~~~~~~
+src/english_normalize.c:1987:22: note: Returning from 'normalizer_malloc'
+ 1987 |         char *word = malloc(n + 1);
+      |                      ^~~~~~~~~~~~~
+src/english_normalize.c:55:16: note: expanded from macro 'malloc'
+   55 | #define malloc normalizer_malloc
+      |                ^
+src/english_normalize.c:1988:13: note: Assuming 'word' is not equal to NULL
+ 1988 |         if (word == NULL) {
+      |             ^~~~~~~~~~~~
+src/english_normalize.c:1988:9: note: Taking false branch
+ 1988 |         if (word == NULL) {
+      |         ^
+src/english_normalize.c:1994:27: note: Calling 'rewrite_word_english'
+ 1994 |         char *rewritten = rewrite_word_english(word, allocation_failed);
+      |                           ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/english_normalize.c:1401:9: note: Assuming 'out' is equal to NULL
+ 1401 |     if (out != NULL)
+      |         ^~~~~~~~~~~
+src/english_normalize.c:1401:5: note: Taking false branch
+ 1401 |     if (out != NULL)
+      |     ^
+src/english_normalize.c:1403:9: note: Assuming the condition is false
+ 1403 |     if (errno == ENOMEM) {
+      |         ^~~~~~~~~~~~~~~
+/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/sys/errno.h:81:15: note: expanded from macro 'errno'
+   81 | #define errno (*__error())
+      |               ^
+src/english_normalize.c:1403:5: note: Taking false branch
+ 1403 |     if (errno == ENOMEM) {
+      |     ^
+src/english_normalize.c:1409:9: note: Assuming 'out' is equal to NULL
+ 1409 |     if (out != NULL)
+      |         ^~~~~~~~~~~
+src/english_normalize.c:1409:5: note: Taking false branch
+ 1409 |     if (out != NULL)
+      |     ^
+src/english_normalize.c:1411:9: note: Assuming the condition is false
+ 1411 |     if (errno == ENOMEM) {
+      |         ^~~~~~~~~~~~~~~
+/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/sys/errno.h:81:15: note: expanded from macro 'errno'
+   81 | #define errno (*__error())
+      |               ^
+src/english_normalize.c:1411:5: note: Taking false branch
+ 1411 |     if (errno == ENOMEM) {
+      |     ^
+src/english_normalize.c:1417:9: note: 'out' is equal to NULL
+ 1417 |     if (out != NULL)
+      |         ^~~
+src/english_normalize.c:1417:5: note: Taking false branch
+ 1417 |     if (out != NULL)
+      |     ^
+src/english_normalize.c:1419:9: note: Assuming the condition is false
+ 1419 |     if (errno == ENOMEM) {
+      |         ^~~~~~~~~~~~~~~
+/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/sys/errno.h:81:15: note: expanded from macro 'errno'
+   81 | #define errno (*__error())
+      |               ^
+src/english_normalize.c:1419:5: note: Taking false branch
+ 1419 |     if (errno == ENOMEM) {
+      |     ^
+src/english_normalize.c:1425:9: note: Assuming 'out' is equal to NULL
+ 1425 |     if (out != NULL)
+      |         ^~~~~~~~~~~
+src/english_normalize.c:1425:5: note: Taking false branch
+ 1425 |     if (out != NULL)
+      |     ^
+src/english_normalize.c:1427:9: note: Assuming the condition is false
+ 1427 |     if (errno == ENOMEM) {
+      |         ^~~~~~~~~~~~~~~
+/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/sys/errno.h:81:15: note: expanded from macro 'errno'
+   81 | #define errno (*__error())
+      |               ^
+src/english_normalize.c:1427:5: note: Taking false branch
+ 1427 |     if (errno == ENOMEM) {
+      |     ^
+src/english_normalize.c:1432:11: note: Calling 'rewrite_url'
+ 1432 |     out = rewrite_url(word);
+      |           ^~~~~~~~~~~~~~~~~
+src/english_normalize.c:1205:12: note: 'end' is 1
+ 1205 |     while (end && strchr("!?.,:;", word[end - 1]))
+      |            ^~~
+src/english_normalize.c:1205:12: note: Left side of '&&' is true
+src/english_normalize.c:1205:5: note: Loop condition is false. Execution continues on line 1207
+ 1205 |     while (end && strchr("!?.,:;", word[end - 1]))
+      |     ^
+src/english_normalize.c:1209:5: note: Taking false branch
+ 1209 |     if (n > (SIZE_MAX - 128) / 16)
+      |     ^
+src/english_normalize.c:1213:9: note: Assuming 'out' is not equal to NULL
+ 1213 |     if (out == NULL)
+      |         ^~~~~~~~~~~
+src/english_normalize.c:1213:5: note: Taking false branch
+ 1213 |     if (out == NULL)
+      |     ^
+src/english_normalize.c:1217:9: note: Assuming the condition is false
+ 1217 |     if (strncmp(p, "https://", 8) == 0) {
+      |         ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/english_normalize.c:1217:5: note: Taking false branch
+ 1217 |     if (strncmp(p, "https://", 8) == 0) {
+      |     ^
+src/english_normalize.c:1222:16: note: Assuming the condition is false
+ 1222 |     } else if (strncmp(p, "http://", 7) == 0) {
+      |                ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/english_normalize.c:1222:12: note: Taking false branch
+ 1222 |     } else if (strncmp(p, "http://", 7) == 0) {
+      |            ^
+src/english_normalize.c:1229:5: note: Loop condition is true.  Entering loop body
+ 1229 |     while (p < word + end) {
+      |     ^
+src/english_normalize.c:1231:13: note: Left side of '||' is false
+ 1231 |         if (*p == '-' || *p == '.') {
+      |             ^
+src/english_normalize.c:1231:9: note: Taking false branch
+ 1231 |         if (*p == '-' || *p == '.') {
+      |         ^
+src/english_normalize.c:1235:13: note: Assuming the condition is false
+ 1235 |         if (!url_alphanumeric(p, (size_t)(word + end - p), &width))
+      |             ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/english_normalize.c:1235:9: note: Taking false branch
+ 1235 |         if (!url_alphanumeric(p, (size_t)(word + end - p), &width))
+      |         ^
+src/english_normalize.c:1229:12: note: Assuming the condition is false
+ 1229 |     while (p < word + end) {
+      |            ^~~~~~~~~~~~~~
+src/english_normalize.c:1229:5: note: Loop condition is false. Execution continues on line 1239
+ 1229 |     while (p < word + end) {
+      |     ^
+src/english_normalize.c:1239:9: note: 'p' is not equal to 'domain_start'
+ 1239 |     if (p == domain_start)
+      |         ^
+src/english_normalize.c:1239:5: note: Taking false branch
+ 1239 |     if (p == domain_start)
+      |     ^
+src/english_normalize.c:1243:40: note: 'q' is < 'domain_end'
+ 1243 |     for (const char *q = domain_start; q < domain_end; q++)
+      |                                        ^
+src/english_normalize.c:1243:5: note: Loop condition is true.  Entering loop body
+ 1243 |     for (const char *q = domain_start; q < domain_end; q++)
+      |     ^
+src/english_normalize.c:1244:9: note: Taking false branch
+ 1244 |         if (*q == '.')
+      |         ^
+src/english_normalize.c:1243:40: note: Assuming 'q' is < 'domain_end'
+ 1243 |     for (const char *q = domain_start; q < domain_end; q++)
+      |                                        ^~~~~~~~~~~~~~
+src/english_normalize.c:1243:5: note: Loop condition is true.  Entering loop body
+ 1243 |     for (const char *q = domain_start; q < domain_end; q++)
+      |     ^
+src/english_normalize.c:1244:16: note: The left operand of '==' is a garbage value
+ 1244 |         if (*q == '.')
+      |             ~~ ^
+3 warnings generated.
+In file included from src/phonon_math.c:13:
+src/../vendor/sleef/sleefinline_advsimd.h:4141:26: warning: Value stored to 'clc' during its initialization is never read [deadcode.DeadStores]
+ 4141 |   vdouble2_advsimd_sleef clc = vcast_vd2_d_d_advsimd_sleef(0, 0), clln = vcast_vd2_d_d_advsimd_sleef(1, 0), clld = vcast_vd2_d_d_advsimd_sleef(1, 0);
+      |                          ^~~   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/../vendor/sleef/sleefinline_advsimd.h:4141:26: note: Value stored to 'clc' during its initialization is never read
+ 4141 |   vdouble2_advsimd_sleef clc = vcast_vd2_d_d_advsimd_sleef(0, 0), clln = vcast_vd2_d_d_advsimd_sleef(1, 0), clld = vcast_vd2_d_d_advsimd_sleef(1, 0);
+      |                          ^~~   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/../vendor/sleef/sleefinline_advsimd.h:4317:32: warning: Value stored to 'r' during its initialization is never read [deadcode.DeadStores]
+ 4317 |   vdouble_advsimd_sleef s = a, r = vcast_vd_d_advsimd_sleef(0), t;
+      |                                ^   ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/../vendor/sleef/sleefinline_advsimd.h:4317:32: note: Value stored to 'r' during its initialization is never read
+ 4317 |   vdouble_advsimd_sleef s = a, r = vcast_vd_d_advsimd_sleef(0), t;
+      |                                ^   ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/../vendor/sleef/sleefinline_advsimd.h:6661:25: warning: Value stored to 'clc' during its initialization is never read [deadcode.DeadStores]
+ 6661 |   vfloat2_advsimd_sleef clc = vcast_vf2_f_f_advsimd_sleef(0, 0), clln = vcast_vf2_f_f_advsimd_sleef(1, 0), clld = vcast_vf2_f_f_advsimd_sleef(1, 0);
+      |                         ^~~   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/../vendor/sleef/sleefinline_advsimd.h:6661:25: note: Value stored to 'clc' during its initialization is never read
+ 6661 |   vfloat2_advsimd_sleef clc = vcast_vf2_f_f_advsimd_sleef(0, 0), clln = vcast_vf2_f_f_advsimd_sleef(1, 0), clld = vcast_vf2_f_f_advsimd_sleef(1, 0);
+      |                         ^~~   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/../vendor/sleef/sleefinline_advsimd.h:6820:31: warning: Value stored to 'r' during its initialization is never read [deadcode.DeadStores]
+ 6820 |   vfloat_advsimd_sleef s = a, r = vcast_vf_f_advsimd_sleef(0), t;
+      |                               ^   ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/../vendor/sleef/sleefinline_advsimd.h:6820:31: note: Value stored to 'r' during its initialization is never read
+ 6820 |   vfloat_advsimd_sleef s = a, r = vcast_vf_f_advsimd_sleef(0), t;
+      |                               ^   ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+4 warnings generated.
+ max_abs=5.96046448e-08 tiny residual
+SEANet layer 0 kind 0 max_abs=2.24113464e-05
+SEANet layer 2 kind 1 max_abs=0
+SEANet layer 3 kind 2 max_abs=8.10623169e-06
+SEANet layer 5 kind 1 max_abs=8.34465027e-07
+SEANet layer 6 kind 2 max_abs=3.33786011e-06
+SEANet layer 8 kind 1 max_abs=0
+SEANet layer 9 kind 2 max_abs=1.1920929e-06
+SEANet layer 11 kind 0 max_abs=0
+phonon convolution tests passed
+Phonon native math matches pinned vector operators and scalar tails
+depthwise overlap passed max_abs=0
+depthwise startup/right trim passed max_abs=0
+synthetic 250-key ring and learned scales passed max_abs=5.36441803e-07
+synthetic reset/framewise passed max_abs=5.36441803e-07
+independent request passed max_abs=2.38418579e-07
+real Mimi run=0 partition=0 passed max_abs=1.4603138e-05
+real Mimi run=1 partition=0 passed max_abs=1.4603138e-05
+real Mimi run=2 partition=0 passed max_abs=1.12056732e-05
+real Mimi run=2 partition=1 passed max_abs=1.09672546e-05
+native whole/partition features passed max_abs=0
+real Mimi run=2 partition=2 passed max_abs=8.10623169e-06
+native whole/partition features passed max_abs=0
+real Mimi run=3 partition=0 passed max_abs=1.28746033e-05
+real Mimi run=3 partition=1 passed max_abs=1.28746033e-05
+real Mimi run=4 partition=0 passed max_abs=5.00679016e-06
+real Mimi run=4 partition=1 passed max_abs=5.00679016e-06
+Phonon native pack: 209 tensors, 36 Q8 projections matched oracle
+synthetic scalar complete decoder samples=5760 nrmse=0 max_abs=0
+actual q8 record=0 partition=0 raw samples=76800 nrmse=1.30780201e-06 max_abs=2.52202153e-06
+actual q8 final samples=76800 nrmse=1.30780201e-06 max_abs=2.52202153e-06
+actual q8 record=0 partition=1 raw samples=76800 nrmse=1.30780201e-06 max_abs=2.52202153e-06
+actual q8 final samples=76800 nrmse=1.30780201e-06 max_abs=2.52202153e-06
+actual q8 record=0 partition=2 raw samples=76800 nrmse=1.30780201e-06 max_abs=2.52202153e-06
+actual q8 final samples=76800 nrmse=1.30780201e-06 max_abs=2.52202153e-06
+actual q8 record=1 partition=0 raw samples=61440 nrmse=1.30738836e-06 max_abs=2.52202153e-06
+actual q8 final samples=61440 nrmse=1.30738836e-06 max_abs=2.52202153e-06
+actual q8 record=1 partition=1 raw samples=61440 nrmse=1.30738836e-06 max_abs=2.52202153e-06
+actual q8 final samples=61440 nrmse=1.30738836e-06 max_abs=2.52202153e-06
+actual q8 record=1 partition=2 raw samples=61440 nrmse=1.30738836e-06 max_abs=2.52202153e-06
+actual q8 final samples=61440 nrmse=1.30738836e-06 max_abs=2.52202153e-06
+actual q8 record=2 partition=0 raw samples=1920 nrmse=6.9840846e-06 max_abs=4.40049917e-08
+actual q8 final samples=1920 nrmse=6.9840846e-06 max_abs=4.40049917e-08
+actual q8 record=2 partition=1 raw samples=1920 nrmse=6.9840846e-06 max_abs=4.40049917e-08
+actual q8 final samples=1920 nrmse=6.9840846e-06 max_abs=4.40049917e-08
+actual q8 record=2 partition=2 raw samples=1920 nrmse=6.9840846e-06 max_abs=4.40049917e-08
+actual q8 final samples=1920 nrmse=6.9840846e-06 max_abs=4.40049917e-08
+actual q8 record=3 partition=0 raw samples=3840 nrmse=2.26377531e-06 max_abs=8.94069672e-08
+actual q8 final samples=3840 nrmse=2.26377531e-06 max_abs=8.94069672e-08
+actual q8 record=3 partition=1 raw samples=3840 nrmse=2.26377531e-06 max_abs=8.94069672e-08
+actual q8 final samples=3840 nrmse=2.26377531e-06 max_abs=8.94069672e-08
+actual q8 record=3 partition=2 raw samples=3840 nrmse=2.26377531e-06 max_abs=8.94069672e-08
+actual q8 final samples=3840 nrmse=2.26377531e-06 max_abs=8.94069672e-08
+actual q8 record=4 partition=0 raw samples=5760 nrmse=5.19218281e-06 max_abs=2.98023224e-08
+actual q8 final samples=5760 nrmse=5.19218281e-06 max_abs=2.98023224e-08
+actual q8 record=4 partition=1 raw samples=5760 nrmse=5.19218281e-06 max_abs=2.98023224e-08
+actual q8 final samples=5760 nrmse=5.19218281e-06 max_abs=2.98023224e-08
+actual q8 record=4 partition=2 raw samples=5760 nrmse=5.19218281e-06 max_abs=2.98023224e-08
+actual q8 final samples=5760 nrmse=5.19218281e-06 max_abs=2.98023224e-08
+actual q8 record=5 partition=0 raw samples=5760 nrmse=5.21730852e-06 max_abs=2.30967999e-07
+actual q8 final samples=5760 nrmse=5.21730852e-06 max_abs=2.30967999e-07
+actual q8 record=5 partition=1 raw samples=5760 nrmse=5.21730852e-06 max_abs=2.30967999e-07
+actual q8 final samples=5760 nrmse=5.21730852e-06 max_abs=2.30967999e-07
+actual q8 record=5 partition=2 raw samples=5760 nrmse=5.21730852e-06 max_abs=2.30967999e-07
+actual q8 final samples=5760 nrmse=5.21730852e-06 max_abs=2.30967999e-07
+actual q8 record=6 partition=0 raw samples=504960 nrmse=2.54376619e-06 max_abs=8.31484795e-06
+actual q8 final samples=504960 nrmse=2.54376619e-06 max_abs=8.31484795e-06
+actual q8 record=6 partition=1 raw samples=504960 nrmse=2.54376619e-06 max_abs=8.31484795e-06
+actual q8 final samples=504960 nrmse=2.54376619e-06 max_abs=8.31484795e-06
+actual q8 record=6 partition=2 raw samples=504960 nrmse=2.54376619e-06 max_abs=8.31484795e-06
+actual q8 final samples=504960 nrmse=2.54376619e-06 max_abs=8.31484795e-06
+actual q8 record=7 partition=0 raw samples=504960 nrmse=2.55076731e-06 max_abs=1.37686729e-05
+actual q8 final samples=504960 nrmse=2.55076731e-06 max_abs=1.37686729e-05
+actual q8 record=7 partition=1 raw samples=504960 nrmse=2.55076731e-06 max_abs=1.37686729e-05
+actual q8 final samples=504960 nrmse=2.55076731e-06 max_abs=1.37686729e-05
+actual q8 record=7 partition=2 raw samples=504960 nrmse=2.55076731e-06 max_abs=1.37686729e-05
+actual q8 final samples=504960 nrmse=2.55076731e-06 max_abs=1.37686729e-05
+actual q8 record=8 partition=0 raw samples=504960 nrmse=2.51531293e-06 max_abs=8.31484795e-06
+actual q8 final samples=504960 nrmse=2.51531293e-06 max_abs=8.31484795e-06
+actual q8 record=8 partition=1 raw samples=504960 nrmse=2.51531293e-06 max_abs=8.31484795e-06
+actual q8 final samples=504960 nrmse=2.51531293e-06 max_abs=8.31484795e-06
+actual q8 record=8 partition=2 raw samples=504960 nrmse=2.51531293e-06 max_abs=8.31484795e-06
+actual q8 final samples=504960 nrmse=2.51531293e-06 max_abs=8.31484795e-06
+actual q8 record=9 partition=0 raw samples=504960 nrmse=2.5234282e-06 max_abs=8.43405724e-06
+actual q8 final samples=504960 nrmse=2.5234282e-06 max_abs=8.43405724e-06
+actual q8 record=9 partition=1 raw samples=504960 nrmse=2.5234282e-06 max_abs=8.43405724e-06
+actual q8 final samples=504960 nrmse=2.5234282e-06 max_abs=8.43405724e-06
+actual q8 record=9 partition=2 raw samples=504960 nrmse=2.5234282e-06 max_abs=8.43405724e-06
+actual q8 final samples=504960 nrmse=2.5234282e-06 max_abs=8.43405724e-06
+actual q8 record=10 partition=0 raw samples=493440 nrmse=2.51372753e-06 max_abs=6.33299351e-06
+actual q8 final samples=493440 nrmse=2.51372753e-06 max_abs=6.33299351e-06
+actual q8 record=10 partition=1 raw samples=493440 nrmse=2.51372753e-06 max_abs=6.33299351e-06
+actual q8 final samples=493440 nrmse=2.51372753e-06 max_abs=6.33299351e-06
+actual q8 record=10 partition=2 raw samples=493440 nrmse=2.51372753e-06 max_abs=6.33299351e-06
+actual q8 final samples=493440 nrmse=2.51372753e-06 max_abs=6.33299351e-06
+phonon Q8 kernel tests passed
+Phonon sampler tests passed
+phonon tokenizer checks passed
+real Q8 one-step flow head parity: 40 fixed + 32 natural frames passed
+closed-loop Q8 generation observed max_abs=0 budget_exceedances=0/1024; stop=32 EOS+3
+closed-loop Q8 generation completed: 32 frames, EOS+3 tail; replay exhaustion rejected
+real batched Q8 prefill and 39 incremental positions passed
+real pinned Q8 cached parity: prefill=140 incremental=39 max_abs=5.84125519e-06
+phonon transformer primitives: ok
+phonon voice safetensors compatibility: ok
+engine actual record=0 samples=30720 chunks=1 expected=30720/1
+engine record=0 samples=30720 nrmse=1.28780352e-06 max_abs=2.29477882e-06
+engine record=0 samples=30720 nrmse=1.28780352e-06 max_abs=2.29477882e-06
+engine actual record=1 samples=49920 chunks=1 expected=49920/1
+engine record=1 samples=49920 nrmse=1.52784724e-05 max_abs=1.94697641e-05
+engine actual record=2 samples=72960 chunks=1 expected=72960/1
+engine record=2 samples=72960 nrmse=2.74799634e-05 max_abs=8.28951597e-05
+engine actual record=3 samples=503040 chunks=2 expected=503040/2
+engine record=3 samples=503040 nrmse=1.12840559e-06 max_abs=6.16908073e-06
+engine actual record=4 samples=1242240 chunks=2 expected=1242240/2
+engine record=4 samples=1242240 nrmse=1.68312266e-06 max_abs=5.06639481e-06
+speech tests passed
+weightless CLI catalog/input/WAV contracts: ok
+actual CLI positional/file/stdin/default/named/local/projected/native controls/WAV/playback cleanup: ok (listening unperformed)
+speech CLI validation: ok
+synthetic PCM controller/real AudioQueue adapter fake: bounded order, blocked submit/drain cancellation, error and stable terminal result ok (no model/device evidence)
+actual batch/stream exact samples=30720 frames=16; firstPCM 0.033973 submission 0.033978 start 0.033978 synthesisEnd 0.215102 drain 0.215105 seconds from monotonic synthesisBegin (fake consumer; acoustic onset unknown)
+SKIP muted device: explicitly select PHONON_STREAM_DEVICE=1 with silent-output build
+actual stream order/bounds/waits/generation+submit+drain+signal cancellation/errors/resident reuse/CLI: ok
+...
+----------------------------------------------------------------------
+Ran 3 tests in 0.213s
+
+OK
+verified 12 assets against committed pins
+Loading weights:   0%|          | 0/153 [00:00<?, ?it/s]Loading weights: 100%|██████████| 153/153 [00:00<00:00, 6047.48it/s]
+Loading weights:   0%|          | 0/48 [00:00<?, ?it/s]Loading weights: 100%|██████████| 48/48 [00:00<00:00, 24615.06it/s]
+deterministic replay: all trace arrays bitwise equal
+Loading weights:   0%|          | 0/153 [00:00<?, ?it/s]Loading weights: 100%|██████████| 153/153 [00:00<00:00, 13409.29it/s]
+Loading weights:   0%|          | 0/48 [00:00<?, ?it/s]Loading weights: 100%|██████████| 48/48 [00:00<00:00, 23508.48it/s]
+Mimi >250 positions, uneven batch repeat verified; max_abs=2.56113708e-09
+Loading weights:   0%|          | 0/153 [00:00<?, ?it/s]Loading weights: 100%|██████████| 153/153 [00:00<00:00, 12686.39it/s]
+Loading weights:   0%|          | 0/48 [00:00<?, ?it/s]Loading weights: 100%|██████████| 48/48 [00:00<00:00, 29520.03it/s]
+Mimi framewise/uneven cache and PCM emission verified; samples=504960, explicit flush samples=0, budget=1e-5
+Loading weights:   0%|          | 0/153 [00:00<?, ?it/s]Loading weights: 100%|██████████| 153/153 [00:00<00:00, 29314.72it/s]
+Loading weights:   0%|          | 0/48 [00:00<?, ?it/s]Loading weights: 100%|██████████| 48/48 [00:00<00:00, 27243.11it/s]
+Loading weights:   0%|          | 0/153 [00:00<?, ?it/s]Loading weights: 100%|██████████| 153/153 [00:00<00:00, 17639.11it/s]
+Loading weights:   0%|          | 0/48 [00:00<?, ?it/s]Loading weights: 100%|██████████| 48/48 [00:00<00:00, 40443.27it/s]
+Q8 fixed-frame and natural-stop replays: all arrays bitwise equal
+.........Loading weights:   0%|          | 0/153 [00:00<?, ?it/s]Loading weights: 100%|██████████| 153/153 [00:00<00:00, 13212.45it/s]
+Loading weights:   0%|          | 0/48 [00:00<?, ?it/s]Loading weights: 100%|██████████| 48/48 [00:00<00:00, 21190.04it/s]
+.........Loading weights:   0%|          | 0/153 [00:00<?, ?it/s]Loading weights: 100%|██████████| 153/153 [00:00<00:00, 22798.37it/s]
+Loading weights:   0%|          | 0/48 [00:00<?, ?it/s]Loading weights: 100%|██████████| 48/48 [00:00<00:00, 45456.44it/s]
+Loading weights:   0%|          | 0/153 [00:00<?, ?it/s]Loading weights: 100%|██████████| 153/153 [00:00<00:00, 18761.25it/s]
+Loading weights:   0%|          | 0/48 [00:00<?, ?it/s]Loading weights: 100%|██████████| 48/48 [00:00<00:00, 26217.81it/s]
+..Q8 fixed-frame and natural-stop replays: all arrays bitwise equal
+Loading weights:   0%|          | 0/153 [00:00<?, ?it/s]Loading weights: 100%|██████████| 153/153 [00:00<00:00, 12373.77it/s]
+Loading weights:   0%|          | 0/48 [00:00<?, ?it/s]Loading weights: 100%|██████████| 48/48 [00:00<00:00, 29339.35it/s]
+.deterministic replay: all trace arrays bitwise equal
+Loading weights:   0%|          | 0/153 [00:00<?, ?it/s]Loading weights: 100%|██████████| 153/153 [00:00<00:00, 12452.29it/s]
+Loading weights:   0%|          | 0/48 [00:00<?, ?it/s]Loading weights: 100%|██████████| 48/48 [00:00<00:00, 21534.56it/s]
+.Mimi framewise/uneven cache and PCM emission verified; samples=504960, explicit flush samples=0, budget=1e-5
+Loading weights:   0%|          | 0/153 [00:00<?, ?it/s]Loading weights: 100%|██████████| 153/153 [00:00<00:00, 12203.64it/s]
+Loading weights:   0%|          | 0/48 [00:00<?, ?it/s]Loading weights: 100%|██████████| 48/48 [00:00<00:00, 25000.20it/s]
+.
+----------------------------------------------------------------------
+Ran 23 tests in 16.727s
+
+OK
+Mimi >250 positions, uneven batch repeat verified; max_abs=2.56113708e-09
+/Volumes/Code/Personal/kokoro-mac/.worktrees/phonon-migration-planning/.build/phonon-native-f6acc8f43cb296be-v1.kpack
+/Volumes/Code/Personal/kokoro-mac/.worktrees/phonon-migration-planning/.build/phonon-native-q8-projections-v1.bin
+Loading weights:   0%|          | 0/153 [00:00<?, ?it/s]Loading weights: 100%|██████████| 153/153 [00:00<00:00, 28956.25it/s]
+Loading weights:   0%|          | 0/48 [00:00<?, ?it/s]Loading weights: 100%|██████████| 48/48 [00:00<00:00, 42653.94it/s]
+.build/phonon-flow-prefix-v1.bin
+.build/phonon-flow-condition-v1.bin
+.build/phonon-flow-fixture-v1.json
+{"fixture": ".build/phonon-flow-sampler-v1.bin", "runs": [40, 32]}
+real Q8 one-step flow head parity: 40 fixed + 32 natural frames passed
+closed-loop Q8 generation observed max_abs=0 budget_exceedances=0/1024; stop=32 EOS+3
+closed-loop Q8 generation completed: 32 frames, EOS+3 tail; replay exhaustion rejected
+real batched Q8 prefill and 39 incremental positions passed
+real pinned Q8 cached parity: prefill=140 incremental=39 max_abs=5.84125519e-06
+phonon transformer primitives: ok
+Loading weights:   0%|          | 0/153 [00:00<?, ?it/s]Loading weights: 100%|██████████| 153/153 [00:00<00:00, 25223.19it/s]
+Loading weights:   0%|          | 0/48 [00:00<?, ?it/s]Loading weights: 100%|██████████| 48/48 [00:00<00:00, 29826.16it/s]
+saved Gaussian replay exact=True; finite native/model PCM=True
+native head on identical dynamic inputs: max_abs=0, over_budget=0/1024; EOS max_abs=0, over_budget=0/32
+autonomous reference trajectory: condition max_abs=0, over_budget=0/16384; normalized integration max_abs=0, over_budget=0/1024; EOS max_abs=0, over_budget=0/32; denormalized latent max_abs=0, over_budget=0/1024
+decoded PCM counts raw/final=61440/61440 exact; raw nrmse/max_abs=0/0; final nrmse/max_abs=0/0
+Phonon native pack: 209 tensors, 36 Q8 projections matched oracle

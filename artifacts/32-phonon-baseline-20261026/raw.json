@@ -1,0 +1,1928 @@
+{
+  "schema": 1,
+  "timestamp_utc": "2026-10-26T07:34:27Z",
+  "repeats": 5,
+  "provenance": {
+    "source_commit": "0f7ea8eab3e52f3b388ed810de0a3f71218935e9",
+    "source_dirty": false,
+    "host": "macOS-27.0.1-arm64-arm-64bit",
+    "machine": "Apple M5",
+    "memory_bytes": 17179869184,
+    "os_build": "ProductName:\t\tmacOS\nProductVersion:\t\t27.0.1\nBuildVersion:\t\t26A434",
+    "compiler": "Apple clang version 21.0.0 (clang-2100.3.34.2)\nTarget: arm64-apple-darwin27.0.0\nThread model: posix\nInstalledDir: /Library/Developer/CommandLineTools/usr/bin",
+    "flags": [
+      "-Isrc",
+      "-std=c17",
+      "-Wall",
+      "-Wextra",
+      "-Wpedantic",
+      "-Werror",
+      "-O2"
+    ],
+    "binary_sha256": "bffeb5c891de648492414bc6a466f3274e733377377eabf3fa7d059368975a0a",
+    "profile_binary_sha256": "88602acb78e428b0c7ed9287e5a3569db8a0713fbba0b7b11b2b66393a2a5be6",
+    "pack_path": "/Volumes/Code/Personal/kokoro-mac/.worktrees/phonon-migration-planning/.build/phonon-native-f6acc8f43cb296be-v1.kpack",
+    "pack_sha256": "d636dd53044ac86bfb99939608a381fd8d5378ae29f7bae6fd9026244ca5087b",
+    "voice_path": "/Volumes/Code/Personal/speech-mac-models/phonon-40m-en/default-voice.safetensors",
+    "voice_sha256": "dc537478eaadc1a5257fcda2e3501ab81e14c111a5d95a5838f350db2afd0f1a",
+    "source_assets": {
+      "repository": "gradium/phonon-40m-en",
+      "revision": "cc738b7e4d182c2ba1bafb8062aa4846af000637",
+      "files": [
+        {
+          "filename": "config.json",
+          "size_bytes": 4634,
+          "sha256": "3e89e90b9e7ae5a74c6b4e694960c37fd2ec85906d84adfcc1440c64307aa4f1",
+          "verified": true
+        },
+        {
+          "filename": "generation_config.json",
+          "size_bytes": 220,
+          "sha256": "ffb086e8f531b10a43bfd17a56069f90b649171a55aae98b5e9a28c8411cffc0",
+          "verified": true
+        },
+        {
+          "filename": "model.safetensors",
+          "size_bytes": 121713400,
+          "sha256": "dcd22ffd4944e7dcce19762f2a34fa6e57b70ed5307b63784ec234656975daad",
+          "verified": true
+        },
+        {
+          "filename": "model.q8.gguf",
+          "size_bytes": 74553568,
+          "sha256": "f6acc8f43cb296be31341b4428a6f01b6402659cd0039b624c4aea224936cf95",
+          "verified": true
+        },
+        {
+          "filename": "tokenizer.json",
+          "size_bytes": 277967,
+          "sha256": "691a00068fa7b989f2f3e5ae5daa2d1a5bb319f2d5360deafcfb19a8bb6e7936",
+          "verified": true
+        },
+        {
+          "filename": "tokenizer.model",
+          "size_bytes": 65045,
+          "sha256": "82e4572006d64d483317074c22c368e87779640b6f3a9dcd07b7caae32b030ce",
+          "verified": true
+        },
+        {
+          "filename": "tokenizer_config.json",
+          "size_bytes": 575,
+          "sha256": "17d12cf8dee2891506648bb1d5657e26fb165263686d0e2ef311513488d6446f",
+          "verified": true
+        },
+        {
+          "filename": "default-voice.safetensors",
+          "size_bytes": 256136,
+          "sha256": "dc537478eaadc1a5257fcda2e3501ab81e14c111a5d95a5838f350db2afd0f1a",
+          "verified": true
+        }
+      ]
+    },
+    "model_revision": "cc738b7e4d182c2ba1bafb8062aa4846af000637",
+    "quantization": {
+      "Q8_0": 36,
+      "BF16": 173
+    },
+    "model_id": "8aa279a6@100",
+    "voice_model_ext": "ba7a5a45@300",
+    "thread_environment": {
+      "VECLIB_MAXIMUM_THREADS": null,
+      "OMP_NUM_THREADS": null,
+      "OPENBLAS_NUM_THREADS": null,
+      "MKL_NUM_THREADS": null,
+      "BLIS_NUM_THREADS": null,
+      "ACCELERATE_NEW_LAPACK": null
+    },
+    "generation": {
+      "seed": 0,
+      "language": "en",
+      "duration_delta": 0,
+      "temperature": 0.8,
+      "lsd_steps": 1,
+      "eos_threshold": 4,
+      "min_eos": 0,
+      "short_tail": 3,
+      "normal_tail": 1,
+      "sample_rate": 24000
+    },
+    "link_flags": [
+      "-framework",
+      "AudioToolbox",
+      "-framework",
+      "Accelerate"
+    ],
+    "profile_define": "SPEECH_PROFILE",
+    "voice_kind": "raw speaker_wavs; projected once per request inside synthesis"
+  },
+  "runs": [
+    {
+      "pcm_f32_sha256": "8532fc9c8ad9b747a1ea5974bb3bca00ad5ab3ee457d658317a80c4d436e4ba5",
+      "run": 0,
+      "engine_prepare_s": 0.055462,
+      "voice_open_s": 0.000628,
+      "first_pcm_s": 0.048709,
+      "synthesis_s": 0.783771,
+      "cpu_s": 0.781039,
+      "rss_high_water_bytes": 119455744,
+      "samples": 76800,
+      "frames": 40,
+      "chunks": 1,
+      "stages": {
+        "prefill": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "flow_head": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "mimi_pcm": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "incremental_backbone": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "linear_expand_bf16": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "linear_expand_q8": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "linear_sgemm": {
+          "seconds": 0.0,
+          "calls": 0
+        }
+      },
+      "workload": "short",
+      "mode": "fresh_process",
+      "repetition": 0,
+      "profiled": false,
+      "consumer": "synchronous_memory_copy",
+      "output_duration_s": 3.2,
+      "rtf": 0.24492843749999998
+    },
+    {
+      "pcm_f32_sha256": "8532fc9c8ad9b747a1ea5974bb3bca00ad5ab3ee457d658317a80c4d436e4ba5",
+      "run": 0,
+      "engine_prepare_s": 0.031887,
+      "voice_open_s": 0.00023,
+      "first_pcm_s": 0.043032,
+      "synthesis_s": 0.79325,
+      "cpu_s": 0.79082,
+      "rss_high_water_bytes": 120455168,
+      "samples": 76800,
+      "frames": 40,
+      "chunks": 1,
+      "stages": {
+        "prefill": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "flow_head": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "mimi_pcm": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "incremental_backbone": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "linear_expand_bf16": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "linear_expand_q8": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "linear_sgemm": {
+          "seconds": 0.0,
+          "calls": 0
+        }
+      },
+      "workload": "short",
+      "mode": "fresh_process",
+      "repetition": 1,
+      "profiled": false,
+      "consumer": "synchronous_memory_copy",
+      "output_duration_s": 3.2,
+      "rtf": 0.247890625
+    },
+    {
+      "pcm_f32_sha256": "8532fc9c8ad9b747a1ea5974bb3bca00ad5ab3ee457d658317a80c4d436e4ba5",
+      "run": 0,
+      "engine_prepare_s": 0.032293,
+      "voice_open_s": 0.000221,
+      "first_pcm_s": 0.043177,
+      "synthesis_s": 0.807059,
+      "cpu_s": 0.799362,
+      "rss_high_water_bytes": 120471552,
+      "samples": 76800,
+      "frames": 40,
+      "chunks": 1,
+      "stages": {
+        "prefill": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "flow_head": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "mimi_pcm": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "incremental_backbone": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "linear_expand_bf16": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "linear_expand_q8": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "linear_sgemm": {
+          "seconds": 0.0,
+          "calls": 0
+        }
+      },
+      "workload": "short",
+      "mode": "fresh_process",
+      "repetition": 2,
+      "profiled": false,
+      "consumer": "synchronous_memory_copy",
+      "output_duration_s": 3.2,
+      "rtf": 0.2522059375
+    },
+    {
+      "pcm_f32_sha256": "8532fc9c8ad9b747a1ea5974bb3bca00ad5ab3ee457d658317a80c4d436e4ba5",
+      "run": 0,
+      "engine_prepare_s": 0.032352,
+      "voice_open_s": 0.000215,
+      "first_pcm_s": 0.044279,
+      "synthesis_s": 0.796915,
+      "cpu_s": 0.79642,
+      "rss_high_water_bytes": 119357440,
+      "samples": 76800,
+      "frames": 40,
+      "chunks": 1,
+      "stages": {
+        "prefill": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "flow_head": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "mimi_pcm": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "incremental_backbone": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "linear_expand_bf16": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "linear_expand_q8": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "linear_sgemm": {
+          "seconds": 0.0,
+          "calls": 0
+        }
+      },
+      "workload": "short",
+      "mode": "fresh_process",
+      "repetition": 3,
+      "profiled": false,
+      "consumer": "synchronous_memory_copy",
+      "output_duration_s": 3.2,
+      "rtf": 0.2490359375
+    },
+    {
+      "pcm_f32_sha256": "8532fc9c8ad9b747a1ea5974bb3bca00ad5ab3ee457d658317a80c4d436e4ba5",
+      "run": 0,
+      "engine_prepare_s": 0.03379,
+      "voice_open_s": 0.00022,
+      "first_pcm_s": 0.043192,
+      "synthesis_s": 0.770569,
+      "cpu_s": 0.77033,
+      "rss_high_water_bytes": 118308864,
+      "samples": 76800,
+      "frames": 40,
+      "chunks": 1,
+      "stages": {
+        "prefill": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "flow_head": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "mimi_pcm": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "incremental_backbone": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "linear_expand_bf16": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "linear_expand_q8": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "linear_sgemm": {
+          "seconds": 0.0,
+          "calls": 0
+        }
+      },
+      "workload": "short",
+      "mode": "fresh_process",
+      "repetition": 4,
+      "profiled": false,
+      "consumer": "synchronous_memory_copy",
+      "output_duration_s": 3.2,
+      "rtf": 0.24080281249999996
+    },
+    {
+      "pcm_f32_sha256": "8532fc9c8ad9b747a1ea5974bb3bca00ad5ab3ee457d658317a80c4d436e4ba5",
+      "run": 1,
+      "engine_prepare_s": 0.030886,
+      "voice_open_s": 0.000214,
+      "first_pcm_s": 0.042506,
+      "synthesis_s": 0.776708,
+      "cpu_s": 0.776431,
+      "rss_high_water_bytes": 121815040,
+      "samples": 76800,
+      "frames": 40,
+      "chunks": 1,
+      "stages": {
+        "prefill": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "flow_head": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "mimi_pcm": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "incremental_backbone": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "linear_expand_bf16": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "linear_expand_q8": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "linear_sgemm": {
+          "seconds": 0.0,
+          "calls": 0
+        }
+      },
+      "workload": "short",
+      "mode": "warm_resident",
+      "repetition": 0,
+      "profiled": false,
+      "consumer": "synchronous_memory_copy",
+      "output_duration_s": 3.2,
+      "rtf": 0.24272124999999997
+    },
+    {
+      "pcm_f32_sha256": "8532fc9c8ad9b747a1ea5974bb3bca00ad5ab3ee457d658317a80c4d436e4ba5",
+      "run": 2,
+      "engine_prepare_s": 0.030886,
+      "voice_open_s": 0.000214,
+      "first_pcm_s": 0.042031,
+      "synthesis_s": 0.787245,
+      "cpu_s": 0.781216,
+      "rss_high_water_bytes": 121847808,
+      "samples": 76800,
+      "frames": 40,
+      "chunks": 1,
+      "stages": {
+        "prefill": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "flow_head": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "mimi_pcm": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "incremental_backbone": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "linear_expand_bf16": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "linear_expand_q8": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "linear_sgemm": {
+          "seconds": 0.0,
+          "calls": 0
+        }
+      },
+      "workload": "short",
+      "mode": "warm_resident",
+      "repetition": 1,
+      "profiled": false,
+      "consumer": "synchronous_memory_copy",
+      "output_duration_s": 3.2,
+      "rtf": 0.2460140625
+    },
+    {
+      "pcm_f32_sha256": "8532fc9c8ad9b747a1ea5974bb3bca00ad5ab3ee457d658317a80c4d436e4ba5",
+      "run": 3,
+      "engine_prepare_s": 0.030886,
+      "voice_open_s": 0.000214,
+      "first_pcm_s": 0.042167,
+      "synthesis_s": 0.778939,
+      "cpu_s": 0.778539,
+      "rss_high_water_bytes": 121880576,
+      "samples": 76800,
+      "frames": 40,
+      "chunks": 1,
+      "stages": {
+        "prefill": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "flow_head": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "mimi_pcm": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "incremental_backbone": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "linear_expand_bf16": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "linear_expand_q8": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "linear_sgemm": {
+          "seconds": 0.0,
+          "calls": 0
+        }
+      },
+      "workload": "short",
+      "mode": "warm_resident",
+      "repetition": 2,
+      "profiled": false,
+      "consumer": "synchronous_memory_copy",
+      "output_duration_s": 3.2,
+      "rtf": 0.2434184375
+    },
+    {
+      "pcm_f32_sha256": "8532fc9c8ad9b747a1ea5974bb3bca00ad5ab3ee457d658317a80c4d436e4ba5",
+      "run": 4,
+      "engine_prepare_s": 0.030886,
+      "voice_open_s": 0.000214,
+      "first_pcm_s": 0.042161,
+      "synthesis_s": 0.769141,
+      "cpu_s": 0.768912,
+      "rss_high_water_bytes": 121913344,
+      "samples": 76800,
+      "frames": 40,
+      "chunks": 1,
+      "stages": {
+        "prefill": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "flow_head": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "mimi_pcm": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "incremental_backbone": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "linear_expand_bf16": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "linear_expand_q8": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "linear_sgemm": {
+          "seconds": 0.0,
+          "calls": 0
+        }
+      },
+      "workload": "short",
+      "mode": "warm_resident",
+      "repetition": 3,
+      "profiled": false,
+      "consumer": "synchronous_memory_copy",
+      "output_duration_s": 3.2,
+      "rtf": 0.24035656249999998
+    },
+    {
+      "pcm_f32_sha256": "8532fc9c8ad9b747a1ea5974bb3bca00ad5ab3ee457d658317a80c4d436e4ba5",
+      "run": 5,
+      "engine_prepare_s": 0.030886,
+      "voice_open_s": 0.000214,
+      "first_pcm_s": 0.045423,
+      "synthesis_s": 0.775759,
+      "cpu_s": 0.775171,
+      "rss_high_water_bytes": 121978880,
+      "samples": 76800,
+      "frames": 40,
+      "chunks": 1,
+      "stages": {
+        "prefill": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "flow_head": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "mimi_pcm": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "incremental_backbone": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "linear_expand_bf16": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "linear_expand_q8": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "linear_sgemm": {
+          "seconds": 0.0,
+          "calls": 0
+        }
+      },
+      "workload": "short",
+      "mode": "warm_resident",
+      "repetition": 4,
+      "profiled": false,
+      "consumer": "synchronous_memory_copy",
+      "output_duration_s": 3.2,
+      "rtf": 0.24242468749999999
+    },
+    {
+      "pcm_f32_sha256": "bf9e6b88bdbce5a1118089bcf5a1c215ca732d5fdbe769ad7d8973c087affe9e",
+      "run": 0,
+      "engine_prepare_s": 0.032847,
+      "voice_open_s": 0.000215,
+      "first_pcm_s": 0.049006,
+      "synthesis_s": 3.98633,
+      "cpu_s": 3.979129,
+      "rss_high_water_bytes": 128368640,
+      "samples": 393600,
+      "frames": 205,
+      "chunks": 2,
+      "stages": {
+        "prefill": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "flow_head": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "mimi_pcm": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "incremental_backbone": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "linear_expand_bf16": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "linear_expand_q8": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "linear_sgemm": {
+          "seconds": 0.0,
+          "calls": 0
+        }
+      },
+      "workload": "structured",
+      "mode": "fresh_process",
+      "repetition": 0,
+      "profiled": false,
+      "consumer": "synchronous_memory_copy",
+      "output_duration_s": 16.4,
+      "rtf": 0.24306890243902443
+    },
+    {
+      "pcm_f32_sha256": "bf9e6b88bdbce5a1118089bcf5a1c215ca732d5fdbe769ad7d8973c087affe9e",
+      "run": 0,
+      "engine_prepare_s": 0.032815,
+      "voice_open_s": 0.00022,
+      "first_pcm_s": 0.048941,
+      "synthesis_s": 3.970611,
+      "cpu_s": 3.961786,
+      "rss_high_water_bytes": 128352256,
+      "samples": 393600,
+      "frames": 205,
+      "chunks": 2,
+      "stages": {
+        "prefill": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "flow_head": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "mimi_pcm": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "incremental_backbone": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "linear_expand_bf16": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "linear_expand_q8": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "linear_sgemm": {
+          "seconds": 0.0,
+          "calls": 0
+        }
+      },
+      "workload": "structured",
+      "mode": "fresh_process",
+      "repetition": 1,
+      "profiled": false,
+      "consumer": "synchronous_memory_copy",
+      "output_duration_s": 16.4,
+      "rtf": 0.2421104268292683
+    },
+    {
+      "pcm_f32_sha256": "bf9e6b88bdbce5a1118089bcf5a1c215ca732d5fdbe769ad7d8973c087affe9e",
+      "run": 0,
+      "engine_prepare_s": 0.032965,
+      "voice_open_s": 0.000212,
+      "first_pcm_s": 0.048963,
+      "synthesis_s": 3.962461,
+      "cpu_s": 3.953252,
+      "rss_high_water_bytes": 128352256,
+      "samples": 393600,
+      "frames": 205,
+      "chunks": 2,
+      "stages": {
+        "prefill": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "flow_head": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "mimi_pcm": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "incremental_backbone": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "linear_expand_bf16": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "linear_expand_q8": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "linear_sgemm": {
+          "seconds": 0.0,
+          "calls": 0
+        }
+      },
+      "workload": "structured",
+      "mode": "fresh_process",
+      "repetition": 2,
+      "profiled": false,
+      "consumer": "synchronous_memory_copy",
+      "output_duration_s": 16.4,
+      "rtf": 0.2416134756097561
+    },
+    {
+      "pcm_f32_sha256": "bf9e6b88bdbce5a1118089bcf5a1c215ca732d5fdbe769ad7d8973c087affe9e",
+      "run": 0,
+      "engine_prepare_s": 0.033071,
+      "voice_open_s": 0.000216,
+      "first_pcm_s": 0.049553,
+      "synthesis_s": 3.966534,
+      "cpu_s": 3.96163,
+      "rss_high_water_bytes": 127238144,
+      "samples": 393600,
+      "frames": 205,
+      "chunks": 2,
+      "stages": {
+        "prefill": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "flow_head": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "mimi_pcm": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "incremental_backbone": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "linear_expand_bf16": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "linear_expand_q8": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "linear_sgemm": {
+          "seconds": 0.0,
+          "calls": 0
+        }
+      },
+      "workload": "structured",
+      "mode": "fresh_process",
+      "repetition": 3,
+      "profiled": false,
+      "consumer": "synchronous_memory_copy",
+      "output_duration_s": 16.4,
+      "rtf": 0.2418618292682927
+    },
+    {
+      "pcm_f32_sha256": "bf9e6b88bdbce5a1118089bcf5a1c215ca732d5fdbe769ad7d8973c087affe9e",
+      "run": 0,
+      "engine_prepare_s": 0.033258,
+      "voice_open_s": 0.000236,
+      "first_pcm_s": 0.049562,
+      "synthesis_s": 3.981851,
+      "cpu_s": 3.971966,
+      "rss_high_water_bytes": 128352256,
+      "samples": 393600,
+      "frames": 205,
+      "chunks": 2,
+      "stages": {
+        "prefill": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "flow_head": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "mimi_pcm": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "incremental_backbone": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "linear_expand_bf16": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "linear_expand_q8": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "linear_sgemm": {
+          "seconds": 0.0,
+          "calls": 0
+        }
+      },
+      "workload": "structured",
+      "mode": "fresh_process",
+      "repetition": 4,
+      "profiled": false,
+      "consumer": "synchronous_memory_copy",
+      "output_duration_s": 16.4,
+      "rtf": 0.24279579268292684
+    },
+    {
+      "pcm_f32_sha256": "bf9e6b88bdbce5a1118089bcf5a1c215ca732d5fdbe769ad7d8973c087affe9e",
+      "run": 1,
+      "engine_prepare_s": 0.032954,
+      "voice_open_s": 0.000219,
+      "first_pcm_s": 0.047972,
+      "synthesis_s": 3.961776,
+      "cpu_s": 3.954348,
+      "rss_high_water_bytes": 128548864,
+      "samples": 393600,
+      "frames": 205,
+      "chunks": 2,
+      "stages": {
+        "prefill": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "flow_head": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "mimi_pcm": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "incremental_backbone": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "linear_expand_bf16": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "linear_expand_q8": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "linear_sgemm": {
+          "seconds": 0.0,
+          "calls": 0
+        }
+      },
+      "workload": "structured",
+      "mode": "warm_resident",
+      "repetition": 0,
+      "profiled": false,
+      "consumer": "synchronous_memory_copy",
+      "output_duration_s": 16.4,
+      "rtf": 0.2415717073170732
+    },
+    {
+      "pcm_f32_sha256": "bf9e6b88bdbce5a1118089bcf5a1c215ca732d5fdbe769ad7d8973c087affe9e",
+      "run": 2,
+      "engine_prepare_s": 0.032954,
+      "voice_open_s": 0.000219,
+      "first_pcm_s": 0.047709,
+      "synthesis_s": 3.961341,
+      "cpu_s": 3.952973,
+      "rss_high_water_bytes": 128598016,
+      "samples": 393600,
+      "frames": 205,
+      "chunks": 2,
+      "stages": {
+        "prefill": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "flow_head": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "mimi_pcm": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "incremental_backbone": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "linear_expand_bf16": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "linear_expand_q8": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "linear_sgemm": {
+          "seconds": 0.0,
+          "calls": 0
+        }
+      },
+      "workload": "structured",
+      "mode": "warm_resident",
+      "repetition": 1,
+      "profiled": false,
+      "consumer": "synchronous_memory_copy",
+      "output_duration_s": 16.4,
+      "rtf": 0.24154518292682928
+    },
+    {
+      "pcm_f32_sha256": "bf9e6b88bdbce5a1118089bcf5a1c215ca732d5fdbe769ad7d8973c087affe9e",
+      "run": 3,
+      "engine_prepare_s": 0.032954,
+      "voice_open_s": 0.000219,
+      "first_pcm_s": 0.047368,
+      "synthesis_s": 3.958705,
+      "cpu_s": 3.949759,
+      "rss_high_water_bytes": 128663552,
+      "samples": 393600,
+      "frames": 205,
+      "chunks": 2,
+      "stages": {
+        "prefill": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "flow_head": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "mimi_pcm": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "incremental_backbone": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "linear_expand_bf16": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "linear_expand_q8": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "linear_sgemm": {
+          "seconds": 0.0,
+          "calls": 0
+        }
+      },
+      "workload": "structured",
+      "mode": "warm_resident",
+      "repetition": 2,
+      "profiled": false,
+      "consumer": "synchronous_memory_copy",
+      "output_duration_s": 16.4,
+      "rtf": 0.2413844512195122
+    },
+    {
+      "pcm_f32_sha256": "bf9e6b88bdbce5a1118089bcf5a1c215ca732d5fdbe769ad7d8973c087affe9e",
+      "run": 4,
+      "engine_prepare_s": 0.032954,
+      "voice_open_s": 0.000219,
+      "first_pcm_s": 0.047892,
+      "synthesis_s": 3.961533,
+      "cpu_s": 3.954537,
+      "rss_high_water_bytes": 128729088,
+      "samples": 393600,
+      "frames": 205,
+      "chunks": 2,
+      "stages": {
+        "prefill": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "flow_head": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "mimi_pcm": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "incremental_backbone": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "linear_expand_bf16": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "linear_expand_q8": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "linear_sgemm": {
+          "seconds": 0.0,
+          "calls": 0
+        }
+      },
+      "workload": "structured",
+      "mode": "warm_resident",
+      "repetition": 3,
+      "profiled": false,
+      "consumer": "synchronous_memory_copy",
+      "output_duration_s": 16.4,
+      "rtf": 0.24155689024390248
+    },
+    {
+      "pcm_f32_sha256": "bf9e6b88bdbce5a1118089bcf5a1c215ca732d5fdbe769ad7d8973c087affe9e",
+      "run": 5,
+      "engine_prepare_s": 0.032954,
+      "voice_open_s": 0.000219,
+      "first_pcm_s": 0.048185,
+      "synthesis_s": 3.964182,
+      "cpu_s": 3.955562,
+      "rss_high_water_bytes": 128827392,
+      "samples": 393600,
+      "frames": 205,
+      "chunks": 2,
+      "stages": {
+        "prefill": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "flow_head": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "mimi_pcm": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "incremental_backbone": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "linear_expand_bf16": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "linear_expand_q8": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "linear_sgemm": {
+          "seconds": 0.0,
+          "calls": 0
+        }
+      },
+      "workload": "structured",
+      "mode": "warm_resident",
+      "repetition": 4,
+      "profiled": false,
+      "consumer": "synchronous_memory_copy",
+      "output_duration_s": 16.4,
+      "rtf": 0.24171841463414637
+    },
+    {
+      "pcm_f32_sha256": "c0b3cdd89d933dcfebb96d587107791ae7d3dcdc318214db3dc5fe57d607d4c8",
+      "run": 0,
+      "engine_prepare_s": 0.033166,
+      "voice_open_s": 0.000233,
+      "first_pcm_s": 0.048568,
+      "synthesis_s": 7.847048,
+      "cpu_s": 7.827681,
+      "rss_high_water_bytes": 152895488,
+      "samples": 773760,
+      "frames": 403,
+      "chunks": 4,
+      "stages": {
+        "prefill": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "flow_head": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "mimi_pcm": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "incremental_backbone": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "linear_expand_bf16": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "linear_expand_q8": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "linear_sgemm": {
+          "seconds": 0.0,
+          "calls": 0
+        }
+      },
+      "workload": "long",
+      "mode": "fresh_process",
+      "repetition": 0,
+      "profiled": false,
+      "consumer": "synchronous_memory_copy",
+      "output_duration_s": 32.24,
+      "rtf": 0.24339478908188583
+    },
+    {
+      "pcm_f32_sha256": "c0b3cdd89d933dcfebb96d587107791ae7d3dcdc318214db3dc5fe57d607d4c8",
+      "run": 0,
+      "engine_prepare_s": 0.032959,
+      "voice_open_s": 0.000215,
+      "first_pcm_s": 0.04857,
+      "synthesis_s": 7.800518,
+      "cpu_s": 7.781614,
+      "rss_high_water_bytes": 152911872,
+      "samples": 773760,
+      "frames": 403,
+      "chunks": 4,
+      "stages": {
+        "prefill": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "flow_head": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "mimi_pcm": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "incremental_backbone": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "linear_expand_bf16": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "linear_expand_q8": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "linear_sgemm": {
+          "seconds": 0.0,
+          "calls": 0
+        }
+      },
+      "workload": "long",
+      "mode": "fresh_process",
+      "repetition": 1,
+      "profiled": false,
+      "consumer": "synchronous_memory_copy",
+      "output_duration_s": 32.24,
+      "rtf": 0.24195155086848635
+    },
+    {
+      "pcm_f32_sha256": "c0b3cdd89d933dcfebb96d587107791ae7d3dcdc318214db3dc5fe57d607d4c8",
+      "run": 0,
+      "engine_prepare_s": 0.032994,
+      "voice_open_s": 0.000228,
+      "first_pcm_s": 0.048825,
+      "synthesis_s": 7.83162,
+      "cpu_s": 7.818901,
+      "rss_high_water_bytes": 151781376,
+      "samples": 773760,
+      "frames": 403,
+      "chunks": 4,
+      "stages": {
+        "prefill": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "flow_head": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "mimi_pcm": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "incremental_backbone": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "linear_expand_bf16": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "linear_expand_q8": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "linear_sgemm": {
+          "seconds": 0.0,
+          "calls": 0
+        }
+      },
+      "workload": "long",
+      "mode": "fresh_process",
+      "repetition": 2,
+      "profiled": false,
+      "consumer": "synchronous_memory_copy",
+      "output_duration_s": 32.24,
+      "rtf": 0.24291625310173695
+    },
+    {
+      "pcm_f32_sha256": "c0b3cdd89d933dcfebb96d587107791ae7d3dcdc318214db3dc5fe57d607d4c8",
+      "run": 0,
+      "engine_prepare_s": 0.032346,
+      "voice_open_s": 0.000228,
+      "first_pcm_s": 0.049074,
+      "synthesis_s": 7.809956,
+      "cpu_s": 7.792783,
+      "rss_high_water_bytes": 152879104,
+      "samples": 773760,
+      "frames": 403,
+      "chunks": 4,
+      "stages": {
+        "prefill": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "flow_head": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "mimi_pcm": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "incremental_backbone": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "linear_expand_bf16": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "linear_expand_q8": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "linear_sgemm": {
+          "seconds": 0.0,
+          "calls": 0
+        }
+      },
+      "workload": "long",
+      "mode": "fresh_process",
+      "repetition": 3,
+      "profiled": false,
+      "consumer": "synchronous_memory_copy",
+      "output_duration_s": 32.24,
+      "rtf": 0.2422442928039702
+    },
+    {
+      "pcm_f32_sha256": "c0b3cdd89d933dcfebb96d587107791ae7d3dcdc318214db3dc5fe57d607d4c8",
+      "run": 0,
+      "engine_prepare_s": 0.033829,
+      "voice_open_s": 0.000227,
+      "first_pcm_s": 0.049155,
+      "synthesis_s": 7.807747,
+      "cpu_s": 7.797174,
+      "rss_high_water_bytes": 152928256,
+      "samples": 773760,
+      "frames": 403,
+      "chunks": 4,
+      "stages": {
+        "prefill": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "flow_head": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "mimi_pcm": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "incremental_backbone": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "linear_expand_bf16": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "linear_expand_q8": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "linear_sgemm": {
+          "seconds": 0.0,
+          "calls": 0
+        }
+      },
+      "workload": "long",
+      "mode": "fresh_process",
+      "repetition": 4,
+      "profiled": false,
+      "consumer": "synchronous_memory_copy",
+      "output_duration_s": 32.24,
+      "rtf": 0.24217577543424315
+    },
+    {
+      "pcm_f32_sha256": "c0b3cdd89d933dcfebb96d587107791ae7d3dcdc318214db3dc5fe57d607d4c8",
+      "run": 1,
+      "engine_prepare_s": 0.032974,
+      "voice_open_s": 0.000231,
+      "first_pcm_s": 0.048001,
+      "synthesis_s": 7.842808,
+      "cpu_s": 7.826721,
+      "rss_high_water_bytes": 158892032,
+      "samples": 773760,
+      "frames": 403,
+      "chunks": 4,
+      "stages": {
+        "prefill": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "flow_head": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "mimi_pcm": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "incremental_backbone": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "linear_expand_bf16": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "linear_expand_q8": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "linear_sgemm": {
+          "seconds": 0.0,
+          "calls": 0
+        }
+      },
+      "workload": "long",
+      "mode": "warm_resident",
+      "repetition": 0,
+      "profiled": false,
+      "consumer": "synchronous_memory_copy",
+      "output_duration_s": 32.24,
+      "rtf": 0.24326327543424314
+    },
+    {
+      "pcm_f32_sha256": "c0b3cdd89d933dcfebb96d587107791ae7d3dcdc318214db3dc5fe57d607d4c8",
+      "run": 2,
+      "engine_prepare_s": 0.032974,
+      "voice_open_s": 0.000231,
+      "first_pcm_s": 0.047779,
+      "synthesis_s": 7.841419,
+      "cpu_s": 7.829105,
+      "rss_high_water_bytes": 159055872,
+      "samples": 773760,
+      "frames": 403,
+      "chunks": 4,
+      "stages": {
+        "prefill": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "flow_head": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "mimi_pcm": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "incremental_backbone": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "linear_expand_bf16": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "linear_expand_q8": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "linear_sgemm": {
+          "seconds": 0.0,
+          "calls": 0
+        }
+      },
+      "workload": "long",
+      "mode": "warm_resident",
+      "repetition": 1,
+      "profiled": false,
+      "consumer": "synchronous_memory_copy",
+      "output_duration_s": 32.24,
+      "rtf": 0.2432201923076923
+    },
+    {
+      "pcm_f32_sha256": "c0b3cdd89d933dcfebb96d587107791ae7d3dcdc318214db3dc5fe57d607d4c8",
+      "run": 3,
+      "engine_prepare_s": 0.032974,
+      "voice_open_s": 0.000231,
+      "first_pcm_s": 0.047769,
+      "synthesis_s": 7.82324,
+      "cpu_s": 7.816168,
+      "rss_high_water_bytes": 159105024,
+      "samples": 773760,
+      "frames": 403,
+      "chunks": 4,
+      "stages": {
+        "prefill": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "flow_head": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "mimi_pcm": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "incremental_backbone": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "linear_expand_bf16": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "linear_expand_q8": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "linear_sgemm": {
+          "seconds": 0.0,
+          "calls": 0
+        }
+      },
+      "workload": "long",
+      "mode": "warm_resident",
+      "repetition": 2,
+      "profiled": false,
+      "consumer": "synchronous_memory_copy",
+      "output_duration_s": 32.24,
+      "rtf": 0.2426563275434243
+    },
+    {
+      "pcm_f32_sha256": "c0b3cdd89d933dcfebb96d587107791ae7d3dcdc318214db3dc5fe57d607d4c8",
+      "run": 4,
+      "engine_prepare_s": 0.032974,
+      "voice_open_s": 0.000231,
+      "first_pcm_s": 0.047925,
+      "synthesis_s": 7.82784,
+      "cpu_s": 7.818588,
+      "rss_high_water_bytes": 159219712,
+      "samples": 773760,
+      "frames": 403,
+      "chunks": 4,
+      "stages": {
+        "prefill": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "flow_head": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "mimi_pcm": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "incremental_backbone": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "linear_expand_bf16": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "linear_expand_q8": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "linear_sgemm": {
+          "seconds": 0.0,
+          "calls": 0
+        }
+      },
+      "workload": "long",
+      "mode": "warm_resident",
+      "repetition": 3,
+      "profiled": false,
+      "consumer": "synchronous_memory_copy",
+      "output_duration_s": 32.24,
+      "rtf": 0.2427990074441687
+    },
+    {
+      "pcm_f32_sha256": "c0b3cdd89d933dcfebb96d587107791ae7d3dcdc318214db3dc5fe57d607d4c8",
+      "run": 5,
+      "engine_prepare_s": 0.032974,
+      "voice_open_s": 0.000231,
+      "first_pcm_s": 0.047721,
+      "synthesis_s": 7.81877,
+      "cpu_s": 7.810644,
+      "rss_high_water_bytes": 159285248,
+      "samples": 773760,
+      "frames": 403,
+      "chunks": 4,
+      "stages": {
+        "prefill": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "flow_head": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "mimi_pcm": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "incremental_backbone": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "linear_expand_bf16": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "linear_expand_q8": {
+          "seconds": 0.0,
+          "calls": 0
+        },
+        "linear_sgemm": {
+          "seconds": 0.0,
+          "calls": 0
+        }
+      },
+      "workload": "long",
+      "mode": "warm_resident",
+      "repetition": 4,
+      "profiled": false,
+      "consumer": "synchronous_memory_copy",
+      "output_duration_s": 32.24,
+      "rtf": 0.24251767990074438
+    }
+  ],
+  "profiles": [
+    {
+      "workload": "short",
+      "excluded_warmup": {
+        "pcm_f32_sha256": "8532fc9c8ad9b747a1ea5974bb3bca00ad5ab3ee457d658317a80c4d436e4ba5",
+        "run": 0,
+        "engine_prepare_s": 0.051351,
+        "voice_open_s": 0.000258,
+        "first_pcm_s": 0.044544,
+        "synthesis_s": 0.782461,
+        "cpu_s": 0.780459,
+        "rss_high_water_bytes": 119406592,
+        "samples": 76800,
+        "frames": 40,
+        "chunks": 1,
+        "stages": {
+          "prefill": {
+            "seconds": 0.029585,
+            "calls": 1
+          },
+          "flow_head": {
+            "seconds": 0.116914,
+            "calls": 40
+          },
+          "mimi_pcm": {
+            "seconds": 0.491049,
+            "calls": 40
+          },
+          "incremental_backbone": {
+            "seconds": 0.143857,
+            "calls": 39
+          },
+          "linear_expand_bf16": {
+            "seconds": 0.180951,
+            "calls": 1643
+          },
+          "linear_expand_q8": {
+            "seconds": 0.113353,
+            "calls": 1458
+          },
+          "linear_sgemm": {
+            "seconds": 0.049577997,
+            "calls": 3101
+          }
+        }
+      },
+      "measurement": {
+        "pcm_f32_sha256": "8532fc9c8ad9b747a1ea5974bb3bca00ad5ab3ee457d658317a80c4d436e4ba5",
+        "run": 1,
+        "engine_prepare_s": 0.051351,
+        "voice_open_s": 0.000258,
+        "first_pcm_s": 0.04226,
+        "synthesis_s": 0.785387,
+        "cpu_s": 0.783652,
+        "rss_high_water_bytes": 120700928,
+        "samples": 76800,
+        "frames": 40,
+        "chunks": 1,
+        "stages": {
+          "prefill": {
+            "seconds": 0.028161,
+            "calls": 1
+          },
+          "flow_head": {
+            "seconds": 0.114741,
+            "calls": 40
+          },
+          "mimi_pcm": {
+            "seconds": 0.497161,
+            "calls": 40
+          },
+          "incremental_backbone": {
+            "seconds": 0.144561,
+            "calls": 39
+          },
+          "linear_expand_bf16": {
+            "seconds": 0.178359,
+            "calls": 1643
+          },
+          "linear_expand_q8": {
+            "seconds": 0.112423999,
+            "calls": 1458
+          },
+          "linear_sgemm": {
+            "seconds": 0.050041001,
+            "calls": 3101
+          }
+        }
+      }
+    },
+    {
+      "workload": "structured",
+      "excluded_warmup": {
+        "pcm_f32_sha256": "bf9e6b88bdbce5a1118089bcf5a1c215ca732d5fdbe769ad7d8973c087affe9e",
+        "run": 0,
+        "engine_prepare_s": 0.0355,
+        "voice_open_s": 0.000232,
+        "first_pcm_s": 0.051494,
+        "synthesis_s": 4.009216,
+        "cpu_s": 4.00103,
+        "rss_high_water_bytes": 128368640,
+        "samples": 393600,
+        "frames": 205,
+        "chunks": 2,
+        "stages": {
+          "prefill": {
+            "seconds": 0.068055,
+            "calls": 2
+          },
+          "flow_head": {
+            "seconds": 0.589916999,
+            "calls": 205
+          },
+          "mimi_pcm": {
+            "seconds": 2.602356,
+            "calls": 205
+          },
+          "incremental_backbone": {
+            "seconds": 0.745732001,
+            "calls": 203
+          },
+          "linear_expand_bf16": {
+            "seconds": 0.919602003,
+            "calls": 8408
+          },
+          "linear_expand_q8": {
+            "seconds": 0.561219,
+            "calls": 7416
+          },
+          "linear_sgemm": {
+            "seconds": 0.234663999,
+            "calls": 15824
+          }
+        }
+      },
+      "measurement": {
+        "pcm_f32_sha256": "bf9e6b88bdbce5a1118089bcf5a1c215ca732d5fdbe769ad7d8973c087affe9e",
+        "run": 1,
+        "engine_prepare_s": 0.0355,
+        "voice_open_s": 0.000232,
+        "first_pcm_s": 0.047855,
+        "synthesis_s": 4.016348,
+        "cpu_s": 3.99787,
+        "rss_high_water_bytes": 128548864,
+        "samples": 393600,
+        "frames": 205,
+        "chunks": 2,
+        "stages": {
+          "prefill": {
+            "seconds": 0.066542,
+            "calls": 2
+          },
+          "flow_head": {
+            "seconds": 0.592684,
+            "calls": 205
+          },
+          "mimi_pcm": {
+            "seconds": 2.601934999,
+            "calls": 205
+          },
+          "incremental_backbone": {
+            "seconds": 0.753385,
+            "calls": 203
+          },
+          "linear_expand_bf16": {
+            "seconds": 0.920586,
+            "calls": 8408
+          },
+          "linear_expand_q8": {
+            "seconds": 0.564992001,
+            "calls": 7416
+          },
+          "linear_sgemm": {
+            "seconds": 0.235969007,
+            "calls": 15824
+          }
+        }
+      }
+    },
+    {
+      "workload": "long",
+      "excluded_warmup": {
+        "pcm_f32_sha256": "c0b3cdd89d933dcfebb96d587107791ae7d3dcdc318214db3dc5fe57d607d4c8",
+        "run": 0,
+        "engine_prepare_s": 0.034911,
+        "voice_open_s": 0.000233,
+        "first_pcm_s": 0.049758,
+        "synthesis_s": 7.81171,
+        "cpu_s": 7.792711,
+        "rss_high_water_bytes": 152928256,
+        "samples": 773760,
+        "frames": 403,
+        "chunks": 4,
+        "stages": {
+          "prefill": {
+            "seconds": 0.136666,
+            "calls": 4
+          },
+          "flow_head": {
+            "seconds": 1.135137001,
+            "calls": 403
+          },
+          "mimi_pcm": {
+            "seconds": 5.066726,
+            "calls": 403
+          },
+          "incremental_backbone": {
+            "seconds": 1.468402998,
+            "calls": 399
+          },
+          "linear_expand_bf16": {
+            "seconds": 1.772671995,
+            "calls": 16526
+          },
+          "linear_expand_q8": {
+            "seconds": 1.109052001,
+            "calls": 14580
+          },
+          "linear_sgemm": {
+            "seconds": 0.456691005,
+            "calls": 31106
+          }
+        }
+      },
+      "measurement": {
+        "pcm_f32_sha256": "c0b3cdd89d933dcfebb96d587107791ae7d3dcdc318214db3dc5fe57d607d4c8",
+        "run": 1,
+        "engine_prepare_s": 0.034911,
+        "voice_open_s": 0.000233,
+        "first_pcm_s": 0.048083,
+        "synthesis_s": 7.750667,
+        "cpu_s": 7.73054,
+        "rss_high_water_bytes": 158875648,
+        "samples": 773760,
+        "frames": 403,
+        "chunks": 4,
+        "stages": {
+          "prefill": {
+            "seconds": 0.134581,
+            "calls": 4
+          },
+          "flow_head": {
+            "seconds": 1.139768,
+            "calls": 403
+          },
+          "mimi_pcm": {
+            "seconds": 5.009792,
+            "calls": 403
+          },
+          "incremental_backbone": {
+            "seconds": 1.461812,
+            "calls": 399
+          },
+          "linear_expand_bf16": {
+            "seconds": 1.770929002,
+            "calls": 16526
+          },
+          "linear_expand_q8": {
+            "seconds": 1.107765,
+            "calls": 14580
+          },
+          "linear_sgemm": {
+            "seconds": 0.457372999,
+            "calls": 31106
+          }
+        }
+      }
+    }
+  ],
+  "auditions": [
+    {
+      "workload": "short",
+      "path": "short.wav",
+      "sha256": "e1653a11cf7d39baf4a7b394ab727e995d802f9a74585bec50e1c28e0084faf2",
+      "text": "Hello there. I am ready to help you today.",
+      "listening": "pending",
+      "duration_s": 3.2,
+      "samples": 76800,
+      "frames": 40,
+      "chunks": 1,
+      "generation_settings": "provenance.generation"
+    },
+    {
+      "workload": "structured",
+      "path": "structured.wav",
+      "sha256": "1885b158708f20d71206a35d21e4631561a8a6e66aae77001d9f4c1977da6562",
+      "text": "Meeting notes for October 26, 2026. First, review the budget of $1,250. Next, email alex@example.com before 3:30 pm. Finally, confirm that all three tasks are complete.",
+      "listening": "pending",
+      "duration_s": 16.4,
+      "samples": 393600,
+      "frames": 205,
+      "chunks": 2,
+      "generation_settings": "provenance.generation"
+    },
+    {
+      "workload": "long",
+      "path": "long.wav",
+      "sha256": "950ce13409c9190a545204892748c3000bfc75057565dea26aef449f7fd65ed4",
+      "text": "The morning train moved slowly through the valley. Outside the window, fields gave way to small towns and quiet roads. A passenger opened a notebook and began to describe the journey. She wrote about the changing light, the distant hills, and the people waiting on each platform. At the next stop, a family boarded with a picnic basket. They talked about the walk they planned to take beside the river. By noon the clouds had cleared, and sunlight filled the carriage. The train continued toward the coast, where the passengers would spend the afternoon exploring a new city.",
+      "listening": "pending",
+      "duration_s": 32.24,
+      "samples": 773760,
+      "frames": 403,
+      "chunks": 4,
+      "generation_settings": "provenance.generation"
+    }
+  ],
+  "acoustic_onset_s": null
+}

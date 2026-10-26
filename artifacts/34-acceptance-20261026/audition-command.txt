@@ -1,0 +1,9 @@
+# Current source4753207, ordinary release shipping CLI; explicit completed output, no playback.
+for task_name in short structured long; do
+  PATH=/usr/bin:/bin .build/speech-mac say \
+    --file artifacts/32-phonon-baseline-20261026/$task_name.txt \
+    --model /Volumes/Code/Personal/kokoro-mac/.worktrees/phonon-migration-planning/.build/phonon-native-f6acc8f43cb296be-v1.kpack \
+    --voice-file /Volumes/Code/Personal/speech-mac-models/phonon-40m-en/default-voice.safetensors \
+    --output .build/ticket34/$task_name.wav || exit
+done
+# Defaults: seed0, duration_delta0, en, temperature.8, one flow step, EOS4.

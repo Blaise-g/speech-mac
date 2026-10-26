@@ -1,3 +1,5 @@
+> Historical Kokoro streaming plan (2026-10-12). Its source paths and APIs were removed in ticket 31. Current Phonon behavior is documented in README.md and phonon-engine.md.
+
 # Native streaming playback plan
 
 Status: playback and timing implemented; optimization criterion remains open · 2026-10-12

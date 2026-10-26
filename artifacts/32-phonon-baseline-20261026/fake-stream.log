@@ -1,0 +1,4 @@
+synthetic PCM controller/real AudioQueue adapter fake: bounded order, blocked submit/drain cancellation, error and stable terminal result ok (no model/device evidence)
+actual batch/stream exact samples=30720 frames=16; firstPCM 0.039986 submission 0.039995 start 0.039996 synthesisEnd 0.336642 drain 0.336643 seconds from monotonic synthesisBegin (fake consumer; acoustic onset unknown)
+SKIP muted device: explicitly select PHONON_STREAM_DEVICE=1 with silent-output build
+actual stream order/bounds/waits/generation+submit+drain+signal cancellation/errors/resident reuse/CLI: ok

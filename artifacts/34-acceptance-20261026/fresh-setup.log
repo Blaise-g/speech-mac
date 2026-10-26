@@ -1,0 +1,76 @@
+FRESH_TRACKED_SOURCE=4753207c6f5e3c188f665686a5c9c9f1b22d88ac
+FRESH_DIRECTORY=/var/folders/j1/4vzqsp717kbb3gth_48lxdkc0000gn/T/speech-mac-34-fresh-online-mk1biovs
+ISOLATED_UV_CACHE=/var/folders/j1/4vzqsp717kbb3gth_48lxdkc0000gn/T/speech-mac-34-uv-cache-v6de2qb4
+Using CPython 3.12.12
+Creating virtual environment at: reference/phonon/.venv
+Resolved 61 packages in 9ms
+   Updating https://github.com/huggingface/transformers.git (50e35cc0ca18ec19b80653690de553e6decf74f5)
+Downloading networkx (2.0MiB)
+Downloading tokenizers (3.0MiB)
+Downloading hf-xet (3.4MiB)
+Downloading sympy (6.0MiB)
+Downloading pygments (1.2MiB)
+Downloading numpy (4.8MiB)
+Downloading sentencepiece (1.2MiB)
+Downloading torch (65.5MiB)
+ Downloaded sentencepiece
+ Downloaded pygments
+ Downloaded networkx
+ Downloaded tokenizers
+ Downloaded hf-xet
+ Downloaded numpy
+ Downloaded sympy
+ Downloaded torch
+    Updated https://github.com/huggingface/transformers.git (50e35cc0ca18ec19b80653690de553e6decf74f5)
+   Building transformers @ git+https://github.com/huggingface/transformers.git@50e35cc0ca18ec19b80653690de553e6decf74f5
+      Built transformers @ git+https://github.com/huggingface/transformers.git@50e35cc0ca18ec19b80653690de553e6decf74f5
+Prepared 43 packages in 1m 38s
+Installed 43 packages in 278ms
+ + accelerate==1.15.0
+ + annotated-doc==0.0.5
+ + anyio==4.15.1
+ + certifi==2026.10.23
+ + charset-normalizer==3.5.2
+ + click==8.5.0
+ + filelock==4.2.4
+ + fsspec==2026.9.0
+ + gguf==0.19.0
+ + h11==0.16.0
+ + hf-xet==1.7.0
+ + httpcore2==2.16.0
+ + httpx2==2.16.0
+ + huggingface-hub==2.3.0
+ + idna==3.20
+ + jinja2==3.1.6
+ + markdown-it-py==4.2.0
+ + markupsafe==3.0.4
+ + mdurl==0.1.2
+ + mpmath==1.3.0
+ + networkx==3.7
+ + numpy==2.2.6
+ + packaging==26.3
+ + protobuf==6.33.1
+ + psutil==7.2.2
+ + pygments==2.21.0
+ + pyyaml==6.0.3
+ + regex==2026.9.29
+ + requests==2.34.2
+ + rich==15.0.0
+ + safetensors==0.8.0
+ + sentencepiece==0.2.1
+ + setuptools==84.2.1
+ + shellingham==1.5.4
+ + sympy==1.14.0
+ + tokenizers==0.23.3
+ + torch==2.7.1
+ + tqdm==4.70.1
+ + transformers==5.21.0.dev0 (from git+https://github.com/huggingface/transformers.git@50e35cc0ca18ec19b80653690de553e6decf74f5)
+ + truststore==0.10.5
+ + typer==0.27.3
+ + typing-extensions==4.16.0
+ + urllib3==2.8.0
+verified 12 assets against committed pins
+/private/var/folders/j1/4vzqsp717kbb3gth_48lxdkc0000gn/T/speech-mac-34-fresh-online-mk1biovs/.build/phonon-native-f6acc8f43cb296be-v1.kpack
+/private/var/folders/j1/4vzqsp717kbb3gth_48lxdkc0000gn/T/speech-mac-34-fresh-online-mk1biovs/.build/phonon-native-q8-projections-v1.bin
+default
+FRESH_BUILD_SETUP_EXIT=0

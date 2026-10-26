@@ -1,0 +1,17 @@
+FRESH_TRACKED_SOURCE=4753207c6f5e3c188f665686a5c9c9f1b22d88ac
+FRESH_DIRECTORY=/var/folders/j1/4vzqsp717kbb3gth_48lxdkc0000gn/T/speech-mac-34-fresh-37_24n54
+warning: `VIRTUAL_ENV=/Volumes/Code/Personal/kokoro-mac/.worktrees/phonon-migration-planning/reference/phonon/.venv` does not match the project environment path `reference/phonon/.venv` and will be ignored; use `--active` to target the active environment instead
+Using CPython 3.12.12
+Creating virtual environment at: reference/phonon/.venv
+Resolved 61 packages in 12ms
+   Updating https://github.com/huggingface/transformers.git (50e35cc0ca18ec19b80653690de553e6decf74f5)
+error: Failed to download `sympy==1.14.0`
+  cause: Network connectivity is disabled, but the requested data wasn't found in the cache: https://files.pythonhosted.org/packages/a2/09/77d55d46fd61b4a135c444fc97158ef34a095e5681d0a6c10b75bf356191/sympy-1.14.0-py3-none-any.whl
+
+hint: `sympy` (v1.14.0) was included because `phonon-40m-reference` (v0.1.0) depends on `torch` (v2.7.1) which depends on `sympy`
+Traceback (most recent call last):
+  File "/Volumes/Code/Personal/kokoro-mac/.worktrees/phonon-migration-planning/.build/ticket34/fresh.py", line 10, in <module>
+    subprocess.run(['sh','-c',script],cwd=fresh,check=True)
+  File "/Users/lorenzogermini/.local/share/uv/python/cpython-3.12-macos-aarch64-none/lib/python3.12/subprocess.py", line 571, in run
+    raise CalledProcessError(retcode, process.args,
+subprocess.CalledProcessError: Command '['sh', '-c', '#!/bin/sh\n# Run inside a clean tracked-source checkout. Choose a persistent asset directory.\nset -eu\n: "${PHONON_MODEL_DIR:?Set an absolute persistent directory outside disposable checkouts}"\ncase "$PHONON_MODEL_DIR" in /*) ;; *) exit 2;; esac\nexport PHONON_MODEL_DIR\nexport UV_CACHE_DIR="${UV_CACHE_DIR:-/private/tmp/speech-mac-uv-cache}"\nuv sync --project reference/phonon --locked --offline\n# First-time gated setup: accept the model terms and authenticate locally, then:\n# uv run --project reference/phonon --locked python reference/phonon/download_assets.py\n# Existing pinned assets may be reused read-only; never substitute another model.\nuv run --project reference/phonon --offline --no-sync --locked python reference/phonon/verify_assets.py\nmake phonon-native-pack\nmkdir -p models voices\n# Copies prevent mutation checks in this checkout from modifying shared assets.\ncp .build/phonon-native-f6acc8f43cb296be-v1.kpack models/phonon-40m-en.kpack\ncp "$PHONON_MODEL_DIR/default-voice.safetensors" voices/default.safetensors\nmake build\n# Explicit output saves audio without playback. No streaming/device action here.\nPATH=/usr/bin:/bin .build/speech-mac say \'Hello.\' --seed 123 --output .build/fresh-default.wav\n.build/speech-mac voices\n']' returned non-zero exit status 1.
