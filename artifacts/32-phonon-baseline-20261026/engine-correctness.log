@@ -1,0 +1,12 @@
+engine actual record=0 samples=30720 chunks=1 expected=30720/1
+engine record=0 samples=30720 nrmse=1.28780352e-06 max_abs=2.29477882e-06
+engine record=0 samples=30720 nrmse=1.28780352e-06 max_abs=2.29477882e-06
+engine actual record=1 samples=49920 chunks=1 expected=49920/1
+engine record=1 samples=49920 nrmse=1.52784724e-05 max_abs=1.94697641e-05
+engine actual record=2 samples=72960 chunks=1 expected=72960/1
+engine record=2 samples=72960 nrmse=2.74799634e-05 max_abs=8.28951597e-05
+engine actual record=3 samples=503040 chunks=2 expected=503040/2
+engine record=3 samples=503040 nrmse=1.12840559e-06 max_abs=6.16908073e-06
+engine actual record=4 samples=1242240 chunks=2 expected=1242240/2
+engine record=4 samples=1242240 nrmse=1.68312266e-06 max_abs=5.06639481e-06
+speech tests passed
