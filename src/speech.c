@@ -3,6 +3,7 @@
 #include "phonon_pcm.h"
 #include "phonon_prompt_plan.h"
 #include "phonon_sampler.h"
+#include "speech_profile.h"
 #include "speech_test.h"
 #include <math.h>
 #include <stdlib.h>
@@ -105,10 +106,12 @@ static SpeechStatus chunk(const SpeechEngine *e, const PhononPromptChunk *c, con
         status = SPEECH_CANCELLED;
         goto done;
     }
+    SPEECH_PROFILE_BEGIN("prefill");
     if (!phonon_flow_stack_prefill_cancel(e->layers, &cache, prefix, prefix_length, 10000.f, state,
                                           poll, cancel) ||
         !phonon_flow_output_norm(e->pack, state))
         goto done;
+    SPEECH_PROFILE_END("prefill");
     PhononStopState stop;
     if (!phonon_stop_init(&stop, c->frame_budget, c->frames_after_eos))
         goto done;
@@ -122,10 +125,12 @@ static SpeechStatus chunk(const SpeechEngine *e, const PhononPromptChunk *c, con
             status = SPEECH_LIMIT;
             goto done;
         }
+        SPEECH_PROFILE_BEGIN("flow_head");
         if (!phonon_flow_eos_logit(e->pack, state, &logit) || !phonon_noise_frame(noise, raw) ||
             !phonon_flow_lsd_one_step_cancel(&e->head, state, raw, .8f, normalized, poll, cancel) ||
             !phonon_flow_denormalize_latent(e->pack, normalized, latent))
             goto done;
+        SPEECH_PROFILE_END("flow_head");
         if (cancel->observer)
             cancel->observer(cancel->observer_context, result->frames_generated, state, normalized,
                              logit);
@@ -133,8 +138,10 @@ static SpeechStatus chunk(const SpeechEngine *e, const PhononPromptChunk *c, con
             status = SPEECH_CANCELLED;
             goto done;
         }
+        SPEECH_PROFILE_BEGIN("mimi_pcm");
         if (!phonon_pcm_process(pcm, latent, 1, samples, 1920, NULL, 0))
             goto done;
+        SPEECH_PROFILE_END("mimi_pcm");
         if (poll(cancel)) {
             status = SPEECH_CANCELLED;
             goto done;
@@ -158,11 +165,13 @@ static SpeechStatus chunk(const SpeechEngine *e, const PhononPromptChunk *c, con
             goto done;
         }
         float input[512];
+        SPEECH_PROFILE_BEGIN("incremental_backbone");
         if (!phonon_flow_embed_latent(e->pack, normalized, condition, input) ||
             !phonon_flow_stack_step_cancel(e->layers, &cache, prefix_length + frame, input, 10000.f,
                                            state, poll, cancel) ||
             !phonon_flow_output_norm(e->pack, state))
             goto done;
+        SPEECH_PROFILE_END("incremental_backbone");
     }
 done:
     if (cancel->stopped)

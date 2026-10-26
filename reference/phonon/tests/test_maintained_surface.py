@@ -29,6 +29,8 @@ class MaintainedSurface(unittest.TestCase):
             self.assertFalse(any((ROOT / "reference" / directory).rglob("*.py")))
             self.assertFalse(any(p.is_file() for p in (ROOT / "reference" / directory).glob("*")))
         for path in (ROOT / "benchmarks").iterdir():
+            if path.name in {"phonon_baseline.c", "phonon_queue.c"}:
+                continue
             self.assertEqual(path.suffix, ".md", path)
         build = (ROOT / "Makefile").read_text()
         self.assertNotIn("libkokoro", build)

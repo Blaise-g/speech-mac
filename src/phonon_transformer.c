@@ -2,6 +2,7 @@
 #include "phonon_math.h"
 #include "phonon_q8.h"
 #include "phonon_transformer_test.h"
+#include "speech_profile.h"
 
 #define ACCELERATE_NEW_LAPACK
 #include <Accelerate/Accelerate.h>
@@ -311,6 +312,8 @@ int phonon_linear_batch(const PhononTensorView *weight, const float *input, size
      * the same Accelerate SGEMM reduction and bias accumulation here.
      * Expanded weights are call-owned; the borrowed pack stays immutable.
      * Transient expansion is a correctness baseline, not a speed claim. */
+    SPEECH_PROFILE_BEGIN(weight->dtype == PHONON_PACK_BF16 ? "linear_expand_bf16"
+                                                           : "linear_expand_q8");
     float *expanded = malloc(elements * sizeof(float));
     if (!expanded)
         return 0;
@@ -333,6 +336,8 @@ int phonon_linear_batch(const PhononTensorView *weight, const float *input, size
                 expanded[block * 32 + i] = scale * (float)blocks[block].values[i];
         }
     }
+    SPEECH_PROFILE_END(weight->dtype == PHONON_PACK_BF16 ? "linear_expand_bf16"
+                                                         : "linear_expand_q8");
     for (size_t r = 0; r < batch * rows; ++r) {
         if (bias && !isfinite(bias[r % rows])) {
             free(expanded);
@@ -340,8 +345,10 @@ int phonon_linear_batch(const PhononTensorView *weight, const float *input, size
         }
         output[r] = bias ? bias[r % rows] : 0.0f;
     }
+    SPEECH_PROFILE_BEGIN("linear_sgemm");
     cblas_sgemm(CblasRowMajor, CblasNoTrans, CblasTrans, (int)batch, (int)rows, (int)columns, 1.0f,
                 input, (int)columns, expanded, (int)columns, bias ? 1.0f : 0.0f, output, (int)rows);
+    SPEECH_PROFILE_END("linear_sgemm");
     free(expanded);
     for (size_t r = 0; r < batch * rows; ++r)
         if (!isfinite(output[r]))
