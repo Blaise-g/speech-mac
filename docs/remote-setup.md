@@ -12,7 +12,7 @@ Checked on 2026-10-12 for `Blaise-g/kokoro-mac`.
 | Required CI check | Unavailable | Same plan restriction; the configured workflow emits job check `check` |
 | Production branch | Not configured | No deployment workflow or separate production branch was present |
 
-The branch-protection and repository-ruleset APIs returned GitHub's plan-limit response: this feature requires GitHub Pro for a private repository or a public repository. The project keeps its current private visibility, so GitHub cannot enforce PR-only changes, prevent force-pushes or deletions, or require the CI check. The repository is solo-maintained, so its contribution policy does not require a second reviewer. The [protected branches documentation](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches) and [ruleset availability documentation](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-rulesets/available-rules-for-rulesets) describe the provider limits.
+The branch-protection and repository-ruleset APIs returned GitHub's plan-limit response: this feature requires GitHub Pro for a private repository or a public repository. At that time the project kept private visibility, so GitHub could not enforce PR-only changes, prevent force-pushes or deletions, or require the CI check. The repository is solo-maintained, so its contribution policy does not require a second reviewer. The [protected branches documentation](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches) and [ruleset availability documentation](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-rulesets/available-rules-for-rulesets) describe the provider limits.
 
 ## CI evidence
 
@@ -27,3 +27,7 @@ The workflow does not fetch ignored model weights. Local model-backed checks req
 The current repository is [`Blaise-g/speech-mac`](https://github.com/Blaise-g/speech-mac), renamed from `Blaise-g/kokoro-mac`. Origin fetch and push use `https://github.com/Blaise-g/speech-mac.git`. The local checkout paths were retained.
 
 The [before/after readbacks](../artifacts/35-repository-rename-20261026/README.md) verify the same repository ID, complete remote refs, main SHA, private visibility, permissions, merge settings and CI workflow. Both open-PR censuses were empty. The bootstrap run URL above retains its historical repository name as provenance. The rename did not push the feature branch or run feature-branch CI.
+
+## Public setup follow-up, 2026-10-26
+
+The requested publication changes the repository to public after the setup and documentation review. The private-plan limitations above are dated historical evidence. Public visibility permits additional protection features but does not enable any of them; this follow-up does not change branch protections, rulesets or required checks. The coordinator records the live visibility and CI readback after publication.

@@ -16,10 +16,11 @@ SPEECH_SOURCES := src/speech_main.c $(ENGINE_SOURCES)
 C_SOURCES := $(shell find src tests benchmarks -type f -name '*.c' -print 2>/dev/null | sort)
 FORMAT_FILES := $(shell find src tests benchmarks -type f \( -name '*.c' -o -name '*.h' \) -print 2>/dev/null | sort)
 
-.PHONY: help setup dev format format-check lint typecheck build test test-one check-fast check clean source-discovery phonon-reference-check phonon-native-pack phonon-native-check english-normalization-probe
+.PHONY: help bootstrap bootstrap-test setup dev format format-check lint typecheck build test test-one check-fast check clean source-discovery phonon-reference-check phonon-native-pack phonon-native-check english-normalization-probe
 
 help:
 	@printf '%s\n' \
+	  'make bootstrap                     prepare verified assets and build the Mac CLI' \
 	  'make setup                         install the repository-local pre-commit hook' \
 	  'make dev                           build the development CLI' \
 	  'make format                        format C sources and headers' \
@@ -28,6 +29,12 @@ help:
 	  'make check-fast                    format check, lint, typecheck, and tests' \
 	  'make check                         run the full local check sequence' \
 	  'make clean                         remove local build artifacts'
+
+bootstrap:
+	@sh scripts/bootstrap.sh
+
+bootstrap-test:
+	@uv run --no-project --python 3.12 python -m unittest discover -s scripts/tests
 
 setup:
 	@./scripts/setup.sh
@@ -112,7 +119,7 @@ source-discovery:
 
 check-fast: format-check lint typecheck test
 
-check: format-check lint typecheck build test removal-check
+check: format-check lint typecheck build test removal-check bootstrap-test
 
 clean:
 	rm -rf $(BUILD_DIR)
