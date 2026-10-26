@@ -4,11 +4,32 @@ from pathlib import Path
 import re
 import subprocess
 import unittest
+import tempfile
 
 ROOT = Path(__file__).resolve().parents[3]
 
 
 class MaintainedSurface(unittest.TestCase):
+    def test_installed_assets_leave_checkout_clean(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            env = {**os.environ, "GIT_CONFIG_NOSYSTEM": "1", "GIT_CONFIG_GLOBAL": os.devnull,
+                   "HOME": directory, "XDG_CONFIG_HOME": directory}
+            def git(*args):
+                return subprocess.check_output(["git", "-c", "core.excludesFile=" + os.devnull,
+                    *args], cwd=root, env=env, text=True).strip()
+            git("init", "-q")
+            (root / ".gitignore").write_text((ROOT / ".gitignore").read_text())
+            git("add", ".gitignore")
+            for name in ("models/phonon-40m-en/model.gguf", "voices/default.safetensors",
+                         "voices/alice.safetensors"):
+                path = root / name
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_bytes(b"installed asset")
+                self.assertEqual(git("check-ignore", name), name)
+            self.assertEqual(git("ls-files", "--others", "--exclude-standard"), "")
+            self.assertEqual(git("diff", "--name-only"), "")
+
     def test_no_legacy_runtime_or_public_identifiers(self):
         removed = ("main.c", "cli.c", "kokoro.h", "kokoro.c", "model_pack.c", "synthesis.c",
                    "english_frontend.c", "ipa_tokenizer.c", "voice_artifact.c", "stream.c")
