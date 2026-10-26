@@ -14,7 +14,7 @@ class MaintainedSurface(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             env = {**os.environ, "GIT_CONFIG_NOSYSTEM": "1", "GIT_CONFIG_GLOBAL": os.devnull,
-                   "HOME": directory, "XDG_CONFIG_HOME": directory}
+                   "XDG_CONFIG_HOME": directory}
             def git(*args):
                 return subprocess.check_output(["git", "-c", "core.excludesFile=" + os.devnull,
                     *args], cwd=root, env=env, text=True).strip()
